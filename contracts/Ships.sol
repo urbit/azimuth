@@ -236,7 +236,7 @@ contract Ships is Ownable
   }
 
   function isLauncher(uint16 _star, address _launcher)
-    onlyOwner
+    constant
     public
     returns (bool result)
   {

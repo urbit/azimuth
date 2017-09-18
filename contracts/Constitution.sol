@@ -26,6 +26,7 @@ contract Constitution is ConstitutionBase
 
   // spend a spark to claim a star.
   // the star claimed must be State.Liquid.
+  //NOTE caller should first USP.approve(this, 1);
   function claimStar(uint16 _star)
     external
   {
@@ -35,7 +36,6 @@ contract Constitution is ConstitutionBase
     //     much. it is possible for a malicious miner to mess with the timestamp
     //     but there is no incentive for doing so here.
     ships.setLocked(_star, uint64(block.timestamp));
-    //TODO allowance?
     //TODO or *actually* burn the token?
     USP.transferFrom(msg.sender, 0, 1);
   }
@@ -62,7 +62,7 @@ contract Constitution is ConstitutionBase
   {
     require(ships.isState(_ship, Ships.State.Latent));
     uint16 parent = ships.getOriginalParent(_ship);
-    require(ships.isState(parent, Ships.State.Living));
+    require(parent == _ship || ships.isState(parent, Ships.State.Living));
     require(ships.isPilot(parent, msg.sender)
             || ships.isLauncher(parent, msg.sender));
     ships.setPilot(_ship, _target);
@@ -92,6 +92,7 @@ contract Constitution is ConstitutionBase
     pilot(_ship)
   {
     require(ships.isState(_ship, Ships.State.Locked));
+    require(ships.getLocked(_ship) <= block.timestamp);
     ships.setKey(_ship, _key);
     ships.setLiving(_ship);
     if (_ship < 256)
