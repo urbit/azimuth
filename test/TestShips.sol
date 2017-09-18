@@ -8,10 +8,12 @@ contract TestShips
 {
   Ships ships;
   address us;
+  uint64 time;
   function beforeAll()
   {
     ships = new Ships();
     us = address(this);
+    time = uint64(now);
   }
 
   function testGetOriginalParent()
@@ -44,7 +46,7 @@ contract TestShips
     Assert.equal(ships.hasPilot(0), true,
       "should have pilot");
     Assert.equal(ships.isPilot(0, us), true,
-      "pilot incorrectly set");
+      "isPilot should agree");
   }
 
   function testPilotShiplist()
@@ -76,9 +78,9 @@ contract TestShips
     // locked
     Assert.equal(ships.getLocked(0), uint256(0),
       "should be 0 by default");
-    ships.setLocked(0, uint64(now));
-    Assert.equal(ships.getLocked(0), now,
-      "should be set to now");
+    ships.setLocked(0, time);
+    Assert.equal(ships.getLocked(0), uint256(time),
+      "should be set to time");
     Assert.isTrue(ships.isState(0, Ships.State.Locked),
       "should be set to locked");
     // living
