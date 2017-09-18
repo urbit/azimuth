@@ -28,7 +28,6 @@ contract Constitution is ConstitutionBase
   // the star claimed must be State.Liquid.
   function claimStar(uint16 _star)
     external
-    latest
   {
     require(ships.isState(_star, Ships.State.Liquid));
     ships.setPilot(_star, msg.sender);
@@ -50,7 +49,6 @@ contract Constitution is ConstitutionBase
   //TODO batch operation?
   function liquidateStar(uint16 _star)
     external
-    latest
     parent(_star)
   {
     require(ships.isState(_star, Ships.State.Latent));
@@ -61,7 +59,6 @@ contract Constitution is ConstitutionBase
   // launch a star or planet, making a target address its owner.
   function launch(uint32 _ship, address _target)
     external
-    latest
   {
     require(ships.isState(_ship, Ships.State.Latent));
     uint16 parent = ships.getOriginalParent(_ship);
@@ -75,7 +72,6 @@ contract Constitution is ConstitutionBase
   // allow the given address to launch planets belonging to the star.
   function grantLaunchRights(uint16 _star, address _launcher)
     external
-    latest
     pilot(_star)
   {
     require(ships.isState(_star, Ships.State.Living));
@@ -85,7 +81,6 @@ contract Constitution is ConstitutionBase
   // disallow the given address to launch planets belonging to the star.
   function revokeLaunchRights(uint16 _star, address _launcher)
     external
-    latest
     pilot(_star)
   {
     ships.setLauncher(_star, _launcher, false);
@@ -94,7 +89,6 @@ contract Constitution is ConstitutionBase
   // bring a locked ship to life and set its public key.
   function start(uint32 _ship, bytes32 _key)
     external
-    latest
     pilot(_ship)
   {
     require(ships.isState(_ship, Ships.State.Locked));
@@ -109,7 +103,6 @@ contract Constitution is ConstitutionBase
   // transfer a living ship to a different address.
   function transferShip(uint32 _ship, address _target)
     external
-    latest
     pilot(_ship)
   {
     ships.setKey(_ship, 0);
@@ -119,7 +112,6 @@ contract Constitution is ConstitutionBase
   // set the public key for a ship.
   function rekey(uint32 _ship, bytes32 _key)
     external
-    latest
     pilot(_ship)
   {
     ships.setKey(_ship, _key);
@@ -129,7 +121,6 @@ contract Constitution is ConstitutionBase
   // takes effect when the new parent accepts the adoption.
   function escape(uint32 _ship, uint16 _parent)
     external
-    latest
     pilot(_ship)
   {
     ships.setEscape(_ship, _parent);
@@ -138,7 +129,6 @@ contract Constitution is ConstitutionBase
   // accept an escaping ship.
   function adopt(uint16 _parent, uint32 _child)
     external
-    latest
     pilot(_parent)
   {
     require(ships.isEscape(_child, _parent));
@@ -148,7 +138,6 @@ contract Constitution is ConstitutionBase
   // reject an escaping ship.
   function reject(uint16 _parent, uint32 _child)
     external
-    latest
     pilot(_parent)
   {
     require(ships.isEscape(_child, _parent));
@@ -160,7 +149,6 @@ contract Constitution is ConstitutionBase
 
   function castVote(uint8 _galaxy, address _proposal, bool _vote)
     external
-    latest
     pilot(_galaxy)
     alive(_galaxy)
   {
@@ -175,7 +163,6 @@ contract Constitution is ConstitutionBase
 
   function castVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
     external
-    latest
     pilot(_galaxy)
     alive(_galaxy)
   {
@@ -188,7 +175,6 @@ contract Constitution is ConstitutionBase
   // assign initial galaxy owner and birthdate. can only be done once.
   function createGalaxy(uint8 _galaxy, address _target, uint64 _date)
     external
-    latest
     onlyOwner
   {
     require(!ships.hasPilot(_galaxy));

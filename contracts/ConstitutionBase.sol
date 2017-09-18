@@ -15,8 +15,6 @@ contract ConstitutionBase is Ownable
   Votes public votes;
   MintableToken public USP;
 
-  bool public deprecated;
-
   function ConstitutionBase()
   {
     //
@@ -37,15 +35,6 @@ contract ConstitutionBase is Ownable
     ships.transferOwnership(_new);
     votes.transferOwnership(_new);
     USP.transferOwnership(_new);
-    deprecated = true;
     selfdestruct(_new);
-  }
-
-  // to ensure all calls to outdated constitutions explicitly fail, we tag all
-  // public functions with this modifier.
-  modifier latest()
-  {
-    require(!deprecated);
-    _;
   }
 }
