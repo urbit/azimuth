@@ -8,11 +8,11 @@ import './Spark.sol';
 
 contract Constitution is ConstitutionBase
 {
-  function Constitution(Ships _ships, Votes _votes)
+  function Constitution(Ships _ships, Votes _votes, Spark _USP)
   {
     ships = _ships;
     votes = _votes;
-    USP = new Spark();
+    USP = _USP;
   }
 
   function mintSpark(address _target)
