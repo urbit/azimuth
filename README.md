@@ -1,8 +1,8 @@
 # The Urbit Constitution
 
-An Urbit PKI on the Ethereum blockchain.
+The Urbit PKI on the Ethereum blockchain.  
 
-@TODO link to fora post here.
+This is currently a work in progress.  Feel free to poke around and open issues or ask questions.  The [Urbit fora](https://urbit.org/fora) is also a good place for open-ended discussion related to this repo.
 
 ## Dependencies
 
@@ -35,5 +35,3 @@ Since `TestConstitution.sol` instantiates three (secretly four) contracts in its
 Even with those changes, `TestConstitution.sol` can't run in its entirety without hitting the gas limit for some reason. Comment out the `Assert` calls of the tests you don't currently care about to ensure the others can run.
 
 (Yes, this is awful. A fix is being investigated. Rest assured that normal operation of the Constitution won't hit any gas limits on the live network.)
-
-
