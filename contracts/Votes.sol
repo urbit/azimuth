@@ -15,10 +15,6 @@ contract Votes is Ownable
 
   mapping(address => bool[256]) private concreteVotes;
   mapping(address => uint8) public concreteVoteCounts;
-  // since this contract's address will remain static, but the constitution's
-  // will change, we provide this as an always available point of access to get
-  // the latest constitution's address.
-  address public latestConcreteMajority;
   // we keep track of majorities that have already taken effect in the past, so
   // that people voting for an old majority proposal don't cause it to take
   // effect again.
@@ -59,7 +55,6 @@ contract Votes is Ownable
       if (newCount > totalVoters / 2
           && !historicMajorities[_proposal])
       {
-        latestConcreteMajority = _proposal;
         historicMajorities[_proposal] = true;
         ConcreteMajority(_proposal);
         return true;
