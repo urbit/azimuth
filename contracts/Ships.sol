@@ -90,6 +90,14 @@ contract Ships is Ownable
             ship.escape);
   }
 
+  function getOwnedShips()
+    constant
+    public
+    returns (uint32[] ships)
+  {
+    return pilots[msg.sender];
+  }
+
   function hasPilot(uint32 _ship)
     constant
     public
