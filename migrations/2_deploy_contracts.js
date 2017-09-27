@@ -18,14 +18,18 @@ module.exports = async function(deployer) {
   var ships, votes, spark, constitution;
   deployer.then(function() {
   }).then(function() {
-    return deployer.deploy([Ships, Votes, Spark]);
+    return deployer.deploy(Ships);
   }).then(function() {
     return Ships.deployed();
   }).then(function(instance) {
     ships = instance;
+    return deployer.deploy(Votes);
+  }).then(function() {
     return Votes.deployed();
   }).then(function(instance) {
     votes = instance;
+    return deployer.deploy(Spark);
+  }).then(function() {
     return Spark.deployed();
   }).then(function(instance) {
     spark = instance;
