@@ -35,10 +35,14 @@ contract TestVotes
       "should not be majority yet");
     Assert.isFalse(votes.historicMajorities(us),
       "should not be historic majority yet");
+    Assert.isTrue(votes.getVote(0, us),
+      "should have set vote");
     Assert.equal(votes.concreteVoteCounts(us), uint256(1),
       "should have added single vote");
     Assert.isFalse(votes.castVote(0, us, false),
       "should not be majority yet");
+    Assert.isFalse(votes.getVote(0, us),
+      "should have unset vote");
     Assert.equal(votes.concreteVoteCounts(us), uint256(0),
       "should have subtracted vote");
   }

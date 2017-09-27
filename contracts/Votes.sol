@@ -36,6 +36,22 @@ contract Votes is Ownable
     totalVoters = totalVoters + 1;
   }
 
+  function getVote(uint8 _galaxy, address _proposal)
+    external
+    constant
+    returns(bool vote)
+  {
+    return concreteVotes[_proposal][_galaxy];
+  }
+
+  function getVote(uint8 _galaxy, bytes32 _proposal)
+    external
+    constant
+    returns(bool vote)
+  {
+    return abstractVotes[_proposal][_galaxy];
+  }
+
   // ++vot
   // voting for change
 
