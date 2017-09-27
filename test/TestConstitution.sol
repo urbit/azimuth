@@ -10,8 +10,8 @@ contract TestConstitution
 {
   Ships ships;
   Votes votes;
+  Spark USP;
   Constitution const;
-  MintableToken USP;
   address us;
   uint64 time;
 
@@ -19,10 +19,10 @@ contract TestConstitution
   {
     ships = new Ships();
     votes = new Votes();
-    const = new Constitution(ships, votes);
+    USP = new Spark();
+    const = new Constitution(ships, votes, USP);
     ships.transferOwnership(const);
     votes.transferOwnership(const);
-    USP = const.USP();
     us = address(this);
     time = uint64(now);
   }
@@ -156,7 +156,7 @@ contract TestConstitution
     Assert.equal(votes.abstractVoteCounts(bytes32(123)), uint256(1),
       "should have cast vote");
     //
-    Constitution other = new Constitution(ships, votes);
+    Constitution other = new Constitution(ships, votes, USP);
     const.castVote(0, other, true);
     const.castVote(1, other, true);
     Assert.equal(ships.owner(), other,

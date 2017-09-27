@@ -51,8 +51,6 @@ contract TestVotes
       "should be majority");
     Assert.equal(votes.concreteVoteCounts(us), uint256(2),
       "should have added votes");
-    Assert.equal(votes.latestConcreteMajority(), us,
-      "should set latest concrete majority");
     Assert.isTrue(votes.historicMajorities(us),
       "should be historic majority");
   }
