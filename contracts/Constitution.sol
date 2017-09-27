@@ -51,6 +51,7 @@ contract Constitution is ConstitutionBase
     external
     parent(_star)
   {
+    require(ships.isState(ships.getOriginalParent(_star), Ships.State.Living));
     require(ships.isState(_star, Ships.State.Latent));
     ships.setLiquid(_star);
     mintSpark(msg.sender);
