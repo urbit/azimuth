@@ -93,7 +93,7 @@ contract Ships is Ownable
   function getOwnedShips()
     constant
     public
-    returns (uint32[] ships)
+    returns (uint32[] ownedShips)
   {
     return pilots[msg.sender];
   }
