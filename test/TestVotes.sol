@@ -8,12 +8,14 @@ contract TestVotes
 {
   Votes votes;
   address us;
+  address concrProp;
   bytes32 abstrProp;
 
   function beforeAll()
   {
     votes = new Votes();
     us = address(this);
+    concrProp = address(0);
     abstrProp = bytes32(123);
   }
 
@@ -31,32 +33,28 @@ contract TestVotes
 
   function testMinorityConcreteVote()
   {
-    Assert.isFalse(votes.castVote(0, us, true),
+    Assert.isFalse(votes.castVote(0, concrProp, true),
       "should not be majority yet");
-    Assert.isFalse(votes.historicMajorities(us),
-      "should not be historic majority yet");
-    Assert.isTrue(votes.getVote(0, us),
+    Assert.isTrue(votes.getVote(0, concrProp),
       "should have set vote");
-    Assert.equal(votes.concreteVoteCounts(us), uint256(1),
+    Assert.equal(votes.concreteVoteCounts(us, concrProp), uint256(1),
       "should have added single vote");
-    Assert.isFalse(votes.castVote(0, us, false),
+    Assert.isFalse(votes.castVote(0, concrProp, false),
       "should not be majority yet");
-    Assert.isFalse(votes.getVote(0, us),
+    Assert.isFalse(votes.getVote(0, concrProp),
       "should have unset vote");
-    Assert.equal(votes.concreteVoteCounts(us), uint256(0),
+    Assert.equal(votes.concreteVoteCounts(us, concrProp), uint256(0),
       "should have subtracted vote");
   }
 
   function testMajorityConcreteVote()
   {
-    Assert.isFalse(votes.castVote(0, us, true),
+    Assert.isFalse(votes.castVote(0, concrProp, true),
       "should not be majority yet");
-    Assert.isTrue(votes.castVote(1, us, true),
+    Assert.isTrue(votes.castVote(1, concrProp, true),
       "should be majority");
-    Assert.equal(votes.concreteVoteCounts(us), uint256(2),
+    Assert.equal(votes.concreteVoteCounts(us, concrProp), uint256(2),
       "should have added votes");
-    Assert.isTrue(votes.historicMajorities(us),
-      "should be historic majority");
   }
 
   function testMinorityAbstractVote()

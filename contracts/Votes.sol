@@ -10,15 +10,11 @@ contract Votes is Ownable
   event ConcreteMajority(address constitution);
   event AbstractMajority(bytes32 hash);
 
-
   uint8 public totalVoters;
 
-  mapping(address => bool[256]) private concreteVotes;
-  mapping(address => uint8) public concreteVoteCounts;
-  // we keep track of majorities that have already taken effect in the past, so
-  // that people voting for an old majority proposal don't cause it to take
-  // effect again.
-  mapping(address => bool) public historicMajorities;
+  // per constitution, we keep track of the votes for each proposed address.
+  mapping(address => mapping(address => bool[256])) private concreteVotes;
+  mapping(address => mapping(address => uint8)) public concreteVoteCounts;
 
   mapping(bytes32 => bool[256]) private abstractVotes;
   mapping(bytes32 => uint8) public abstractVoteCounts;
@@ -41,7 +37,7 @@ contract Votes is Ownable
     constant
     returns(bool vote)
   {
-    return concreteVotes[_proposal][_galaxy];
+    return concreteVotes[owner][_proposal][_galaxy];
   }
 
   function getVote(uint8 _galaxy, bytes32 _proposal)
@@ -69,24 +65,24 @@ contract Votes is Ownable
     onlyOwner
     returns(bool newMajority)
   {
-    bool prev = concreteVotes[_proposal][_galaxy];
+    require(_proposal != owner);
+    bool prev = concreteVotes[owner][_proposal][_galaxy];
     require(prev != _vote);
-    concreteVotes[_proposal][_galaxy] = _vote;
+    concreteVotes[owner][_proposal][_galaxy] = _vote;
+    uint8 oldCount = concreteVoteCounts[owner][_proposal];
     if (_vote)
     {
-      uint8 newCount = concreteVoteCounts[_proposal] + 1;
-      concreteVoteCounts[_proposal] = newCount;
-      if (newCount > totalVoters / 2
-          && !historicMajorities[_proposal])
+      uint8 newCount = oldCount + 1;
+      concreteVoteCounts[owner][_proposal] = newCount;
+      if (newCount > totalVoters / 2)
       {
-        historicMajorities[_proposal] = true;
         ConcreteMajority(_proposal);
         return true;
       } else {
         return false;
       }
     } else {
-      concreteVoteCounts[_proposal] = concreteVoteCounts[_proposal] - 1;
+      concreteVoteCounts[owner][_proposal] = oldCount - 1;
     }
   }
 
