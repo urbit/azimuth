@@ -67,8 +67,9 @@ contract PlanetSale is Ownable
     uint256 last = available.length - 1;
     available[_index] = available[last];
     delete(available[last]);
+    //TODO gives "invalid opcode" when using testrpc, verify this is a bug!
     available.length = last;
-    //constitution.launch(planet, _target);
+    constitution.launch(planet, _target);
     PlanetSold(planet, last);
     if (last == 0)
     {
