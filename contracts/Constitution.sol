@@ -45,7 +45,6 @@ contract Constitution is ConstitutionBase
   // liquidate a star to receive a spark.
   // the ship liquidated must be owned by the caller,
   // and be in Ships.State.Latent.
-  //TODO batch operation?
   function liquidateStar(uint16 _star)
     external
     parent(_star)
@@ -151,6 +150,7 @@ contract Constitution is ConstitutionBase
   // ++sen
   // transactions made by galaxy owners
 
+  // vote on a new constitution contract
   function castVote(uint8 _galaxy, address _proposal, bool _vote)
     external
     pilot(_galaxy)
@@ -165,6 +165,7 @@ contract Constitution is ConstitutionBase
     }
   }
 
+  // vote on a documented proposal's hash
   function castVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
     external
     pilot(_galaxy)
