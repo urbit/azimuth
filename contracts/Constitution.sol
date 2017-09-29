@@ -4,7 +4,6 @@
 pragma solidity 0.4.15;
 
 import './ConstitutionBase.sol';
-import './Spark.sol';
 
 contract Constitution is ConstitutionBase
 {
@@ -36,8 +35,8 @@ contract Constitution is ConstitutionBase
     //     much. it is possible for a malicious miner to mess with the timestamp
     //     but there is no incentive for doing so here.
     ships.setLocked(_star, uint64(block.timestamp));
-    //TODO or *actually* burn the token?
-    USP.transferFrom(msg.sender, 0, 1);
+    USP.transferFrom(msg.sender, this, 1);
+    USP.burn(1);
   }
 
   // ++nav

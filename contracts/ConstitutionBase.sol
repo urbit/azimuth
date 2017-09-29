@@ -4,16 +4,16 @@
 pragma solidity 0.4.15;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/MintableToken.sol';
 
 import './Ships.sol';
 import './Votes.sol';
+import './Spark.sol';
 
 contract ConstitutionBase is Ownable
 {
   Ships public ships;
   Votes public votes;
-  MintableToken public USP;
+  Spark public USP;
 
   function ConstitutionBase()
   {
