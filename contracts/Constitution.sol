@@ -106,6 +106,7 @@ contract Constitution is ConstitutionBase
     external
     pilot(_ship)
   {
+    require(ships.isState(_ship, Ships.State.Living));
     ships.setKey(_ship, 0);
     ships.setPilot(_ship, _target);
   }
