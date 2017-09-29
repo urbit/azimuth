@@ -73,8 +73,8 @@ contract Constitution is ConstitutionBase
   function grantLaunchRights(uint16 _star, address _launcher)
     external
     pilot(_star)
+    alive(_star)
   {
-    require(ships.isState(_star, Ships.State.Living));
     ships.setLauncher(_star, _launcher, true);
   }
 
@@ -105,8 +105,8 @@ contract Constitution is ConstitutionBase
   function transferShip(uint32 _ship, address _target)
     external
     pilot(_ship)
+    alive(_ship)
   {
-    require(ships.isState(_ship, Ships.State.Living));
     ships.setKey(_ship, 0);
     ships.setPilot(_ship, _target);
   }
@@ -115,6 +115,7 @@ contract Constitution is ConstitutionBase
   function rekey(uint32 _ship, bytes32 _key)
     external
     pilot(_ship)
+    alive(_ship)
   {
     ships.setKey(_ship, _key);
   }
@@ -124,6 +125,7 @@ contract Constitution is ConstitutionBase
   function escape(uint32 _ship, uint16 _parent)
     external
     pilot(_ship)
+    alive(_parent)
   {
     ships.setEscape(_ship, _parent);
   }
