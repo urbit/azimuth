@@ -52,6 +52,14 @@ contract Votes is Ownable
     return abstractVotes[_proposal][_galaxy];
   }
 
+  function getAbstractMajorities()
+    external
+    constant
+    returns (bytes32[] majorities)
+  {
+    return abstractMajorities;
+  }
+
   // ++vot
   // voting for change
 
