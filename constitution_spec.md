@@ -77,7 +77,7 @@ Registers permission for the address to launch planets for the star.
 
 ### Revoke launch rights
 
-**Interface:**
+**Interface:**  
 `revokeLaunchRights(uint16 _star, address _launcher)`
 
 **Description:**  
@@ -185,7 +185,7 @@ Reject an escaping ship.
 **Result:**  
 Unsets the child's escape.
 
-## ++sen: Transactions made by galaxy owners
+## ++sen: transactions made by galaxy owners
 
 ### Cast concrete vote
 
