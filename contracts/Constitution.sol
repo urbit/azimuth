@@ -62,7 +62,7 @@ contract Constitution is ConstitutionBase
   {
     require(ships.isState(_ship, Ships.State.Latent));
     uint16 parent = ships.getOriginalParent(_ship);
-    require(parent == _ship || ships.isState(parent, Ships.State.Living));
+    require(ships.isState(parent, Ships.State.Living));
     require(ships.isPilot(parent, msg.sender)
             || ships.isLauncher(parent, msg.sender));
     ships.setPilot(_ship, _target);
