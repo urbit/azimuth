@@ -20,15 +20,6 @@ contract ConstitutionBase is Ownable
     //
   }
 
-  function setContracts(Ships _ships, Votes _votes, MintableToken _USP)
-    external
-    onlyOwner //TODO? onlyOldConstitution
-  {
-    ships = _ships;
-    votes = _votes;
-    USP = _USP;
-  }
-
   function upgrade(address _new)
     internal
   {
