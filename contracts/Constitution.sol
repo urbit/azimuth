@@ -7,6 +7,8 @@ import './ConstitutionBase.sol';
 
 contract Constitution is ConstitutionBase
 {
+  uint256 constant public oneSpark = 1000000000000000000;
+
   function Constitution(Ships _ships, Votes _votes, Spark _USP)
   {
     ships = _ships;
@@ -29,8 +31,8 @@ contract Constitution is ConstitutionBase
     //     much. it is possible for a malicious miner to mess with the timestamp
     //     but there is no incentive for doing so here.
     ships.setLocked(_star, uint64(block.timestamp));
-    USP.transferFrom(msg.sender, this, 1000000000000000000);
-    USP.burn(1000000000000000000);
+    USP.transferFrom(msg.sender, this, oneSpark);
+    USP.burn(oneSpark);
   }
 
   // ++nav
@@ -46,7 +48,7 @@ contract Constitution is ConstitutionBase
     require(ships.isState(ships.getOriginalParent(_star), Ships.State.Living));
     require(ships.isState(_star, Ships.State.Latent));
     ships.setLiquid(_star);
-    USP.mint(msg.sender, 1000000000000000000);
+    USP.mint(msg.sender, oneSpark);
   }
 
   // launch a star or planet, making a target address its owner.
