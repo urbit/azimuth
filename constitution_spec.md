@@ -110,10 +110,10 @@ Bring a locked ship to life and set its public key.
 ### Transfer ship
 
 **Interface:**  
-`transferShip(uint32 _ship, address _target)`
+`transferShip(uint32 _ship, address _target, bool _resetKey)`
 
 **Description:**  
-Transfer a living ship to a different address.
+Transfer a living ship to a different address, optionally resetting its key.
 
 **Requirements:**  
 - The caller must be the owner of the chosen ship.
@@ -121,7 +121,7 @@ Transfer a living ship to a different address.
 - The target address must not be the current owner.
 
 **Result:**  
-- Sets the public key of the ship to 0.
+- If `_resetKey` is true, sets the public key of the ship to 0.
 - Sets the owner of the ship to the target address.
 
 ### Rekey

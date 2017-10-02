@@ -97,12 +97,18 @@ contract Constitution is ConstitutionBase
   }
 
   // transfer a living ship to a different address.
-  function transferShip(uint32 _ship, address _target)
+  function transferShip(uint32 _ship, address _target, bool _resetKey)
     external
     pilot(_ship)
     alive(_ship)
   {
-    ships.setKey(_ship, 0);
+    // we may not always want to reset the ship's key, to allow for ownership
+    // transfer without ship downtime. eg, when transfering to ourselves, away
+    // from a compromised address.
+    if (_resetKey)
+    {
+      ships.setKey(_ship, 0);
+    }
     ships.setPilot(_ship, _target);
   }
 
