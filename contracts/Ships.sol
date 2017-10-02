@@ -7,7 +7,6 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Ships is Ownable
 {
-
   event ChangedPilot(uint32 ship, address owner);
   event ChangedStatus(uint32 ship, State state, uint64 lock);
   event ChangedEscape(uint32 ship, uint32 escape);
@@ -17,28 +16,28 @@ contract Ships is Ownable
   // operating state
   enum State
   {
-    Latent, // belongs to parent
-    Liquid, // ceded to contract
-    Locked, // locked til birth (see Status.locked)
-    Living  // fully active
+    Latent, // 0: belongs to parent
+    Liquid, // 1: ceded to contract
+    Locked, // 2: locked til birth (see Status.locked)
+    Living  // 3: fully active
   }
 
   // operating state + metadata
   struct Status
   {
     State state;
-    uint64 locked; // locked until, only used for Locked state.
+    uint64 locked; // locked until, only used for the Locked state.
   }
 
-  // all hard assets
+  // full ship state.
   struct Hull
   {
     address pilot;
-    Status status; // operating state
-    bytes32 key; // public key, 0 if none
-    uint256 revision; // key number
+    Status status;    // operating state.
+    bytes32 key;      // public key, 0 if none.
+    uint256 revision; // key number.
     uint16 parent;
-    uint32 escape; // 65536 if no escape request active.
+    uint32 escape;    // 65536 if no escape active. (0 needs to be valid.)
     mapping(address => bool) launchers;
   }
 
@@ -63,11 +62,15 @@ contract Ships is Ownable
     public
     returns (uint16 parent)
   {
-    if (_ship < 65536) { return uint16(_ship % 256); }
+    if (_ship < 65536)
+    {
+      return uint16(_ship % 256);
+    }
     return uint16(_ship % 65536);
   }
 
   // retrieve data from the Hull of the specified ship.
+  // necessary because of compiler error:
   // "Internal type [Hull] is not allowed for public state variables."
   function getShipData(uint32 _ship)
     constant
@@ -120,17 +123,20 @@ contract Ships is Ownable
   {
     address prev = ships[_ship].pilot;
     require(prev != _owner);
+    // if the ship used to have a different owner, we do some gymnastics so that
+    // we can keep their list of owned ships gapless.
+    // we delete this ship from the list, then fill that gap with the list tail.
     if (prev != 0)
     {
-      // retrieve current index
+      // retrieve current index.
       uint256 i = shipNumbers[prev][_ship];
       assert(i > 0);
       i = i - 1;
-      // copy last item to current index
+      // copy last item to current index.
       uint32[] storage pilot = pilots[prev];
       uint256 last = pilot.length - 1;
       pilot[i] = pilot[last];
-      // delete last item
+      // delete last item.
       delete(pilot[last]);
       pilot.length = last;
       shipNumbers[prev][_ship] = 0;
@@ -182,10 +188,11 @@ contract Ships is Ownable
     onlyOwner
     public
   {
-    ships[_ship].status.state = State.Living;
+    Hull storage ship = ships[_ship];
+    ship.status.state = State.Living;
     ChangedStatus(_ship, State.Living, 0);
-    ships[_ship].parent = getOriginalParent(_ship);
-    ships[_ship].escape = 65536;
+    ship.parent = getOriginalParent(_ship);
+    ship.escape = 65536;
   }
 
   function getParent(uint32 _ship)
@@ -220,7 +227,7 @@ contract Ships is Ownable
     require(ship.escape < 65536);
     ship.parent = uint16(ship.escape);
     ChangedParent(_ship, uint16(ship.escape));
-    ship.escape = 65536;
+    ship.escape = 65536; // "no escape"
     ChangedEscape(_ship, 65536);
   }
 
