@@ -14,12 +14,6 @@ contract Constitution is ConstitutionBase
     USP = _USP;
   }
 
-  function mintSpark(address _target)
-    private
-  {
-    USP.mint(_target, 1);
-  }
-
   // ++pub
   // public transactions which any ethereum address can sign.
 
@@ -35,8 +29,8 @@ contract Constitution is ConstitutionBase
     //     much. it is possible for a malicious miner to mess with the timestamp
     //     but there is no incentive for doing so here.
     ships.setLocked(_star, uint64(block.timestamp));
-    USP.transferFrom(msg.sender, this, 1);
-    USP.burn(1);
+    USP.transferFrom(msg.sender, this, 1000000000000000000);
+    USP.burn(1000000000000000000);
   }
 
   // ++nav
@@ -52,7 +46,7 @@ contract Constitution is ConstitutionBase
     require(ships.isState(ships.getOriginalParent(_star), Ships.State.Living));
     require(ships.isState(_star, Ships.State.Latent));
     ships.setLiquid(_star);
-    mintSpark(msg.sender);
+    USP.mint(msg.sender, 1000000000000000000);
   }
 
   // launch a star or planet, making a target address its owner.

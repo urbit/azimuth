@@ -45,7 +45,7 @@ contract TestConstitution
     Assert.equal(USP.balanceOf(us), uint256(0),
       "should start out without sparks");
     const.liquidateStar(256);
-    Assert.equal(USP.balanceOf(us), uint256(1),
+    Assert.equal(USP.balanceOf(us), uint256(1000000000000000000),
       "should have received spark");
   }
 
@@ -53,10 +53,12 @@ contract TestConstitution
   {
     Assert.isFalse(ships.hasPilot(256),
       "should start out pilotless");
-    USP.approve(const, 1);
+    USP.approve(const, 1000000000000000000);
     const.claimStar(256);
     Assert.isTrue(ships.isPilot(256, us),
       "should have set pilot");
+    Assert.equal(USP.balanceOf(us), uint256(0),
+      "should have taken spark");
   }
 
   function testStart()
