@@ -35,3 +35,5 @@ Since `TestConstitution.sol` instantiates three (secretly four) contracts in its
 Even with those changes, `TestConstitution.sol` can't run in its entirety without hitting the gas limit for some reason. Comment out the `Assert` calls of the tests you don't currently care about to ensure the others can run.
 
 (Yes, this is awful. A fix is being investigated. Rest assured that normal operation of the Constitution won't hit any gas limits on the live network.)
+
+It should also be noted that, using Truffle's deployment and testing tools, PlanetSale.sol's `launch()` function breaks. Deploying and testing manually works fine. Running in the Remix IDE works fine.
