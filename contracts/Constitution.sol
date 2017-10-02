@@ -7,8 +7,13 @@ import './ConstitutionBase.sol';
 
 contract Constitution is ConstitutionBase
 {
+  // a single spark is 1e18 units, because 18 decimal places need to be stored.
   uint256 constant public oneSpark = 1000000000000000000;
 
+  // during contract construction, set the addresses of the (data) contracts we
+  // rely on.
+  // ownership of these contracts will need to be transfered to the constitution
+  // after its contract address becomes known.
   function Constitution(Ships _ships, Votes _votes, Spark _USP)
   {
     ships = _ships;
@@ -25,12 +30,16 @@ contract Constitution is ConstitutionBase
   function claimStar(uint16 _star)
     external
   {
+    // only stars that have been liquified can be claimed, latent ones still
+    // belong to their parent.
     require(ships.isState(_star, Ships.State.Liquid));
     ships.setPilot(_star, msg.sender);
+    // "lock" the star, but make it available for booting immediately.
     //NOTE block.timestamp can possibly be in the future, but generally not by
     //     much. it is possible for a malicious miner to mess with the timestamp
     //     but there is no incentive for doing so here.
     ships.setLocked(_star, uint64(block.timestamp));
+    // withdraw a single spark from the caller, then destroy it.
     USP.transferFrom(msg.sender, this, oneSpark);
     USP.burn(oneSpark);
   }
@@ -39,15 +48,19 @@ contract Constitution is ConstitutionBase
   // transactions made by ship owners.
 
   // liquidate a star to receive a spark.
-  // the ship liquidated must be owned by the caller,
+  // the star liquidated must be owned by the caller,
   // and be in Ships.State.Latent.
   function liquidateStar(uint16 _star)
     external
-    parent(_star)
   {
+    // stars can only be liquidated by (the owner of) their direct parent.
+    require(ships.isPilot(ships.getOriginalParent(_ship), msg.sender));
+    // _star can't secretly be a galaxy, because it's its own parent, and can't
+    // be two states at once.
     require(ships.isState(ships.getOriginalParent(_star), Ships.State.Living));
     require(ships.isState(_star, Ships.State.Latent));
     ships.setLiquid(_star);
+    // create a single spark and give it to the sender.
     USP.mint(msg.sender, oneSpark);
   }
 
@@ -55,30 +68,35 @@ contract Constitution is ConstitutionBase
   function launch(uint32 _ship, address _target)
     external
   {
+    // only latent ships can be launched. liquid ones require a spark, locked
+    // and living ones already have an owner.
     require(ships.isState(_ship, Ships.State.Latent));
     uint16 parent = ships.getOriginalParent(_ship);
     require(ships.isState(parent, Ships.State.Living));
+    // the owner of a parent can always launch its children, other addresses
+    // need explicit permission (the role of "launcher") to do so.
     require(ships.isPilot(parent, msg.sender)
             || ships.isLauncher(parent, msg.sender));
     ships.setPilot(_ship, _target);
+    // "lock" the ship, but make it available for booting immediately.
     ships.setLocked(_ship, uint64(block.timestamp));
   }
 
-  // allow the given address to launch planets belonging to the star.
-  function grantLaunchRights(uint16 _star, address _launcher)
+  // allow the given address to launch children of the ship.
+  function grantLaunchRights(uint16 _ship, address _launcher)
     external
-    pilot(_star)
-    alive(_star)
+    pilot(_ship)
+    alive(_ship)
   {
-    ships.setLauncher(_star, _launcher, true);
+    ships.setLauncher(_ship, _launcher, true);
   }
 
-  // disallow the given address to launch planets belonging to the star.
-  function revokeLaunchRights(uint16 _star, address _launcher)
+  // disallow the given address to launch children of the ship.
+  function revokeLaunchRights(uint16 _ship, address _launcher)
     external
-    pilot(_star)
+    pilot(_ship)
   {
-    ships.setLauncher(_star, _launcher, false);
+    ships.setLauncher(_ship, _launcher, false);
   }
 
   // bring a locked ship to life and set its public key.
@@ -86,10 +104,13 @@ contract Constitution is ConstitutionBase
     external
     pilot(_ship)
   {
+    // locked ships can only be started after their locktime is over.
     require(ships.isState(_ship, Ships.State.Locked));
     require(ships.getLocked(_ship) <= block.timestamp);
     ships.setKey(_ship, _key);
     ships.setLiving(_ship);
+    // if a galaxy becomes living, it gains the ability to vote. we keep track
+    // of the amount of voters so we can calculate votes needed for majority.
     if (_ship < 256)
     {
       votes.incrementTotalVoters();
@@ -137,6 +158,7 @@ contract Constitution is ConstitutionBase
     pilot(_parent)
   {
     require(ships.isEscape(_child, _parent));
+    // _child's parent becomes _parent, and its escape is reset to "no escape".
     ships.doEscape(_child);
   }
 
@@ -146,6 +168,7 @@ contract Constitution is ConstitutionBase
     pilot(_parent)
   {
     require(ships.isEscape(_child, _parent));
+    // resets the child's escape to "no escape".
     ships.setEscape(_child, 65536);
   }
 
@@ -158,11 +181,14 @@ contract Constitution is ConstitutionBase
     pilot(_galaxy)
     alive(_galaxy)
   {
+    // the votes contract returns true if a majority is achieved.
     bool majority = votes.castVote(_galaxy, _proposal, _vote);
     //NOTE the votes contract protects against this or an older contract being
     //     pushed as a "new" majority.
     if (majority)
     {
+      // transfer ownership of the data and token contracts to the new
+      // constitution, then self-destruct.
       upgrade(_proposal);
     }
   }
@@ -173,6 +199,8 @@ contract Constitution is ConstitutionBase
     pilot(_galaxy)
     alive(_galaxy)
   {
+    // majorities on abstract proposals get recorded within the votes contract
+    // and have no impact on the constitution.
     votes.castVote(_galaxy, _proposal, _vote);
   }
 
@@ -196,13 +224,6 @@ contract Constitution is ConstitutionBase
   modifier pilot(uint32 _ship)
   {
     require(ships.isPilot(_ship, msg.sender));
-    _;
-  }
-
-  // test if msg.sender is pilot of _ship's original parent.
-  modifier parent(uint32 _ship)
-  {
-    require(ships.isPilot(ships.getOriginalParent(_ship), msg.sender));
     _;
   }
 
