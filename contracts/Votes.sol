@@ -30,6 +30,8 @@ contract Votes is Ownable
   mapping(bytes32 => bool[256]) private abstractVotes;
   // and total counts.
   mapping(bytes32 => uint8) public abstractVoteCounts;
+  // we keep a map for looking up if a proposal ever achieved majority.
+  mapping(bytes32 => bool) public abstractMajorityMap;
   // we store an append-only list of proposals that have achieved majority.
   bytes32[] public abstractMajorities;
 
@@ -120,7 +122,7 @@ contract Votes is Ownable
   {
     uint8 oldCount = abstractVoteCounts[_proposal];
     // once a proposal has achieved majority, we freeze votes on it.
-    require(oldCount > totalVoters / 2);
+    require(!abstractMajorityMap[_proposal]);
     bool prev = abstractVotes[_proposal][_galaxy];
     // vote must differ from what is already registered, to discourage
     // unnecessary work.
@@ -134,6 +136,7 @@ contract Votes is Ownable
       // if that makes it a majority vote, append it to the list.
       if (oldCount + 1 > totalVoters / 2)
       {
+        abstractMajorityMap[_proposal] = true;
         abstractMajorities.push(_proposal);
         AbstractMajority(_proposal);
       }
