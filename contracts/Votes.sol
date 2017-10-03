@@ -114,14 +114,13 @@ contract Votes is Ownable
   }
 
   // vote on an abstract proposal.
-  //TODO doing wasMajority is sensitive to people un-voting and re-voting.
-  //     depending on whether or not we want to be able to get a list of
-  //     supported hashes, we either use a mapping or a construction similar
-  //     to ship's pilots.
   function castVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
     external
     onlyOwner
   {
+    uint8 oldCount = abstractVoteCounts[_proposal];
+    // once a proposal has achieved majority, we freeze votes on it.
+    require(oldCount > totalVoters / 2);
     bool prev = abstractVotes[_proposal][_galaxy];
     // vote must differ from what is already registered, to discourage
     // unnecessary work.
@@ -130,11 +129,10 @@ contract Votes is Ownable
     // when voting yes,
     if (_vote)
     {
-      uint8 oldCount = abstractVoteCounts[_proposal];
-      bool wasMajority = oldCount > totalVoters / 2;
+      // increment the proposal's vote count.
       abstractVoteCounts[_proposal] = oldCount + 1;
-      // if the proposal just became a majority, add it to the list.
-      if (!wasMajority && oldCount + 1 > totalVoters / 2)
+      // if that makes it a majority vote, append it to the list.
+      if (oldCount + 1 > totalVoters / 2)
       {
         abstractMajorities.push(_proposal);
         AbstractMajority(_proposal);
