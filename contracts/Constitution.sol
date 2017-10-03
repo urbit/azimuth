@@ -54,7 +54,7 @@ contract Constitution is ConstitutionBase
     external
   {
     // stars can only be liquidated by (the owner of) their direct parent.
-    require(ships.isPilot(ships.getOriginalParent(_ship), msg.sender));
+    require(ships.isPilot(ships.getOriginalParent(_star), msg.sender));
     // _star can't secretly be a galaxy, because it's its own parent, and can't
     // be two states at once.
     require(ships.isState(ships.getOriginalParent(_star), Ships.State.Living));
