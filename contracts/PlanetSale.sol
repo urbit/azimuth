@@ -40,6 +40,7 @@ contract PlanetSale is Ownable
     return available.length;
   }
 
+  // buys a planet from the top of the stack.
   function buyAny()
     external
     payable
@@ -49,8 +50,10 @@ contract PlanetSale is Ownable
     launch(available.length-1, msg.sender);
   }
 
-  // specify the index to make the contract's work easier,
-  // specify the planet to prevent buying an unintended planet.
+  // buys a specific planet from the pile.
+  // we require the index to make the contract's work easier,
+  // we require the planet to prevent race-conditions resulting in an unintended
+  // purchase.
   function buySpecific(uint256 _index, uint32 _planet)
     external
     payable
@@ -60,11 +63,14 @@ contract PlanetSale is Ownable
     launch(_index, msg.sender);
   }
 
+  // send the planet at the given index to the target address.
   function launch(uint256 _index, address _target)
     internal
   {
     uint32 planet = available[_index];
     uint256 last = available.length - 1;
+    // replace the new "gap" with the last planet in the list, and then shorten
+    // the list by one.
     available[_index] = available[last];
     available.length = last;
     constitution.launch(planet, _target);
@@ -75,6 +81,7 @@ contract PlanetSale is Ownable
     }
   }
 
+  // withdraw the funds sent to this contract.
   function withdraw(address _target)
     external
     onlyOwner
@@ -82,6 +89,7 @@ contract PlanetSale is Ownable
     _target.transfer(this.balance);
   }
 
+  // close the sale and send any remaining funds to the target address.
   function close(address _target)
     external
     onlyOwner
@@ -90,6 +98,7 @@ contract PlanetSale is Ownable
     selfdestruct(_target);
   }
 
+  // this may be needed when a constitution upgrade has happened.
   function changeConstitution(Constitution _constitution)
     external
     onlyOwner
