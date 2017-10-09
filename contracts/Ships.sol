@@ -26,18 +26,21 @@ contract Ships is Ownable
   struct Status
   {
     State state;
-    uint64 locked; // locked until, only used for the Locked state.
+    uint64 locked;    // locked until, only used for the Locked state.
+    uint64 completed; // fully released at, only set for galaxies.
+                      // used by constitution to determine allowed # children.
   }
 
   // full ship state.
   struct Hull
   {
     address pilot;
-    Status status;    // operating state.
-    bytes32 key;      // public key, 0 if none.
-    uint256 revision; // key number.
+    Status status;     // operating state.
+    uint32 children;   // amount of non-latent children.
+    bytes32 key;       // public key, 0 if none.
+    uint256 revision;  // key number.
     uint16 parent;
-    uint32 escape;    // 65536 if no escape active. (0 needs to be valid.)
+    uint32 escape;     // 65536 if no escape active. (0 needs to be valid.)
     mapping(address => bool) launchers;
   }
 
@@ -78,6 +81,8 @@ contract Ships is Ownable
     returns (address pilot,
              uint8 state,
              uint64 locked,
+             uint64 completed,
+             uint32 children,
              bytes32 key,
              uint256 revision,
              uint16 parent,
@@ -87,6 +92,8 @@ contract Ships is Ownable
     return (ship.pilot,
             uint8(ship.status.state),
             ship.status.locked,
+            ship.status.completed,
+            ship.children,
             ship.key,
             ship.revision,
             ship.parent,
@@ -150,6 +157,29 @@ contract Ships is Ownable
     ChangedPilot(_ship, _owner);
   }
 
+  function incrementChildren(uint32 _ship)
+    onlyOwner
+    public
+  {
+    ships[_ship].children = ships[_ship].children + 1;
+  }
+
+  function getChildren(uint32 _ship)
+    constant
+    public
+    returns (uint32 children)
+  {
+    return ships[_ship].children;
+  }
+
+  function getCompleted(uint32 _ship)
+    constant
+    public
+    returns (uint64 date)
+  {
+    return ships[_ship].status.completed;
+  }
+
   function isState(uint32 _ship, State _state)
     constant
     public
@@ -182,6 +212,13 @@ contract Ships is Ownable
     status.locked = _date;
     status.state = State.Locked;
     ChangedStatus(_ship, State.Locked, _date);
+  }
+
+  function setCompleted(uint32 _ship, uint64 _date)
+    onlyOwner
+    public
+  {
+    ships[_ship].status.completed = _date;
   }
 
   function setLiving(uint32 _ship)

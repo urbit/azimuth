@@ -53,13 +53,18 @@ contract Constitution is ConstitutionBase
   function liquidateStar(uint16 _star)
     external
   {
+    uint16 parent = ships.getOriginalParent(_star);
     // stars can only be liquidated by (the owner of) their direct parent.
-    require(ships.isPilot(ships.getOriginalParent(_star), msg.sender));
+    require(ships.isPilot(parent, msg.sender));
     // _star can't secretly be a galaxy, because it's its own parent, and can't
     // be two states at once.
-    require(ships.isState(ships.getOriginalParent(_star), Ships.State.Living));
+    require(ships.isState(parent, Ships.State.Living));
     require(ships.isState(_star, Ships.State.Latent));
+    // galaxy must be allowed to create more stars.
+    require(canSpawn(parent));
     ships.setLiquid(_star);
+    // galaxy has gained a child.
+    ships.incrementChildren(parent);
     // create a single spark and give it to the sender.
     USP.mint(msg.sender, oneSpark);
   }
@@ -73,6 +78,8 @@ contract Constitution is ConstitutionBase
     require(ships.isState(_ship, Ships.State.Latent));
     uint16 parent = ships.getOriginalParent(_ship);
     require(ships.isState(parent, Ships.State.Living));
+    // galaxies need to adhere to star creation limitations.
+    require(parent > 255 || canSpawn(parent));
     // the owner of a parent can always launch its children, other addresses
     // need explicit permission (the role of "launcher") to do so.
     require(ships.isPilot(parent, msg.sender)
@@ -80,6 +87,8 @@ contract Constitution is ConstitutionBase
     ships.setPilot(_ship, _target);
     // "lock" the ship, but make it available for booting immediately.
     ships.setLocked(_ship, uint64(block.timestamp));
+    // parent has gained a child.
+    ships.incrementChildren(parent);
   }
 
   // allow the given address to launch children of the ship.
@@ -207,14 +216,37 @@ contract Constitution is ConstitutionBase
   // ++urg
   // transactions made by the contract creator.
 
-  // assign initial galaxy owner and birthdate. can only be done once.
-  function createGalaxy(uint8 _galaxy, address _target, uint64 _date)
+  // assign initial galaxy owner, birthdate and liquidity completion date.
+  // can only be done once.
+  function createGalaxy(uint8 _galaxy, address _target, uint64 _lockTime,
+                        uint64 _completeTime)
     external
     onlyOwner
   {
     require(!ships.hasPilot(_galaxy));
-    ships.setLocked(_galaxy, _date);
+    ships.setLocked(_galaxy, _lockTime);
+    ships.setCompleted(_galaxy, _completeTime);
     ships.setPilot(_galaxy, _target);
+  }
+
+  // test if the galaxy can liquify/launch another star right now,
+  // assuming it is living.
+  function canSpawn(uint16 _parent)
+    constant
+    returns (bool can)
+  {
+    uint64 completed = ships.getCompleted(_parent);
+    // after the completion date, they can launch everything.
+    if (completed <= block.timestamp) { return true; }
+    // if locktime is before completion time, they can't launch.
+    uint64 locked = ships.getLocked(_parent);
+    if (locked < completed) { return false; }
+    uint256 curDiff = block.timestamp - locked; // living guarantees > 0.
+    uint256 totDiff = completed - locked;
+    // start out with 1 star, then grow over time.
+    uint256 allowed = 1 + ((curDiff * 255) / totDiff);
+    uint32 children = ships.getChildren(_parent);
+    return (allowed > children);
   }
 
   // ++mod
