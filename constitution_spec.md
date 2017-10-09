@@ -37,6 +37,7 @@ Liquidate a star to receive a Spark.
 - The caller must be the owner of the star's original parent.
 - The parent of the star must be `Living`.
 - The chosen star must be `Latent`.
+- The parent of the star must be allowed to birth another star.
 
 **Result:**  
 - Sets the star to `Liquid`.
@@ -54,6 +55,7 @@ Launch a star or planet, making a target address its owner.
 - The chosen ship must be `Latent`.
 - The ship's original parent must be `Living`.
 - The caller must either be the owner of the ship's parent, or have been given permission to launch ships in their stead.
+- If the ship is a star, its parent must be allowed to birth another star.
 
 **Result:**  
 - Assigns the target address as the ship's owner.
@@ -227,10 +229,12 @@ Vote on a documented proposal's hash.
 ### Create galaxy
 
 **Interface:**  
-`createGalaxy(uint8 _galaxy, address _target, uint64 _date)`
+`createGalaxy(uint8 _galaxy, address _target, uint64 _lockTime, uint64 _completeTime)`
 
 **Description:**  
-Assign initial galaxy owner and birthdate. Can only be done once.
+Assign initial galaxy owner, lock date and completion date. Can only be done once.  
+The lock date specifies the time at which the `Locked` galaxy may be made `Living`.  
+The completion date is used to calculate how many stars the galaxy may have at any given time. This increases linearly from `1` to `256` between the lock time and completion time.
 
 **Requirements:**  
 - The caller must be the owner of the Constitution contract.
@@ -239,3 +243,4 @@ Assign initial galaxy owner and birthdate. Can only be done once.
 **Result:**
 - Sets the galaxy's owner to the target address.
 - Sets the galaxy to `Locked` with a release time at the specified date.
+- Sets the completion time of the galaxy to the specified date.

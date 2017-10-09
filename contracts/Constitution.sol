@@ -232,6 +232,7 @@ contract Constitution is ConstitutionBase
   // test if the galaxy can liquify/launch another star right now,
   // assuming it is living.
   function canSpawn(uint16 _parent)
+    public
     constant
     returns (bool can)
   {
