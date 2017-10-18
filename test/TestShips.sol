@@ -80,7 +80,11 @@ contract TestShips
       "should be 0 by default");
     ships.setLocked(0, time);
     Assert.equal(ships.getLocked(0), uint256(time),
-      "should be set to time");
+      "should be set to unlock time");
+    // completed
+    ships.setCompleted(0, time);
+    Assert.equal(ships.getCompleted(0), uint256(time),
+      "should be set to completion time");
     Assert.isTrue(ships.isState(0, Ships.State.Locked),
       "should be set to locked");
     // living
@@ -89,6 +93,9 @@ contract TestShips
       "should have original parent");
     Assert.isTrue(ships.isState(257, Ships.State.Living),
       "should be set to living");
+    ships.incrementChildren(0);
+    Assert.equal(ships.getChildren(0), uint256(1),
+      "should have incremented children");
   }
 
   function testEscape()
@@ -131,5 +138,29 @@ contract TestShips
     ships.setLauncher(0, us, false);
     Assert.isFalse(ships.isLauncher(0, us),
       "should have unset launcher");
+  }
+
+  function testShipData()
+  {
+    var (pilot, state, locked, completed, children, key, revision, parent, escape) =
+      ships.getShipData(0);
+    Assert.equal(pilot, 0,
+      "should have correct pilot");
+    Assert.equal(state, uint256(2),
+      "should have correct state");
+    Assert.equal(locked, uint256(time),
+      "should have correct locked");
+    Assert.equal(completed, uint256(time),
+      "should have correct completed");
+    Assert.equal(children, uint256(1),
+      "should have correct children");
+    Assert.equal(key, bytes32(123),
+      "should have correct key");
+    Assert.equal(revision, uint256(1),
+      "should have correct revision");
+    Assert.equal(parent, uint256(0),
+      "should have correct parent");
+    Assert.equal(escape, uint256(0),
+      "should have correct escape");
   }
 }

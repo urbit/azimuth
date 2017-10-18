@@ -142,7 +142,7 @@ contract TestConstitution
   {
     Assert.isTrue(ships.isPilot(1024, us),
       "should have pilot set");
-    const.transferShip(1024, 123);
+    const.transferShip(1024, 123, true);
     var (key, rev) = ships.getKey(1024);
     Assert.equal(key, bytes32(0),
       "should have reset key");
@@ -154,13 +154,13 @@ contract TestConstitution
   {
     Assert.equal(votes.totalVoters(), uint256(2),
       "should have 2 active galaxies");
-    const.castVote(0, bytes32(123), true);
+    const.castAbstractVote(0, bytes32(123), true);
     Assert.equal(votes.abstractVoteCounts(bytes32(123)), uint256(1),
       "should have cast vote");
     //
     Constitution other = new Constitution(ships, votes, USP);
-    const.castVote(0, other, true);
-    const.castVote(1, other, true);
+    const.castConcreteVote(0, other, true);
+    const.castConcreteVote(1, other, true);
     Assert.equal(ships.owner(), other,
       "should have transfered ships ownership");
     Assert.equal(votes.owner(), other,

@@ -66,8 +66,6 @@ contract Constitution is ConstitutionBase
     // galaxy must be allowed to create more stars.
     require(canSpawn(parent));
     ships.setLiquid(_star);
-    // galaxy has gained a child.
-    ships.incrementChildren(parent);
     // create a single spark and give it to the sender.
     USP.mint(msg.sender, oneSpark);
   }
