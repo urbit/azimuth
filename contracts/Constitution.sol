@@ -4,11 +4,14 @@
 pragma solidity 0.4.15;
 
 import './ConstitutionBase.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 contract Constitution is ConstitutionBase
 {
+  using SafeMath for uint256;
+
   // a single spark is 1e18 units, because 18 decimal places need to be stored.
-  uint256 constant public oneSpark = 1000000000000000000;
+  uint256 constant public oneSpark = 1e18;
 
   // during contract construction, set the addresses of the (data) contracts we
   // rely on.
@@ -104,6 +107,7 @@ contract Constitution is ConstitutionBase
   function revokeLaunchRights(uint16 _ship, address _launcher)
     external
     pilot(_ship)
+    alive(_ship)
   {
     ships.setLauncher(_ship, _launcher, false);
   }
@@ -185,13 +189,13 @@ contract Constitution is ConstitutionBase
   // transactions made by galaxy owners
 
   // vote on a new constitution contract
-  function castVote(uint8 _galaxy, address _proposal, bool _vote)
+  function castConcreteVote(uint8 _galaxy, address _proposal, bool _vote)
     external
     pilot(_galaxy)
     alive(_galaxy)
   {
     // the votes contract returns true if a majority is achieved.
-    bool majority = votes.castVote(_galaxy, _proposal, _vote);
+    bool majority = votes.castConcreteVote(_galaxy, _proposal, _vote);
     //NOTE the votes contract protects against this or an older contract being
     //     pushed as a "new" majority.
     if (majority)
@@ -203,14 +207,14 @@ contract Constitution is ConstitutionBase
   }
 
   // vote on a documented proposal's hash
-  function castVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
+  function castAbstractVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
     external
     pilot(_galaxy)
     alive(_galaxy)
   {
     // majorities on abstract proposals get recorded within the votes contract
     // and have no impact on the constitution.
-    votes.castVote(_galaxy, _proposal, _vote);
+    votes.castAbstractVote(_galaxy, _proposal, _vote);
   }
 
   // ++urg
@@ -229,23 +233,23 @@ contract Constitution is ConstitutionBase
     ships.setPilot(_galaxy, _target);
   }
 
-  // test if the galaxy can liquify/launch another star right now,
-  // assuming it is living.
+  // test if the galaxy can liquify/launch another star right now.
   function canSpawn(uint16 _parent)
     public
     constant
     returns (bool can)
   {
+    if (!ships.isState(_parent, Ships.State.Living)) { return false; }
     uint64 completed = ships.getCompleted(_parent);
     // after the completion date, they can launch everything.
     if (completed <= block.timestamp) { return true; }
-    // if locktime is before completion time, they can't launch.
+    // if unlocked after completion, only the above check remains important.
     uint64 locked = ships.getLocked(_parent);
-    if (locked < completed) { return false; }
-    uint256 curDiff = block.timestamp - locked; // living guarantees > 0.
-    uint256 totDiff = completed - locked;
+    if (completed <= locked) { return false; }
+    uint256 curDiff = block.timestamp.sub(locked); // living guarantees > 0.
+    uint256 totDiff = uint256(completed).sub(locked);
     // start out with 1 star, then grow over time.
-    uint256 allowed = 1 + ((curDiff * 255) / totDiff);
+    uint256 allowed = curDiff.mul(254).div(totDiff).add(1);
     uint32 children = ships.getChildren(_parent);
     return (allowed > children);
   }

@@ -7,11 +7,11 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Ships is Ownable
 {
-  event ChangedPilot(uint32 ship, address owner);
-  event ChangedStatus(uint32 ship, State state, uint64 lock);
-  event ChangedEscape(uint32 ship, uint32 escape);
-  event ChangedParent(uint32 ship, uint16 parent);
-  event ChangedKey(uint32 ship, bytes32 key);
+  event ChangedPilot(uint32 indexed ship, address owner);
+  event ChangedStatus(uint32 indexed ship, State state, uint64 lock);
+  event ChangedEscape(uint32 ship, uint32 indexed escape);
+  event ChangedParent(uint32 ship, uint16 indexed parent);
+  event ChangedKey(uint32 indexed ship, bytes32 key, uint256 revision);
 
   // operating state
   enum State
@@ -36,7 +36,7 @@ contract Ships is Ownable
   {
     address pilot;
     Status status;     // operating state.
-    uint32 children;   // amount of non-latent children.
+    uint16 children;   // amount of non-latent children.
     bytes32 key;       // public key, 0 if none.
     uint256 revision;  // key number.
     uint16 parent;
@@ -50,7 +50,7 @@ contract Ships is Ownable
   mapping(address => uint32[]) public pilots;
   // per owner: per ship: index in pilots array (for efficient deletion).
   //NOTE these describe the "nth array element", so they're at index n-1.
-  mapping(address => mapping(uint32 => uint256)) private shipNumbers;
+  mapping(address => mapping(uint32 => uint256)) public shipNumbers;
 
   function Ships()
   {
@@ -138,7 +138,7 @@ contract Ships is Ownable
       // retrieve current index.
       uint256 i = shipNumbers[prev][_ship];
       assert(i > 0);
-      i = i - 1;
+      i--;
       // copy last item to current index.
       uint32[] storage pilot = pilots[prev];
       uint256 last = pilot.length - 1;
@@ -161,7 +161,8 @@ contract Ships is Ownable
     onlyOwner
     public
   {
-    ships[_ship].children = ships[_ship].children + 1;
+    require(ships[_ship].children < 65535);
+    ships[_ship].children++;
   }
 
   function getChildren(uint32 _ship)
@@ -283,8 +284,8 @@ contract Ships is Ownable
   {
     Hull storage ship = ships[_ship];
     ship.key = _key;
-    ChangedKey(_ship, _key);
-    ship.revision = ship.revision + 1;
+    ship.revision++;
+    ChangedKey(_ship, _key, ship.revision);
   }
 
   function isLauncher(uint16 _star, address _launcher)

@@ -31,7 +31,7 @@ contract TestConstitution
   {
     Assert.isFalse(ships.hasPilot(0),
       "should start out pilotless");
-    const.createGalaxy(0, us, time);
+    const.createGalaxy(0, us, time, time);
     Assert.isTrue(ships.isState(0, Ships.State.Locked),
       "should have been locked");
     Assert.equal(ships.getLocked(0), uint256(time),
@@ -121,7 +121,7 @@ contract TestConstitution
 
   function testEscape()
   {
-    const.createGalaxy(1, us, time);
+    const.createGalaxy(1, us, time, time);
     const.start(1, 123);
     //
     const.escape(1024, 1);

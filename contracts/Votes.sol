@@ -4,9 +4,12 @@
 pragma solidity 0.4.15;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import './SafeMath8.sol';
 
 contract Votes is Ownable
 {
+  using SafeMath8 for uint8;
+
   event ConcreteMajority(address constitution);
   event AbstractMajority(bytes32 hash);
 
@@ -46,7 +49,8 @@ contract Votes is Ownable
     external
     onlyOwner
   {
-    totalVoters = totalVoters + 1;
+    require(totalVoters < 255);
+    totalVoters++;
   }
 
   // we provide these getter functions so that clients can easily check if their
@@ -80,7 +84,7 @@ contract Votes is Ownable
   // voting for change
 
   // vote on a concrete proposal.
-  function castVote(uint8 _galaxy, address _proposal, bool _vote)
+  function castConcreteVote(uint8 _galaxy, address _proposal, bool _vote)
     external
     onlyOwner
     returns(bool newMajority)
@@ -91,14 +95,13 @@ contract Votes is Ownable
     // vote must differ from what is already registered, to discourage
     // unnecessary work.
     require(prev != _vote);
-    // update the vote.
     concreteVotes[owner][_proposal][_galaxy] = _vote;
     uint8 oldCount = concreteVoteCounts[owner][_proposal];
     // when voting yes,
     if (_vote)
     {
       // increment the proposal's vote count.
-      uint8 newCount = oldCount + 1;
+      uint8 newCount = oldCount.add(1);
       concreteVoteCounts[owner][_proposal] = newCount;
       // if that makes it a majority vote, return true to notify the
       // constitution.
@@ -111,16 +114,15 @@ contract Votes is Ownable
       }
     // when voting no, simply decrement the proposal's vote count.
     } else {
-      concreteVoteCounts[owner][_proposal] = oldCount - 1;
+      concreteVoteCounts[owner][_proposal] = oldCount.sub(1);
     }
   }
 
   // vote on an abstract proposal.
-  function castVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
+  function castAbstractVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
     external
     onlyOwner
   {
-    uint8 oldCount = abstractVoteCounts[_proposal];
     // once a proposal has achieved majority, we freeze votes on it.
     require(!abstractMajorityMap[_proposal]);
     bool prev = abstractVotes[_proposal][_galaxy];
@@ -128,13 +130,15 @@ contract Votes is Ownable
     // unnecessary work.
     require(prev != _vote);
     abstractVotes[_proposal][_galaxy] = _vote;
+    uint8 oldCount = abstractVoteCounts[_proposal];
     // when voting yes,
     if (_vote)
     {
       // increment the proposal's vote count.
-      abstractVoteCounts[_proposal] = oldCount + 1;
+      uint8 newCount = oldCount.add(1);
+      abstractVoteCounts[_proposal] = newCount;
       // if that makes it a majority vote, append it to the list.
-      if (oldCount + 1 > totalVoters / 2)
+      if (newCount > totalVoters / 2)
       {
         abstractMajorityMap[_proposal] = true;
         abstractMajorities.push(_proposal);
@@ -142,7 +146,7 @@ contract Votes is Ownable
       }
     // when voting no, simply decrement the proposal's vote count.
     } else {
-      abstractVoteCounts[_proposal] = abstractVoteCounts[_proposal] - 1;
+      abstractVoteCounts[_proposal] = oldCount.sub(1);
     }
   }
 }
