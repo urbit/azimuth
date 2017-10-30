@@ -77,11 +77,11 @@ Bring a locked ship to life and set its public key.
 `transferShip(uint32 _ship, address _target, bool _resetKey)`
 
 **Description:**  
-Transfer a living ship to a different address, optionally resetting its key.
+Transfer an unlocked or living ship to a different address, optionally resetting its key.
 
 **Requirements:**  
 - The caller must be the owner of the chosen ship.
-- The ship must be `Living`.
+- The ship must be either `Living`, or `Locked` with a locktime in the past.
 - The target address must not be the current owner.
 
 **Result:**  
