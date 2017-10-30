@@ -71,10 +71,6 @@ contract TestShips
     // latent
     Assert.isTrue(ships.isState(0, Ships.State.Latent),
       "should be latent by default");
-    // liquid
-    ships.setLiquid(0);
-    Assert.isTrue(ships.isState(0, Ships.State.Liquid),
-      "should be set to liquid");
     // locked
     Assert.equal(ships.getLocked(0), uint256(0),
       "should be 0 by default");
@@ -146,7 +142,7 @@ contract TestShips
       ships.getShipData(0);
     Assert.equal(pilot, 0,
       "should have correct pilot");
-    Assert.equal(state, uint256(2),
+    Assert.equal(state, uint256(1),
       "should have correct state");
     Assert.equal(locked, uint256(time),
       "should have correct locked");

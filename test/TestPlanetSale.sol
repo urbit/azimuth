@@ -16,16 +16,12 @@ contract TestPlanetSale
   {
     ships = new Ships();
     Votes votes = new Votes();
-    Spark USP = new Spark();
-    const = new Constitution(ships, votes, USP);
+    const = new Constitution(ships, votes);
     ships.transferOwnership(const);
     votes.transferOwnership(const);
-    USP.transferOwnership(const);
-    const.createGalaxy(0, this, 0);
+    const.createGalaxy(0, this, 0, 0);
     const.start(0, 123);
-    const.liquidateStar(256);
-    USP.approve(const, 1000000000000000000);
-    const.claimStar(256);
+    const.launch(256, this, 0);
     const.start(256, 123);
     uint32[] memory planets = new uint32[](4);
     planets[0] = 1048832;

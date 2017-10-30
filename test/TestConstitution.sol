@@ -10,7 +10,6 @@ contract TestConstitution
 {
   Ships ships;
   Votes votes;
-  Spark USP;
   Constitution const;
   address us;
   uint64 time;
@@ -19,8 +18,7 @@ contract TestConstitution
   {
     ships = new Ships();
     votes = new Votes();
-    USP = new Spark();
-    const = new Constitution(ships, votes, USP);
+    const = new Constitution(ships, votes);
     ships.transferOwnership(const);
     votes.transferOwnership(const);
     us = address(this);
@@ -38,27 +36,6 @@ contract TestConstitution
       "should have set lock-time");
     Assert.isTrue(ships.isPilot(0, us),
       "should have set pilot");
-  }
-
-  function testLiquidateStar()
-  {
-    Assert.equal(USP.balanceOf(us), uint256(0),
-      "should start out without sparks");
-    const.liquidateStar(256);
-    Assert.equal(USP.balanceOf(us), uint256(1000000000000000000),
-      "should have received spark");
-  }
-
-  function testClaimStar()
-  {
-    Assert.isFalse(ships.hasPilot(256),
-      "should start out pilotless");
-    USP.approve(const, 1000000000000000000);
-    const.claimStar(256);
-    Assert.isTrue(ships.isPilot(256, us),
-      "should have set pilot");
-    Assert.equal(USP.balanceOf(us), uint256(0),
-      "should have taken spark");
   }
 
   function testStart()
@@ -86,12 +63,12 @@ contract TestConstitution
   {
     Assert.isFalse(ships.hasPilot(1024),
       "should start out pilotless");
-    const.launch(1024, us);
+    const.launch(1024, us, time);
     Assert.isTrue(ships.isPilot(1024, us),
       "should have set pilot");
     Assert.isTrue(ships.isState(1024, Ships.State.Locked),
       "should have been locked");
-    Assert.equal(ships.getLocked(1024), uint256(now),
+    Assert.equal(ships.getLocked(1024), uint256(time),
       "should have set lock-time");
   }
 
@@ -158,14 +135,12 @@ contract TestConstitution
     Assert.equal(votes.abstractVoteCounts(bytes32(123)), uint256(1),
       "should have cast vote");
     //
-    Constitution other = new Constitution(ships, votes, USP);
+    Constitution other = new Constitution(ships, votes);
     const.castConcreteVote(0, other, true);
     const.castConcreteVote(1, other, true);
     Assert.equal(ships.owner(), other,
       "should have transfered ships ownership");
     Assert.equal(votes.owner(), other,
       "should have transfered votes ownership");
-    Assert.equal(USP.owner(), other,
-      "should have transfered USP ownership");
   }
 }

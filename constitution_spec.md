@@ -3,53 +3,15 @@
 
 To better understand the data the constitution operates on, take a look at [the Ships contract](./contracts/Ships.sol).
 
-## ++pub: transactions made by any Ethereum address
-
-### Claim star
-
-**Interface:**  
-`claimStar(uint16 _star)`
-
-**Description:**  
-Spend a Spark to claim a star.
-
-**Requirements:**  
-- The chosen star must be `Liquid`.
-- The caller must have a Spark balance of 1 or higher.
-- The caller must have given the Constitution a Spark allowance of 1 or higher. (Also see the ERC20 standard.)
-
-**Result:**  
-- Assigns the caller as the star's owner.
-- Sets the star to `Locked` with a release time equal to the timestamp of the current block.
-- Withdraws 1 Spark from the caller and burns it.
-
 ## ++nav: transactions made by ship owners.
-
-### Liquidate star
-
-**Interface:**  
-`liquidateStar(uint16 _star)`
-
-**Description:**  
-Liquidate a star to receive a Spark.
-
-**Requirements:**  
-- The caller must be the owner of the star's original parent.
-- The parent of the star must be `Living`.
-- The chosen star must be `Latent`.
-- The parent of the star must be allowed to birth another star.
-
-**Result:**  
-- Sets the star to `Liquid`.
-- Mints 1 Spark and gives it to the caller.
 
 ### Launch
 
 **Interface:**  
-`launch(uint32 _ship, address _target)`
+`launch(uint32 _ship, address _target, uint64 _lockTime)`
 
 **Description:**  
-Launch a star or planet, making a target address its owner.
+Launch a star or planet, making a target address its owner. The launched ship becomes startable after the specified lock time.
 
 **Requirements:**  
 - The chosen ship must be `Latent`.
@@ -205,7 +167,7 @@ Vote on a new constitution contract.
 
 **Result:**
 - The vote for the proposal is registered.
-- If the proposal attains a majority vote, ownership of all data contracts (Ships, Votes, Spark) is transferred to the proposed address, and the current Constitution is destroyed.
+- If the proposal attains a majority vote, ownership of all data contracts (Ships, Votes) is transferred to the proposed address, and the current Constitution is destroyed.
 
 ### Cast abstract vote
 

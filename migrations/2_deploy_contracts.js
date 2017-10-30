@@ -1,6 +1,5 @@
 var Ships = artifacts.require("./Ships.sol");
 var Votes = artifacts.require("./Votes.sol");
-var Spark = artifacts.require("./Spark.sol");
 var Constitution = artifacts.require("./Constitution.sol");
 
 module.exports = async function(deployer) {
@@ -15,7 +14,7 @@ module.exports = async function(deployer) {
   // votes.transferOwnership(constitution.address);
 
   //TODO the above is more consise and should be the same, but... doesn't work?
-  var ships, votes, spark, constitution;
+  var ships, votes, constitution;
   deployer.then(function() {
   }).then(function() {
     return deployer.deploy(Ships);
@@ -28,12 +27,7 @@ module.exports = async function(deployer) {
     return Votes.deployed();
   }).then(function(instance) {
     votes = instance;
-    return deployer.deploy(Spark);
-  }).then(function() {
-    return Spark.deployed();
-  }).then(function(instance) {
-    spark = instance;
-    return deployer.deploy(Constitution, ships.address, votes.address, spark.address);
+    return deployer.deploy(Constitution, ships.address, votes.address);
   }).then(function() {
     return Constitution.deployed();
   }).then(function(instance) {
@@ -42,6 +36,5 @@ module.exports = async function(deployer) {
     console.log(constitution.address);
     ships.transferOwnership(constitution.address);
     votes.transferOwnership(constitution.address);
-    spark.transferOwnership(constitution.address);
   });
 };
