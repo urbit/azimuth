@@ -73,7 +73,7 @@ contract PlanetSale is Ownable
     // the list by one.
     available[_index] = available[last];
     available.length = last;
-    constitution.launch(planet, _target);
+    constitution.launch(planet, _target, 0);
     PlanetSold(planet, last);
     if (last == 0)
     {

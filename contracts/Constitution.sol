@@ -10,72 +10,26 @@ contract Constitution is ConstitutionBase
 {
   using SafeMath for uint256;
 
-  // a single spark is 1e18 units, because 18 decimal places need to be stored.
-  uint256 constant public oneSpark = 1e18;
-
   // during contract construction, set the addresses of the (data) contracts we
   // rely on.
   // ownership of these contracts will need to be transfered to the constitution
   // after its contract address becomes known.
-  function Constitution(Ships _ships, Votes _votes, Spark _USP)
+  function Constitution(Ships _ships, Votes _votes)
   {
     ships = _ships;
     votes = _votes;
-    USP = _USP;
-  }
-
-  // ++pub
-  // public transactions which any ethereum address can sign.
-
-  // spend a spark to claim a star.
-  // the star claimed must be State.Liquid.
-  //NOTE caller should first USP.approve(this, 1);
-  function claimStar(uint16 _star)
-    external
-  {
-    // only stars that have been liquified can be claimed, latent ones still
-    // belong to their parent.
-    require(ships.isState(_star, Ships.State.Liquid));
-    ships.setPilot(_star, msg.sender);
-    // "lock" the star, but make it available for booting immediately.
-    //NOTE block.timestamp can possibly be in the future, but generally not by
-    //     much. it is possible for a malicious miner to mess with the timestamp
-    //     but there is no incentive for doing so here.
-    ships.setLocked(_star, uint64(block.timestamp));
-    // withdraw a single spark from the caller, then destroy it.
-    USP.transferFrom(msg.sender, this, oneSpark);
-    USP.burn(oneSpark);
   }
 
   // ++nav
   // transactions made by ship owners.
 
-  // liquidate a star to receive a spark.
-  // the star liquidated must be owned by the caller,
-  // and be in Ships.State.Latent.
-  function liquidateStar(uint16 _star)
+  // launch a star or planet, making a target address its owner. the launched
+  // ship becomes startable after the specified lock time.
+  function launch(uint32 _ship, address _target, uint64 _lockTime)
     external
   {
-    uint16 parent = ships.getOriginalParent(_star);
-    // stars can only be liquidated by (the owner of) their direct parent.
-    require(ships.isPilot(parent, msg.sender));
-    // _star can't secretly be a galaxy, because it's its own parent, and can't
-    // be two states at once.
-    require(ships.isState(parent, Ships.State.Living));
-    require(ships.isState(_star, Ships.State.Latent));
-    // galaxy must be allowed to create more stars.
-    require(canSpawn(parent));
-    ships.setLiquid(_star);
-    // create a single spark and give it to the sender.
-    USP.mint(msg.sender, oneSpark);
-  }
-
-  // launch a star or planet, making a target address its owner.
-  function launch(uint32 _ship, address _target)
-    external
-  {
-    // only latent ships can be launched. liquid ones require a spark, locked
-    // and living ones already have an owner.
+    // only latent ships can be launched. locked and living ones already have an
+    // owner.
     require(ships.isState(_ship, Ships.State.Latent));
     uint16 parent = ships.getOriginalParent(_ship);
     require(ships.isState(parent, Ships.State.Living));
@@ -86,8 +40,8 @@ contract Constitution is ConstitutionBase
     require(ships.isPilot(parent, msg.sender)
             || ships.isLauncher(parent, msg.sender));
     ships.setPilot(_ship, _target);
-    // "lock" the ship, but make it available for booting immediately.
-    ships.setLocked(_ship, uint64(block.timestamp));
+    // lock the ship.
+    ships.setLocked(_ship, _lockTime);
     // parent has gained a child.
     ships.incrementChildren(parent);
   }

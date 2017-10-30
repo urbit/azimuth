@@ -17,9 +17,8 @@ contract Ships is Ownable
   enum State
   {
     Latent, // 0: belongs to parent
-    Liquid, // 1: ceded to contract
-    Locked, // 2: locked til birth (see Status.locked)
-    Living  // 3: fully active
+    Locked, // 1: locked til birth (see Status.locked)
+    Living  // 2: fully active
   }
 
   // operating state + metadata
@@ -187,14 +186,6 @@ contract Ships is Ownable
     returns (bool equals)
   {
     return (ships[_ship].status.state == _state);
-  }
-
-  function setLiquid(uint32 _ship)
-    onlyOwner
-    public
-  {
-    ships[_ship].status.state = State.Liquid;
-    ChangedStatus(_ship, State.Liquid, 0);
   }
 
   function getLocked(uint32 _ship)

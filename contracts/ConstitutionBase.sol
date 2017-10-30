@@ -7,13 +7,11 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 import './Ships.sol';
 import './Votes.sol';
-import './Spark.sol';
 
 contract ConstitutionBase is Ownable
 {
   Ships public ships; // ships data storage
   Votes public votes; // votes data storage
-  Spark public USP;   // urbit spark token
 
   function ConstitutionBase()
   {
@@ -28,7 +26,6 @@ contract ConstitutionBase is Ownable
   {
     ships.transferOwnership(_new);
     votes.transferOwnership(_new);
-    USP.transferOwnership(_new);
     selfdestruct(_new);
   }
 }
