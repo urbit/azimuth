@@ -85,6 +85,13 @@ contract TestConstitution
       "should have removed launcher");
   }
 
+  function testTransferBy()
+  {
+    const.allowTransferBy(1024, us);
+    Assert.isTrue(ships.isTransferrer(1024, us),
+      "should have set transferrer");
+  }
+
   function testRekey()
   {
     var (key, rev) = ships.getKey(1024);

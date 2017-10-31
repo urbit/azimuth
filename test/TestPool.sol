@@ -19,8 +19,10 @@ contract TestPool
     v.transferOwnership(const);
     const.createGalaxy(0, this, 0, 0);
     const.start(0, 123);
+    const.launch(1024, this, 0);
     pool = new Pool(ships);
     const.grantLaunchRights(0, pool);
+    const.allowTransferBy(1024, pool);
   }
 
   function testDeposit()
@@ -28,6 +30,9 @@ contract TestPool
     pool.deposit(256);
     Assert.isTrue(ships.isPilot(256, address(pool)),
       "should have been launched to pool");
+    pool.deposit(1024);
+    Assert.isTrue(ships.isPilot(1024, address(pool)),
+      "should have been transferred to pool");
     Assert.equal(pool.balanceOf(this), pool.oneStar(),
       "should have granted a token");
   }

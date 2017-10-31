@@ -64,6 +64,15 @@ contract Constitution is ConstitutionBase
     ships.setLauncher(_ship, _launcher, false);
   }
 
+  // allow the given address to transfer ownership of the ship.
+  function allowTransferBy(uint32 _ship, address _transferrer)
+    external
+    pilot(_ship)
+    unlocked(_ship)
+  {
+    ships.setTransferrer(_ship, _transferrer);
+  }
+
   // bring a locked ship to life and set its public key.
   function start(uint32 _ship, bytes32 _key)
     external
@@ -85,11 +94,10 @@ contract Constitution is ConstitutionBase
   // transfer an unlocked or living ship to a different address.
   function transferShip(uint32 _ship, address _target, bool _resetKey)
     external
-    pilot(_ship)
+    unlocked(_ship)
   {
-    require(ships.isState(_ship, Ships.State.Living)
-            || (ships.isState(_ship, Ships.State.Locked)
-                && ships.getLocked(_ship) < block.timestamp));
+    require(ships.isPilot(_ship, msg.sender)
+            || ships.isTransferrer(_ship, msg.sender));
     // we may not always want to reset the ship's key, to allow for ownership
     // transfer without ship downtime. eg, when transfering to ourselves, away
     // from a compromised address.
@@ -97,6 +105,9 @@ contract Constitution is ConstitutionBase
     {
       ships.setKey(_ship, 0);
     }
+    // we always reset the transferrer upon transfer, to ensure the new owner
+    // doesn't have to worry about getting their ship transferred away.
+    ships.setTransferrer(_ship, 0);
     ships.setPilot(_ship, _target);
   }
 
@@ -222,6 +233,15 @@ contract Constitution is ConstitutionBase
   modifier alive(uint32 _ship)
   {
     require(ships.isState(_ship, Ships.State.Living));
+    _;
+  }
+
+  // test if the _ship is either locked and past its locktime, or live.
+  modifier unlocked(uint32 _ship)
+  {
+    require(ships.isState(_ship, Ships.State.Living)
+            || (ships.isState(_ship, Ships.State.Locked)
+                && ships.getLocked(_ship) < block.timestamp));
     _;
   }
 }
