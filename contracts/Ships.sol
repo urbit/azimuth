@@ -41,6 +41,7 @@ contract Ships is Ownable
     uint16 parent;
     uint32 escape;     // 65536 if no escape active. (0 needs to be valid.)
     mapping(address => bool) launchers;
+    address transferrer;  // non-pilot address allowed to initiate transfer.
   }
 
   // per ship: full ship state.
@@ -85,7 +86,8 @@ contract Ships is Ownable
              bytes32 key,
              uint256 revision,
              uint16 parent,
-             uint32 escape)
+             uint32 escape,
+             address transferrer)
   {
     Hull storage ship = ships[_ship];
     return (ship.pilot,
@@ -96,7 +98,8 @@ contract Ships is Ownable
             ship.key,
             ship.revision,
             ship.parent,
-            ship.escape);
+            ship.escape,
+            ship.transferrer);
   }
 
   function getOwnedShips()
@@ -292,5 +295,20 @@ contract Ships is Ownable
     public
   {
     ships[_star].launchers[_launcher] = _set;
+  }
+
+  function isTransferrer(uint32 _ship, address _transferrer)
+    constant
+    public
+    returns (bool result)
+  {
+    return (ships[_ship].transferrer == _transferrer);
+  }
+
+  function setTransferrer(uint32 _ship, address _transferrer)
+    onlyOwner
+    public
+  {
+    ships[_ship].transferrer = _transferrer;
   }
 }

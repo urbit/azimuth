@@ -136,10 +136,20 @@ contract TestShips
       "should have unset launcher");
   }
 
+  function testTransferrer()
+  {
+    ships.setTransferrer(0, us);
+    Assert.isTrue(ships.isTransferrer(0, us),
+      "should have set transferrer");
+    ships.setTransferrer(0, 0);
+    Assert.isTrue(ships.isTransferrer(0, 0),
+      "should have unset transferrer");
+  }
+
   function testShipData()
   {
-    var (pilot, state, locked, completed, children, key, revision, parent, escape) =
-      ships.getShipData(0);
+    var (pilot, state, locked, completed, children, key, revision, parent,
+         escape, transferrer) = ships.getShipData(0);
     Assert.equal(pilot, 0,
       "should have correct pilot");
     Assert.equal(state, uint256(1),
