@@ -13,7 +13,7 @@ The `Hull` represents a ship's full state. It contains the following pieces of d
 **`address pilot`**  
 The current owner of the ship.
 
-**`Status status`**
+**`Status status`**  
 See `struct Status` below.
 
 **`uint16 children`**  
