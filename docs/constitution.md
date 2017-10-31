@@ -1,7 +1,10 @@
 
 # Constitution: interface
 
-To better understand the data the constitution operates on, take a look at [the Ships contract](./contracts/Ships.sol).
+[The Constitution](../contracts/Constitution.md) is the main contract, responsible for the business logic used to change the on-chain Urbit data. It can be upgraded through use of its voting mechanism.
+
+To better understand the data the constitution operates on, take a look at [the Ships contract](../contracts/Ships.sol) and [its documentation](./ships.md).  
+To learn about the voting mechanism, see [the Votes contact](../contracts/Votes.sol) and [its documentation](./votes.md).
 
 ## ++nav: transactions made by ship owners.
 
@@ -52,6 +55,21 @@ The caller must be the owner of the star.
 
 **Result:**  
 Revokes permission for the address to launch planets for the star.
+
+### Allow transfer by
+
+**Interface:**  
+`allowTransferBy(uint32 _ship, address _transferrer)`
+
+**Description:**  
+Allow the given address to transfer ownership of the ship.
+
+**Requirements:**  
+- The caller must be the owner of the ship.
+- The ship must either be locked but past its lock time, or living.
+
+**Result:**  
+Registers the address as allowed to transfer ownership of the ship.
 
 ### Start
 
