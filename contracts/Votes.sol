@@ -1,5 +1,5 @@
 // the urbit votes data store
-// untested draft
+// draft
 
 pragma solidity 0.4.15;
 

@@ -1,5 +1,5 @@
 // default planet sale
-// untested draft
+// draft
 
 pragma solidity 0.4.15;
 
