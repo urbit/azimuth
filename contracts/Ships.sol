@@ -110,6 +110,14 @@ contract Ships is Ownable
     return pilots[msg.sender];
   }
 
+  function getOwnedShips(address _whose)
+    constant
+    public
+    returns (uint32[] ownedShips)
+  {
+    return pilots[_whose];
+  }
+
   function hasPilot(uint32 _ship)
     constant
     public
