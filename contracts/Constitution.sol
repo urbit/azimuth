@@ -34,7 +34,7 @@ contract Constitution is ConstitutionBase
     uint16 parent = ships.getOriginalParent(_ship);
     require(ships.isState(parent, Ships.State.Living));
     // galaxies need to adhere to star creation limitations.
-    require(parent > 255 || canSpawn(parent));
+    require(parent > 255 || canSpawn(parent, block.timestamp));
     // the owner of a parent can always launch its children, other addresses
     // need explicit permission (the role of "launcher") to do so.
     require(ships.isPilot(parent, msg.sender)
@@ -199,7 +199,7 @@ contract Constitution is ConstitutionBase
   }
 
   // test if the galaxy can liquify/launch another star right now.
-  function canSpawn(uint16 _parent)
+  function canSpawn(uint16 _parent, uint256 _time)
     public
     constant
     returns (bool can)
@@ -207,11 +207,11 @@ contract Constitution is ConstitutionBase
     if (!ships.isState(_parent, Ships.State.Living)) { return false; }
     uint64 completed = ships.getCompleted(_parent);
     // after the completion date, they can launch everything.
-    if (completed <= block.timestamp) { return true; }
+    if (completed <= _time) { return true; }
     // if unlocked after completion, only the above check remains important.
     uint64 locked = ships.getLocked(_parent);
     if (completed <= locked) { return false; }
-    uint256 curDiff = block.timestamp.sub(locked); // living guarantees > 0.
+    uint256 curDiff = _time.sub(locked); // living guarantees > 0.
     uint256 totDiff = uint256(completed).sub(locked);
     // start out with 1 star, then grow over time.
     uint256 allowed = curDiff.mul(254).div(totDiff).add(1);
