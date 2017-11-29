@@ -1,7 +1,7 @@
 // the urbit votes data store
 // draft
 
-pragma solidity 0.4.15;
+pragma solidity 0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import './SafeMath8.sol';

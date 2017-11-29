@@ -1,7 +1,7 @@
 // the urbit ethereum constitution
 // draft
 
-pragma solidity 0.4.15;
+pragma solidity 0.4.18;
 
 import './ConstitutionBase.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
