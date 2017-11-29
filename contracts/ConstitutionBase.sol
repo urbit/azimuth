@@ -1,7 +1,7 @@
 // base contract for the urbit constitution
 // encapsulates dependencies all constitutions need.
 
-pragma solidity 0.4.15;
+pragma solidity 0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
