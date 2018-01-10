@@ -35,6 +35,13 @@ contract('Ships', function([owner, user]) {
       assertJump(err);
     }
     await ships.setPilot(0, user);
+    // can't set to same pilot.
+    try {
+      await ships.setPilot(0, user);
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
     assert.equal(await ships.hasPilot(0), true);
     assert.equal(await ships.isPilot(0, user), true);
     assert.equal(await ships.isPilot(0, owner), false);
@@ -104,7 +111,7 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getChildren(0), 1);
   });
 
-  it('setting and doing escape', async function() {
+  it('setting, canceling, and doing escape', async function() {
     // only owner can do this.
     try {
       await ships.setEscape(257, 2, {from:user});
@@ -112,8 +119,17 @@ contract('Ships', function([owner, user]) {
     } catch(err) {
       assertJump(err);
     }
+    // only owner can do this.
+    try {
+      await ships.cancelEscape(257, {from:user});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
     await ships.setEscape(257, 2);
     assert.isTrue(await ships.isEscape(257, 2));
+    await ships.cancelEscape(257);
+    assert.isFalse(await ships.isEscape(257, 2));
     // only owner can do this.
     try {
       await ships.doEscape(257, {from:user});
@@ -121,6 +137,14 @@ contract('Ships', function([owner, user]) {
     } catch(err) {
       assertJump(err);
     }
+    // can't do if not escaping.
+    try {
+      await ships.doEscape(257);
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await ships.setEscape(257, 2);
     await ships.doEscape(257);
     assert.isFalse(await ships.isEscape(257, 2));
     assert.equal(await ships.getParent(257), 2);

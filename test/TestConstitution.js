@@ -193,7 +193,7 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(rev, 3);
   });
 
-  it('setting an escape', async function() {
+  it('setting and canceling an escape', async function() {
     // can't if chosen parent not living.
     try {
       await constit.escape(256, 1, {from:user1});
@@ -209,9 +209,18 @@ contract('Constitution', function([owner, user1, user2]) {
     } catch(err) {
       assertJump(err);
     }
+    try {
+      await constit.cancelEscape(256, {from:user2});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
     // set escape as owner.
     await constit.escape(256, 1, {from:user1});
     assert.isTrue(await ships.isEscape(256, 1));
+    await constit.cancelEscape(256, {from:user1});
+    assert.isFalse(await ships.isEscape(256, 1));
+    await constit.escape(256, 1, {from:user1});
     await constit.escape(512, 1, {from:user1});
   });
 
