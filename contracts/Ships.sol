@@ -62,7 +62,7 @@ contract Ships is Ownable
   // utilities
 
   function getOriginalParent(uint32 _ship)
-    constant
+    pure
     public
     returns (uint16 parent)
   {
@@ -83,7 +83,7 @@ contract Ships is Ownable
              uint8 state,
              uint64 locked,
              uint64 completed,
-             uint32 children,
+             uint16 children,
              bytes32 key,
              uint256 revision,
              uint16 parent,
@@ -181,7 +181,7 @@ contract Ships is Ownable
   function getChildren(uint32 _ship)
     constant
     public
-    returns (uint32 children)
+    returns (uint16 children)
   {
     return ships[_ship].children;
   }
