@@ -1,8 +1,7 @@
-pragma solidity ^0.4.11;
-
+pragma solidity 0.4.18;
 
 /**
- * @title SafeMath16
+ * @title SafeMath8
  * @dev Math operations for uint8 with safety checks that throw on error
  */
 library SafeMath8 {
