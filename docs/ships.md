@@ -28,8 +28,11 @@ The revision number of the public key.
 **`uint16 parent`**  
 The current parent under which the ship resides on the Urbit network.
 
-**`uint32 escape`**  
-The parent to which the ship has requested to fall under. `65536` if no such request is active. (`0` is a valid parent, so can't be used to indicate this.)
+**`uint16 escape`**  
+The parent to which the ship has requested to fall under.
+
+**`bool escaping`**  
+Whether the ship is currently trying to escape to the parent set in `escape`.
 
 **`mapping(address => bool) launchers`**  
 Addresses that have permission to launch child ships using this ship. Useful for automating distribution of ships.

@@ -136,6 +136,20 @@ Escape to a new parent. Takes effect when the new parent accepts the adoption.
 **Result:**  
 Sets the escape of the ship to the chosen parent.
 
+### Cancel escape
+
+**Interface:**  
+`cancelEscape(uint32 _ship)`
+
+**Description:**  
+Deactivates the child's current escape.
+
+**Requirements:**  
+- The caller must be the owner of the chosen ship.
+
+**Result:**  
+Deactivates the chosen ship's escape.
+
 ### Adopt
 
 **Interface:**  
@@ -150,7 +164,7 @@ Accept an escaping ship.
 
 **Result:**  
 - Sets the child's parent to be the parent ship.
-- Unsets the child's escape.
+- Deactivates the child's escape.
 
 ### Reject
 
@@ -162,10 +176,10 @@ Reject an escaping ship.
 
 **Requirements:**  
 - The caller must be the owner of the parent ship.
-- The parent ship must be the child's chosen escape.
+- The parent ship must be the child's currently active escape.
 
 **Result:**  
-Unsets the child's escape.
+Deactivates the child's escape.
 
 ## ++sen: transactions made by galaxy owners
 

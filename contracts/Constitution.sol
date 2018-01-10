@@ -130,6 +130,14 @@ contract Constitution is ConstitutionBase
     ships.setEscape(_ship, _parent);
   }
 
+  // cancel an escape.
+  function cancelEscape(uint32 _ship)
+    external
+    pilot(_ship)
+  {
+    ships.cancelEscape(_ship);
+  }
+
   // accept an escaping ship.
   function adopt(uint16 _parent, uint32 _child)
     external
@@ -146,8 +154,8 @@ contract Constitution is ConstitutionBase
     pilot(_parent)
   {
     require(ships.isEscape(_child, _parent));
-    // resets the child's escape to "no escape".
-    ships.setEscape(_child, 65536);
+    // cancels the escape, making it inactive.
+    ships.cancelEscape(_child);
   }
 
   // ++sen

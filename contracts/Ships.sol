@@ -9,7 +9,7 @@ contract Ships is Ownable
 {
   event ChangedPilot(uint32 indexed ship, address owner);
   event ChangedStatus(uint32 indexed ship, State state, uint64 lock);
-  event ChangedEscape(uint32 ship, uint32 indexed escape);
+  event ChangedEscape(uint32 ship, uint16 indexed escape);
   event ChangedParent(uint32 ship, uint16 indexed parent);
   event ChangedKey(uint32 indexed ship, bytes32 key, uint256 revision);
 
@@ -39,7 +39,8 @@ contract Ships is Ownable
     bytes32 key;       // public key, 0 if none.
     uint256 revision;  // key number.
     uint16 parent;
-    uint32 escape;     // 65536 if no escape active. (0 needs to be valid.)
+    uint16 escape;     // new parent request.
+    bool escaping;     // escape request currently active.
     mapping(address => bool) launchers;
     address transferrer;  // non-pilot address allowed to initiate transfer.
   }
@@ -86,7 +87,8 @@ contract Ships is Ownable
              bytes32 key,
              uint256 revision,
              uint16 parent,
-             uint32 escape,
+             uint16 escape,
+             bool escaping,
              address transferrer)
   {
     Hull storage ship = ships[_ship];
@@ -99,6 +101,7 @@ contract Ships is Ownable
             ship.revision,
             ship.parent,
             ship.escape,
+            ship.escaping,
             ship.transferrer);
   }
 
@@ -232,7 +235,6 @@ contract Ships is Ownable
     ship.status.state = State.Living;
     ChangedStatus(_ship, State.Living, 0);
     ship.parent = getOriginalParent(_ship);
-    ship.escape = 65536;
   }
 
   function getParent(uint32 _ship)
@@ -248,15 +250,25 @@ contract Ships is Ownable
     public
     returns (bool equals)
   {
-    return (ships[_ship].escape == _parent);
+    Hull storage ship = ships[_ship];
+    return (ship.escaping && ship.escape == _parent);
   }
 
-  function setEscape(uint32 _ship, uint32 _parent)
+  function setEscape(uint32 _ship, uint16 _parent)
     onlyOwner
     public
   {
-    ships[_ship].escape = _parent;
+    Hull storage ship = ships[_ship];
+    ship.escape = _parent;
+    ship.escaping = true;
     ChangedEscape(_ship, _parent);
+  }
+
+  function cancelEscape(uint32 _ship)
+    onlyOwner
+    public
+  {
+    ships[_ship].escaping = false;
   }
 
   function doEscape(uint32 _ship)
@@ -264,11 +276,10 @@ contract Ships is Ownable
     public
   {
     Hull storage ship = ships[_ship];
-    require(ship.escape < 65536);
-    ship.parent = uint16(ship.escape);
-    ChangedParent(_ship, uint16(ship.escape));
-    ship.escape = 65536; // "no escape"
-    ChangedEscape(_ship, 65536);
+    require(ship.escaping);
+    ship.parent = ship.escape;
+    ChangedParent(_ship, ship.escape);
+    ship.escaping = false;
   }
 
   function getKey(uint32 _ship)
