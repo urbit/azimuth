@@ -51,7 +51,8 @@ Registers permission for the address to launch planets for the star.
 Disallow the given address to launch planets belonging to the star.
 
 **Requirements:**
-The caller must be the owner of the star.
+- The caller must be the owner of the star.
+- The star must be `Living`.
 
 **Result:**  
 Revokes permission for the address to launch planets for the star.
