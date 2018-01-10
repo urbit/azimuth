@@ -115,6 +115,7 @@ contract Votes is Ownable
     // when voting no, simply decrement the proposal's vote count.
     } else {
       concreteVoteCounts[owner][_proposal] = oldCount.sub(1);
+      return false;
     }
   }
 
