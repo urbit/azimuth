@@ -215,6 +215,7 @@ contract Ships is Ownable
     public
   {
     Status storage status = ships[_ship].status;
+    require(status.state != State.Locked || status.locked != _date);
     status.locked = _date;
     status.state = State.Locked;
     ChangedStatus(_ship, State.Locked, _date);
@@ -232,6 +233,7 @@ contract Ships is Ownable
     public
   {
     Hull storage ship = ships[_ship];
+    require(ship.status.state != State.Living);
     ship.status.state = State.Living;
     ChangedStatus(_ship, State.Living, 0);
     ship.parent = getOriginalParent(_ship);
