@@ -1,0 +1,30 @@
+{
+  "name": "urb-constitution",
+  "version": "1.0.0",
+  "description": "The Urbit PKI on the Ethereum blockchain.",
+  "main": "truffle.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-register": "^6.26.0",
+    "truffle": "^4.0.4",
+    "zeppelin-solidity": "^1.5.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/urbit/constitution.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/urbit/constitution/issues"
+  },
+  "homepage": "https://github.com/urbit/constitution#readme"
+}
