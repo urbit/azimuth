@@ -253,7 +253,7 @@ contract Ships is Ownable
     returns (bool equals)
   {
     Hull storage ship = ships[_ship];
-    return (ship.escaping && ship.escape == _parent);
+    return (ship.escaping && (ship.escape == _parent));
   }
 
   function setEscape(uint32 _ship, uint16 _parent)
