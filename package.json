@@ -11,7 +11,7 @@
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "truffle": "^4.0.4",
-    "zeppelin-solidity": "1.5.0"
+    "zeppelin-solidity": "1.7.0"
   },
   "devDependencies": {},
   "scripts": {
