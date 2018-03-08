@@ -4,9 +4,10 @@
 pragma solidity 0.4.18;
 
 import './ConstitutionBase.sol';
+import './ERC165Mapping.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-contract Constitution is ConstitutionBase
+contract Constitution is ConstitutionBase, ERC165Mapping
 {
   using SafeMath for uint256;
 
@@ -18,6 +19,7 @@ contract Constitution is ConstitutionBase
   {
     ships = _ships;
     votes = _votes;
+    //TODO supportedInterfaces[this.function.selector ^ more] = true;
   }
 
   // ++nav
