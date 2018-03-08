@@ -26,7 +26,7 @@ contract PlanetSale is Ownable
 
   function getAvailable()
     external
-    constant
+    view
     returns (uint32[] availablePlanets)
   {
     return available;
@@ -34,7 +34,7 @@ contract PlanetSale is Ownable
 
   function getRemaining()
     external
-    constant
+    view
     returns (uint256 remainingPlanets)
   {
     return available.length;
