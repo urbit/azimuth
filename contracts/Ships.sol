@@ -77,7 +77,7 @@ contract Ships is Ownable
   // necessary because of compiler error:
   // "Internal type [Hull] is not allowed for public state variables."
   function getShipData(uint32 _ship)
-    constant
+    view
     public
     returns (address pilot,
              uint8 state,
@@ -106,7 +106,7 @@ contract Ships is Ownable
   }
 
   function getOwnedShips()
-    constant
+    view
     public
     returns (uint32[] ownedShips)
   {
@@ -114,7 +114,7 @@ contract Ships is Ownable
   }
 
   function getOwnedShips(address _whose)
-    constant
+    view
     public
     returns (uint32[] ownedShips)
   {
@@ -122,7 +122,7 @@ contract Ships is Ownable
   }
 
   function hasPilot(uint32 _ship)
-    constant
+    view
     public
     returns (bool result)
   {
@@ -130,7 +130,7 @@ contract Ships is Ownable
   }
 
   function isPilot(uint32 _ship, address _addr)
-    constant
+    view
     public
     returns (bool result)
   {
@@ -179,7 +179,7 @@ contract Ships is Ownable
   }
 
   function getChildren(uint32 _ship)
-    constant
+    view
     public
     returns (uint16 children)
   {
@@ -187,7 +187,7 @@ contract Ships is Ownable
   }
 
   function getCompleted(uint32 _ship)
-    constant
+    view
     public
     returns (uint64 date)
   {
@@ -195,7 +195,7 @@ contract Ships is Ownable
   }
 
   function isState(uint32 _ship, State _state)
-    constant
+    view
     public
     returns (bool equals)
   {
@@ -203,7 +203,7 @@ contract Ships is Ownable
   }
 
   function getLocked(uint32 _ship)
-    constant
+    view
     public
     returns (uint64 date)
   {
@@ -240,7 +240,7 @@ contract Ships is Ownable
   }
 
   function getParent(uint32 _ship)
-    constant
+    view
     public
     returns (uint16 parent)
   {
@@ -248,7 +248,7 @@ contract Ships is Ownable
   }
 
   function isEscape(uint32 _ship, uint16 _parent)
-    constant
+    view
     public
     returns (bool equals)
   {
@@ -285,7 +285,7 @@ contract Ships is Ownable
   }
 
   function getKey(uint32 _ship)
-    constant
+    view
     public
     returns (bytes32 key, uint256 revision)
   {
@@ -304,7 +304,7 @@ contract Ships is Ownable
   }
 
   function isLauncher(uint16 _star, address _launcher)
-    constant
+    view
     public
     returns (bool result)
   {
@@ -319,7 +319,7 @@ contract Ships is Ownable
   }
 
   function isTransferrer(uint32 _ship, address _transferrer)
-    constant
+    view
     public
     returns (bool result)
   {

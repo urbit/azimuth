@@ -211,7 +211,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   // test if the galaxy can liquify/launch another star right now.
   function canSpawn(uint16 _parent, uint256 _time)
     public
-    constant
+    view
     returns (bool can)
   {
     if (!ships.isState(_parent, Ships.State.Living)) { return false; }
