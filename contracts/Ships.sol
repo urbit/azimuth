@@ -52,6 +52,8 @@ contract Ships is Ownable
   // per owner: per ship: index in pilots array (for efficient deletion).
   //NOTE these describe the "nth array element", so they're at index n-1.
   mapping(address => mapping(uint32 => uint256)) public shipNumbers;
+  // per owner: addresses allowed to transfer their ships.
+  mapping(address => mapping(address => bool)) public operators;
 
   function Ships()
   {
@@ -121,6 +123,27 @@ contract Ships is Ownable
     return pilots[_whose];
   }
 
+  // since it's currently "not possible to return dynamic content from external
+  // function calls" we must expose this as an interface to allow in-contract
+  // discoverability of someone's "balance".
+  function getOwnedShipCount(address _whose)
+    view
+    public
+    returns (uint256 count)
+  {
+    return pilots[_whose].length;
+  }
+
+  function getOwnedShipAtIndex(address _whose, uint256 _index)
+    view
+    public
+    returns (uint32 ship)
+  {
+    uint32[] storage owned = pilots[_whose];
+    require(_index < owned.length);
+    return pilots[_whose][_index];
+  }
+
   function hasPilot(uint32 _ship)
     view
     public
@@ -135,6 +158,14 @@ contract Ships is Ownable
     returns (bool result)
   {
     return (ships[_ship].pilot == _addr);
+  }
+
+  function getPilot(uint32 _ship)
+    view
+    public
+    returns (address pilot)
+  {
+    return ships[_ship].pilot;
   }
 
   function setPilot(uint32 _ship, address _owner)
@@ -326,10 +357,33 @@ contract Ships is Ownable
     return (ships[_ship].transferrer == _transferrer);
   }
 
+  function getTransferrer(uint32 _ship)
+    view
+    public
+    returns (address transferrer)
+  {
+    return ships[_ship].transferrer;
+  }
+
   function setTransferrer(uint32 _ship, address _transferrer)
     onlyOwner
     public
   {
     ships[_ship].transferrer = _transferrer;
+  }
+
+  function isOperator(address _owner, address _operator)
+    view
+    public
+    returns (bool result)
+  {
+    return operators[_owner][_operator];
+  }
+
+  function setOperator(address _owner, address _operator, bool _approved)
+    onlyOwner
+    public
+  {
+    operators[_owner][_operator] = _approved;
   }
 }

@@ -5,11 +5,27 @@ pragma solidity 0.4.18;
 
 import './ConstitutionBase.sol';
 import './ERC165Mapping.sol';
+import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 contract Constitution is ConstitutionBase, ERC165Mapping
+                         // including the following interfaces somehow causes
+                         // the contract to not deploy properly. we toggle them
+                         // on when developing to make sure they're satisfied,
+                         // but toggle them off for tests and deploys.
+                         //, ERC721, ERC721Metadata, ERC721Enumerable
 {
   using SafeMath for uint256;
+
+  event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
+  event Approval(address indexed _owner, address indexed _approved,
+                 uint256 _tokenId);
+  event ApprovalForAll(address indexed _owner, address indexed _operator,
+                       bool _approved);
+
+  string constant public name = "Urbit Ship";
+  string constant public symbol = "URS";
+  uint256 constant public totalSupply = 4294967296;
 
   // during contract construction, set the addresses of the (data) contracts we
   // rely on.
@@ -19,7 +35,138 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   {
     ships = _ships;
     votes = _votes;
-    //TODO supportedInterfaces[this.function.selector ^ more] = true;
+    supportedInterfaces[0x6466353c] = true; // ERC721
+    supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
+    supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
+  }
+
+  // ++erc
+  // support for ERC standards
+
+  // erc721 core
+
+  function balanceOf(address _owner)
+    external
+    view
+    returns (uint256)
+  {
+    return ships.getOwnedShipCount(_owner);
+  }
+
+  function ownerOf(uint256 _tokenId)
+    external
+    view
+    shipId(_tokenId)
+    returns (address owner)
+  {
+    uint32 id = uint32(_tokenId);
+    require(ships.hasPilot(id));
+    return ships.getPilot(id);
+  }
+
+  function safeTransferFrom(address _from, address _to, uint256 _tokenId)
+    external
+  {
+    safeTransferFrom(_from, _to, _tokenId, "");
+  }
+
+  function safeTransferFrom(address _from, address _to, uint256 _tokenId,
+                            bytes data)
+    public
+  {
+    transferFrom(_from, _to, _tokenId);
+    // do the callback last to avoid re-entrancy.
+    uint256 codeSize;
+    assembly { codeSize := extcodesize(_to) }
+    if (codeSize > 0)
+    {
+      bytes4 retval = ERC721TokenReceiver(_to)
+                      .onERC721Received(_from, _tokenId, data);
+      require(retval ==
+              bytes4(keccak256("onERC721Received(address,uint256,bytes)")));
+    }
+  }
+
+  function transferFrom(address _from, address _to, uint256 _tokenId)
+    public
+    shipId(_tokenId)
+  {
+    uint32 id = uint32(_tokenId);
+    require(ships.isPilot(id, _from));
+    transferShip(id, _to, true);
+  }
+
+  function approve(address _approved, uint256 _tokenId)
+    external
+    shipId(_tokenId)
+  {
+    allowTransferBy(uint32(_tokenId), _approved);
+  }
+
+  function setApprovalForAll(address _operator, bool _approved)
+    external
+  {
+    ships.setOperator(msg.sender, _operator, _approved);
+    ApprovalForAll(msg.sender, _operator, _approved);
+  }
+
+  function getApproved(uint256 _tokenId)
+    external
+    view
+    shipId(_tokenId)
+    returns (address)
+  {
+    return ships.getTransferrer(uint32(_tokenId));
+  }
+
+  function isApprovedForAll(address _owner, address _operator)
+    external
+    view
+    returns (bool)
+  {
+    return ships.isOperator(_owner, _operator);
+  }
+
+  // erc721enumerable
+
+  // every ship is indexes by its ship number.
+  function tokenByIndex(uint256 _index)
+    external
+    pure
+    returns (uint256)
+  {
+    return _index;
+  }
+
+  //TODO surely it's okay for NFTs at indices to change over time?
+  function tokenOfOwnerByIndex(address _owner, uint256 _index)
+    external
+    view
+    returns (uint256 _tokenId)
+  {
+    return ships.getOwnedShipAtIndex(_owner, _index);
+  }
+
+  // erc721metadata
+
+  function tokenURI(uint256 _tokenId)
+    external
+    pure
+    shipId(_tokenId)
+    returns (string _tokenURI)
+  {
+    _tokenURI = "https://eth.urbit.org/erc721/0000000000.json";
+    bytes memory _tokenURIBytes = bytes(_tokenURI);
+    _tokenURIBytes[29] = byte(48+(_tokenId / 1000000000) % 10);
+    _tokenURIBytes[30] = byte(48+(_tokenId / 100000000) % 10);
+    _tokenURIBytes[31] = byte(48+(_tokenId / 10000000) % 10);
+    _tokenURIBytes[32] = byte(48+(_tokenId / 1000000) % 10);
+    _tokenURIBytes[33] = byte(48+(_tokenId / 100000) % 10);
+    _tokenURIBytes[34] = byte(48+(_tokenId / 10000) % 10);
+    _tokenURIBytes[35] = byte(48+(_tokenId / 1000) % 10);
+    _tokenURIBytes[36] = byte(48+(_tokenId / 100) % 10);
+    _tokenURIBytes[37] = byte(48+(_tokenId / 10) % 10);
+    _tokenURIBytes[38] = byte(48+(_tokenId / 1) % 10);
   }
 
   // ++nav
@@ -68,11 +215,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping
 
   // allow the given address to transfer ownership of the ship.
   function allowTransferBy(uint32 _ship, address _transferrer)
-    external
-    pilot(_ship)
+    public
     unlocked(_ship)
   {
+    address pilot = ships.getPilot(_ship);
+    require((pilot == msg.sender)
+            || ships.isOperator(pilot, msg.sender));
     ships.setTransferrer(_ship, _transferrer);
+    Approval(pilot, _transferrer, uint256(_ship));
   }
 
   // bring a locked ship to life and set its public key.
@@ -95,10 +245,12 @@ contract Constitution is ConstitutionBase, ERC165Mapping
 
   // transfer an unlocked or living ship to a different address.
   function transferShip(uint32 _ship, address _target, bool _resetKey)
-    external
+    public
     unlocked(_ship)
   {
-    require(ships.isPilot(_ship, msg.sender)
+    address old = ships.getPilot(_ship);
+    require((old == msg.sender)
+            || ships.isOperator(old, msg.sender)
             || ships.isTransferrer(_ship, msg.sender));
     // we may not always want to reset the ship's key, to allow for ownership
     // transfer without ship downtime. eg, when transfering to ourselves, away
@@ -111,6 +263,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     // doesn't have to worry about getting their ship transferred away.
     ships.setTransferrer(_ship, 0);
     ships.setPilot(_ship, _target);
+    Transfer(old, _target, uint256(_ship));
   }
 
   // set the public key for a ship.
@@ -231,6 +384,13 @@ contract Constitution is ConstitutionBase, ERC165Mapping
 
   // ++mod
   // function modifiers.
+
+  // test if the given uint256 fits a uint32.
+  modifier shipId(uint256 _id)
+  {
+    require(_id < 4294967296);
+    _;
+  }
 
   // test if msg.sender is pilot of _ship.
   modifier pilot(uint32 _ship)
