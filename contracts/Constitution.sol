@@ -235,27 +235,27 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     }
   }
 
-  // transfer an unlocked or living ship to a different address.
+  // transfer a ship to a different address. this can be done by its owner,
+  // an operator of the owner, or an approved transferrer.
   function transferShip(uint32 _ship, address _target, bool _reset)
     public
-    unlocked(_ship)
   {
     address old = ships.getPilot(_ship);
     require((old == msg.sender)
             || ships.isOperator(old, msg.sender)
             || ships.isTransferrer(_ship, msg.sender));
-    // we may not always want to reset the ship's key, to allow for ownership
-    // transfer without ship downtime. eg, when transfering to ourselves, away
-    // from a compromised address.
+    // we may not always want to reset the ship's key, transferrer and launcher,
+    // to allow for ownership transfer without any changes. eg, when transfering
+    // to ourselves.
     if (_reset)
     {
       ships.setKey(_ship, 0);
       ships.setTransferrer(_ship, 0);
-      ships.setLauncher(uint16(_ship), 0);
+      if (_ship < 65536)
+      {
+        ships.setLauncher(uint16(_ship), 0);
+      }
     }
-    // we always reset the transferrer and launcher upon transfer, to ensure the
-    // new owner doesn't have to worry about getting their ship or related
-    // assets transferred away.
     ships.setPilot(_ship, _target);
     Transfer(old, _target, uint256(_ship));
   }
