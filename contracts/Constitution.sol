@@ -236,7 +236,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   }
 
   // transfer an unlocked or living ship to a different address.
-  function transferShip(uint32 _ship, address _target, bool _resetKey)
+  function transferShip(uint32 _ship, address _target, bool _reset)
     public
     unlocked(_ship)
   {
@@ -247,18 +247,15 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     // we may not always want to reset the ship's key, to allow for ownership
     // transfer without ship downtime. eg, when transfering to ourselves, away
     // from a compromised address.
-    if (_resetKey)
+    if (_reset)
     {
       ships.setKey(_ship, 0);
+      ships.setTransferrer(_ship, 0);
+      ships.setLauncher(uint16(_ship), 0);
     }
     // we always reset the transferrer and launcher upon transfer, to ensure the
     // new owner doesn't have to worry about getting their ship or related
     // assets transferred away.
-    ships.setTransferrer(_ship, 0);
-    if (_ship < 65536)
-    {
-      ships.setLauncher(uint16(_ship), 0);
-    }
     ships.setPilot(_ship, _target);
     Transfer(old, _target, uint256(_ship));
   }
