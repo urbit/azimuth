@@ -29,33 +29,17 @@ Launch a star or planet, making a target address its owner. The launched ship be
 ### Grant launch rights
 
 **Interface:**  
-`grantLaunchRights(uint16 _star, address _launcher)`
+`allowLaunchBy(uint16 _ship, address _launcher)`
 
 **Description:**  
-Allow the given address to launch planets belonging to the star.  
-(Could also be used for galaxies.)
+Allow the given address to launch children of the ship.
 
 **Requirements:**  
-- The caller must be the owner of the star.
-- The star must be `Living`.
+- The caller must be the owner of the ship.
+- The ship must be `Living`.
 
 **Result:**  
 Registers permission for the address to launch planets for the star.
-
-### Revoke launch rights
-
-**Interface:**  
-`revokeLaunchRights(uint16 _star, address _launcher)`
-
-**Description:**  
-Disallow the given address to launch planets belonging to the star.
-
-**Requirements:**
-- The caller must be the owner of the star.
-- The star must be `Living`.
-
-**Result:**  
-Revokes permission for the address to launch planets for the star.
 
 ### Allow transfer by
 

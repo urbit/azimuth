@@ -196,21 +196,12 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   }
 
   // allow the given address to launch children of the ship.
-  function grantLaunchRights(uint16 _ship, address _launcher)
+  function allowLaunchBy(uint16 _ship, address _launcher)
     external
     pilot(_ship)
     alive(_ship)
   {
-    ships.setLauncher(_ship, _launcher, true);
-  }
-
-  // disallow the given address to launch children of the ship.
-  function revokeLaunchRights(uint16 _ship, address _launcher)
-    external
-    pilot(_ship)
-    alive(_ship)
-  {
-    ships.setLauncher(_ship, _launcher, false);
+    ships.setLauncher(_ship, _launcher);
   }
 
   // allow the given address to transfer ownership of the ship.
@@ -259,9 +250,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     {
       ships.setKey(_ship, 0);
     }
-    // we always reset the transferrer upon transfer, to ensure the new owner
-    // doesn't have to worry about getting their ship transferred away.
+    // we always reset the transferrer and launcher upon transfer, to ensure the
+    // new owner doesn't have to worry about getting their ship or related
+    // assets transferred away.
     ships.setTransferrer(_ship, 0);
+    if (_ship < 65536)
+    {
+      ships.setLauncher(uint16(_ship), 0);
+    }
     ships.setPilot(_ship, _target);
     Transfer(old, _target, uint256(_ship));
   }

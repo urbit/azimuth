@@ -41,7 +41,7 @@ contract Ships is Ownable
     uint16 parent;
     uint16 escape;     // new parent request.
     bool escaping;     // escape request currently active.
-    mapping(address => bool) launchers;
+    address launcher;  // non-pilot address allowed to launch children.
     address transferrer;  // non-pilot address allowed to initiate transfer.
   }
 
@@ -339,14 +339,14 @@ contract Ships is Ownable
     public
     returns (bool result)
   {
-    return ships[_star].launchers[_launcher];
+    return (ships[_star].launcher == _launcher);
   }
 
-  function setLauncher(uint16 _star, address _launcher, bool _set)
+  function setLauncher(uint16 _star, address _launcher)
     onlyOwner
     public
   {
-    ships[_star].launchers[_launcher] = _set;
+    ships[_star].launcher = _launcher;
   }
 
   function isTransferrer(uint32 _ship, address _transferrer)
