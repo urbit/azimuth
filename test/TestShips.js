@@ -170,16 +170,16 @@ contract('Ships', function([owner, user]) {
   });
 
   it('setting launcher', async function() {
-    assert.isFalse(await ships.isLauncher(0, owner));// only owner can do this.
+    assert.isFalse(await ships.isLauncher(0, owner)); // only owner can do this.
     try {
-      await ships.setLauncher(0, owner, true, {from:user});
+      await ships.setLauncher(0, owner, {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setLauncher(0, owner, true);
+    await ships.setLauncher(0, owner);
     assert.isTrue(await ships.isLauncher(0, owner));
-    await ships.setLauncher(0, owner, false);
+    await ships.setLauncher(0, 0);
     assert.isFalse(await ships.isLauncher(0, owner));
   });
 

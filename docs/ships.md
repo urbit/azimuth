@@ -34,8 +34,8 @@ The parent to which the ship has requested to fall under.
 **`bool escaping`**  
 Whether the ship is currently trying to escape to the parent set in `escape`.
 
-**`mapping(address => bool) launchers`**  
-Addresses that have permission to launch child ships using this ship. Useful for automating distribution of ships.
+**`address launcher`**  
+An address that is allowed to launch child ships using this ship. Useful for automating distribution of ships.
 
 **`address transferrer`**  
 An address that is allowed to transfer ownership of the ship, just like its pilot can.

@@ -127,23 +127,26 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.isFalse(await ships.isLauncher(0, user2));
     // can't do if not owner.
     try {
-      await constit.grantLaunchRights(0, user2, {from:user2});
+      await constit.allowLaunchBy(0, user2, {from:user2});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
     // set up for working launch.
-    await constit.grantLaunchRights(0, user2, {from:user1});
+    await constit.allowLaunchBy(0, user2, {from:user1});
     assert.isTrue(await ships.isLauncher(0, user2));
     while (!await constit.canSpawn(0, Math.floor(Date.now() / 1000)))
       busywait(3000);
     // launch as launcher, then test revoking of rights.
     await constit.launch(768, user1, 0, {from:user2});
-    await constit.revokeLaunchRights(0, user2, {from:user1});
+    await constit.allowLaunchBy(0, 0, {from:user1});
     assert.isFalse(await ships.isLauncher(0, user2));
   });
 
   it('transfering ownership', async function() {
+    // set values that should be cleared on-transfer.
+    await constit.allowLaunchBy(0, owner, {from:user1});
+    await constit.allowTransferBy(0, owner, {from:user1});
     // can't do if not owner.
     try {
       await constit.transferShip(0, user2, true, {from:user2});
@@ -158,6 +161,8 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(key,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(rev, 2);
+    assert.isFalse(await ships.isLauncher(0, user2));
+    assert.isFalse(await ships.isTransferrer(0, user2));
   });
 
   it('allowing transfer of ownership', async function() {
