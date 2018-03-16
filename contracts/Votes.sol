@@ -39,6 +39,7 @@ contract Votes is Ownable
   bytes32[] public abstractMajorities;
 
   function Votes()
+    public
   {
     //
   }

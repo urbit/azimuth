@@ -32,6 +32,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   // ownership of these contracts will need to be transfered to the constitution
   // after its contract address becomes known.
   function Constitution(Ships _ships, Votes _votes)
+    public
   {
     ships = _ships;
     votes = _votes;

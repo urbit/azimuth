@@ -16,6 +16,7 @@ contract ConstitutionBase is Ownable
   Votes public votes; // votes data storage
 
   function ConstitutionBase()
+    internal
   {
     //
   }
