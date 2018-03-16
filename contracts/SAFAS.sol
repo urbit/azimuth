@@ -69,6 +69,9 @@ contract SAFAS is Ownable
     external
     onlyOwner
   {
+    Investor storage inv = investors[_investor];
+    // ensure we can't deposit too many stars.
+    require(inv.total > (inv.stars.length + inv.withdrawn));
     //NOTE the below logic has been copied from the pool contract.
     //TODO maybe we should make it available as a library?
     // there are two possible ways to deposit a star:
