@@ -37,6 +37,7 @@ contract SAFAS is Ownable
   function SAFAS(Ships _ships, uint256[3] _deadlines)
     public
   {
+    // require deadlines to be sequential.
     require((_deadlines[0] < _deadlines[1])
             && (_deadlines[1] < _deadlines[2]));
     ships = _ships;
@@ -98,6 +99,7 @@ contract SAFAS is Ownable
     {
       revert();
     }
+    // finally, add the star to their balance.
     investors[_investor].stars.push(_star);
   }
 
@@ -107,12 +109,17 @@ contract SAFAS is Ownable
     onlyOwner
   {
     Investor storage inv = investors[_investor];
+    // we can only do this if they have forfeited,
+    // we haven't withdrawn everything they have forfeited,
+    // and they still have stars left.
     require(inv.forfeit
             && inv.forfeited > 0
             && inv.stars.length > 0);
     uint16 star = inv.stars[inv.stars.length-1];
+    // update contract state,
     inv.stars.length = inv.stars.length - 1;
     inv.forfeited = inv.forfeited - 1;
+    // then transfer the star.
     Constitution(ships.owner()).transferShip(star, _to, false);
     // false because it saves gas (no reset operations) and since we're
     // transfering to ourselves we only need to trust ourselves about not having
@@ -143,8 +150,10 @@ contract SAFAS is Ownable
             && (!inv.forfeit
                 || (inv.stars.length > inv.forfeited)));
     uint16 star = inv.stars[inv.stars.length-1];
+    // update contract state,
     inv.stars.length = inv.stars.length - 1;
     inv.withdrawn = inv.withdrawn + 1;
+    // then transfer the star.
     Constitution(ships.owner()).transferShip(star, _to, true);
   }
 
@@ -160,7 +169,9 @@ contract SAFAS is Ownable
     // and we haven't forfeited yet.
     require(deadlines[_tranche] == timestamps[_tranche]
             && !inv.forfeit);
+    // calculate the amount of stars we're forfeiting.
     uint16 forfeited = totalStars(inv.tranches, _tranche);
+    // this can never be higher than the amount of stars we still have left.
     if (forfeited > (inv.total - inv.withdrawn))
     {
       forfeited = (inv.total - inv.withdrawn);
@@ -224,19 +235,28 @@ contract SAFAS is Ownable
     returns (uint16 limit)
   {
     Investor storage inv = investors[_investor];
+    // for every tranche, calculate the current limit and add it to the total.
     for (uint8 i = 0; i < 3; i++)
     {
       uint256 ts = timestamps[i];
+      // if a tranche hasn't been unlocked yet, there is nothing to add.
       if (ts == 0) { continue; }
       assert(ts < block.timestamp);
+      // calculate the amount of stars available from this tranche by
+      // multiplying the unlock rate (stars per month) by the amount of months
+      // that have passed since the tranche unlocked.
       uint256 num = (inv.rate * ((block.timestamp - ts) / 30 days));
+      // the upper limit here is the amount of stars specified for this tranche.
       if (num > inv.tranches[i])
       {
         num = inv.tranches[i];
       }
+      // add it to the total limit.
       limit = limit + uint16(num);
     }
+    // limit can't be higher than the total amount of stars made available.
     assert(limit <= inv.total);
+    // allow at least one star.
     if (limit < 1) { return 1; }
   }
 
@@ -260,6 +280,7 @@ contract SAFAS is Ownable
     returns (bool correct)
   {
     Investor storage inv = investors[_investor];
+    // remaining amount of stars + amount of stars we've withdrawn.
     return (inv.total == (inv.stars.length + inv.withdrawn));
   }
 }
