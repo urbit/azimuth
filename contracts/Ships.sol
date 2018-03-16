@@ -56,6 +56,7 @@ contract Ships is Ownable
   mapping(address => mapping(address => bool)) public operators;
 
   function Ships()
+    public
   {
     //
   }
