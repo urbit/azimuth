@@ -176,10 +176,10 @@ contract('Constitution', function([owner, user1, user2]) {
     // allow as owner.
     await constit.allowTransferBy(0, user1, {from:user2});
     assert.isTrue(await ships.isTransferrer(0, user1));
-    // transfer as transferrer.
+    // transfer as transferrer, but don't reset.
     await constit.transferShip(0, user1, false, {from:user1});
     assert.isTrue(await ships.isPilot(0, user1));
-    assert.isFalse(await ships.isTransferrer(0, user1));
+    assert.isTrue(await ships.isTransferrer(0, user1));
   });
 
   it('rekeying a ship', async function() {
