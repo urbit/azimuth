@@ -253,4 +253,13 @@ contract SAFAS is Ownable
       total = total + _tranches[i];
     }
   }
+
+  // checks to see if the investor's balance contains sufficient stars.
+  function verifyBalance(address _investor)
+    external
+    returns (bool correct)
+  {
+    Investor storage inv = investors[_investor];
+    return (inv.total == (inv.stars.length + inv.withdrawn));
+  }
 }
