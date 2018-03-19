@@ -109,17 +109,20 @@ Sets the public key of the ship to the given key.
 ### Escape
 
 **Interface:**  
-`escape(uint32 _ship, uint16 _parent)`
+`escape(uint32 _ship, uint32 _sponsor)`
 
 **Description:**  
-Escape to a new parent. Takes effect when the new parent accepts the adoption.
+Escape to a new sponsor. Takes effect when the new sponsor accepts the adoption.
 
 **Requirements:**  
 - The caller must be the owner of the chosen ship.
-- The chosen new parent must be `Living`.
+- The chosen new sponsor must be `Living`.
+- The chosen ship must not be a galaxy.
+- For stars, the chosen sponsor must be a galaxy.
+- For planets, the chosen sponsor must be either a star or a planet with a star max 4 jumps up the sponsorship chain.
 
 **Result:**  
-Sets the escape of the ship to the chosen parent.
+Sets the escape of the ship to the chosen sponsor.
 
 ### Cancel escape
 
@@ -138,30 +141,30 @@ Deactivates the chosen ship's escape.
 ### Adopt
 
 **Interface:**  
-`adopt(uint16 _parent, uint32 _child)`
+`adopt(uint32 _sponsor, uint32 _child)`
 
 **Description:**  
 Accept an escaping ship.
 
 **Requirements:**  
-- The caller must be the owner of the parent ship.
-- The parent ship must be the child's chosen escape.
+- The caller must be the owner of the sponsor ship.
+- The sponsor ship must be the child's chosen escape.
 
 **Result:**  
-- Sets the child's parent to be the parent ship.
+- Sets the child's sponsor to be the sponsor ship.
 - Deactivates the child's escape.
 
 ### Reject
 
 **Interface:**  
-`reject(uint16 _parent, uint32 _child)`
+`reject(uint32 _sponsor, uint32 _child)`
 
 **Description:**  
 Reject an escaping ship.
 
 **Requirements:**  
-- The caller must be the owner of the parent ship.
-- The parent ship must be the child's currently active escape.
+- The caller must be the owner of the sponsor ship.
+- The sponsor ship must be the child's currently active escape.
 
 **Result:**  
 Deactivates the child's escape.

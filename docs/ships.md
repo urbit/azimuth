@@ -25,14 +25,14 @@ The current public key of the ship on the Urbit network, `0` if it has none.
 **`uint256 revision`**  
 The revision number of the public key.
 
-**`uint16 parent`**  
-The current parent under which the ship resides on the Urbit network.
+**`uint32 sponsor`**  
+The current sponsor under which the ship resides on the Urbit network.
 
-**`uint16 escape`**  
-The parent to which the ship has requested to fall under.
+**`uint32 escape`**  
+The sponsor to which the ship has requested to fall under.
 
 **`bool escaping`**  
-Whether the ship is currently trying to escape to the parent set in `escape`.
+Whether the ship is currently trying to escape to the sponsor set in `escape`.
 
 **`address launcher`**  
 An address that is allowed to launch child ships using this ship. Useful for automating distribution of ships.
