@@ -97,7 +97,7 @@ contract('Ships', function([owner, user]) {
       assertJump(err);
     }
     await ships.setLiving(257);
-    assert.equal(await ships.getParent(257), 1);
+    assert.equal(await ships.getSponsor(257), 1);
     assert.isTrue(await ships.isState(257, LIVING));
     assert.isFalse(await ships.isEscape(257, 0));
     // only owner can do this.
@@ -147,7 +147,7 @@ contract('Ships', function([owner, user]) {
     await ships.setEscape(257, 2);
     await ships.doEscape(257);
     assert.isFalse(await ships.isEscape(257, 2));
-    assert.equal(await ships.getParent(257), 2);
+    assert.equal(await ships.getSponsor(257), 2);
   });
 
   it('setting key', async function() {

@@ -269,14 +269,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     ships.setKey(_ship, _key);
   }
 
-  // escape to a new parent.
-  // takes effect when the new parent accepts the adoption.
-  function escape(uint32 _ship, uint16 _parent)
+  // escape to a new sponsor.
+  // takes effect when the new sponsor accepts the adoption.
+  function escape(uint32 _ship, uint16 _sponsor)
     external
     pilot(_ship)
-    alive(_parent)
+    alive(_sponsor)
   {
-    ships.setEscape(_ship, _parent);
+    ships.setEscape(_ship, _sponsor);
   }
 
   // cancel an escape.
@@ -288,21 +288,21 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   }
 
   // accept an escaping ship.
-  function adopt(uint16 _parent, uint32 _child)
+  function adopt(uint16 _sponsor, uint32 _child)
     external
-    pilot(_parent)
+    pilot(_sponsor)
   {
-    require(ships.isEscape(_child, _parent));
-    // _child's parent becomes _parent, and its escape is reset to "no escape".
+    require(ships.isEscape(_child, _sponsor));
+    // _child's sponsor becomes _sponsor, and its escape is reset to "no escape".
     ships.doEscape(_child);
   }
 
   // reject an escaping ship.
-  function reject(uint16 _parent, uint32 _child)
+  function reject(uint16 _sponsor, uint32 _child)
     external
-    pilot(_parent)
+    pilot(_sponsor)
   {
-    require(ships.isEscape(_child, _parent));
+    require(ships.isEscape(_child, _sponsor));
     // cancels the escape, making it inactive.
     ships.cancelEscape(_child);
   }
