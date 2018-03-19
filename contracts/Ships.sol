@@ -9,8 +9,8 @@ contract Ships is Ownable
 {
   event ChangedPilot(uint32 indexed ship, address owner);
   event ChangedStatus(uint32 indexed ship, State state, uint64 lock);
-  event ChangedEscape(uint32 ship, uint16 indexed escape);
-  event ChangedSponsor(uint32 ship, uint16 indexed sponsor);
+  event ChangedEscape(uint32 ship, uint32 indexed escape);
+  event ChangedSponsor(uint32 ship, uint32 indexed sponsor);
   event ChangedKey(uint32 indexed ship, bytes32 key, uint256 revision);
 
   // operating state
@@ -38,8 +38,8 @@ contract Ships is Ownable
     uint16 children;   // amount of non-latent children.
     bytes32 key;       // public key, 0 if none.
     uint256 revision;  // key number.
-    uint16 sponsor;    // supportive ship.
-    uint16 escape;     // new sponsor request.
+    uint32 sponsor;    // supportive ship.
+    uint32 escape;     // new sponsor request.
     bool escaping;     // escape request currently active.
     address launcher;  // non-pilot address allowed to launch children.
     address transferrer;  // non-pilot address allowed to initiate transfer.
@@ -89,8 +89,8 @@ contract Ships is Ownable
              uint16 children,
              bytes32 key,
              uint256 revision,
-             uint16 sponsor,
-             uint16 escape,
+             uint32 sponsor,
+             uint32 escape,
              bool escaping,
              address transferrer)
   {
@@ -274,12 +274,20 @@ contract Ships is Ownable
   function getSponsor(uint32 _ship)
     view
     public
-    returns (uint16 sponsor)
+    returns (uint32 sponsor)
   {
     return ships[_ship].sponsor;
   }
 
-  function isEscape(uint32 _ship, uint16 _sponsor)
+  function isEscaping(uint32 _ship)
+    view
+    public
+    returns (bool escaping)
+  {
+    return ships[_ship].escaping;
+  }
+
+  function isEscape(uint32 _ship, uint32 _sponsor)
     view
     public
     returns (bool equals)
@@ -288,7 +296,7 @@ contract Ships is Ownable
     return (ship.escaping && (ship.escape == _sponsor));
   }
 
-  function setEscape(uint32 _ship, uint16 _sponsor)
+  function setEscape(uint32 _ship, uint32 _sponsor)
     onlyOwner
     public
   {
