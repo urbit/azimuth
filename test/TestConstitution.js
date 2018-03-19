@@ -220,6 +220,20 @@ contract('Constitution', function([owner, user1, user2]) {
     } catch(err) {
       assertJump(err);
     }
+    // galaxies can't escape.
+    try {
+      await constit.escape(0, 1, {from:user1});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    // stars can't escape to other stars.
+    try {
+      await constit.escape(512, 256, {from:user1});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
     // set escape as owner.
     await constit.escape(256, 1, {from:user1});
     assert.isTrue(await ships.isEscape(256, 1));
@@ -227,6 +241,50 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.isFalse(await ships.isEscape(256, 1));
     await constit.escape(256, 1, {from:user1});
     await constit.escape(512, 1, {from:user1});
+  });
+
+  it('chaining planet sponsors', async function() {
+    await constit.start(256, 0, {from:user1});
+    var p1 = 65792, p2 = 131328, p3 = 196864, p4 = 262400, p5 = 327936;
+    await constit.launch(p1, user1, 0, {from:user1});
+    await constit.start(p1, 0, {from:user1});
+    await constit.launch(p2, user1, 0, {from:user1});
+    await constit.start(p2, 0, {from:user1});
+    await constit.launch(p3, user1, 0, {from:user1});
+    await constit.start(p3, 0, {from:user1});
+    await constit.launch(p4, user1, 0, {from:user1});
+    await constit.start(p4, 0, {from:user1});
+    await constit.launch(p5, user1, 0, {from:user1});
+    await constit.start(p5, 0, {from:user1});
+    //
+    await constit.escape(p2, p1, {from:user1});
+    // can't escape to an escaping ship.
+    try {
+      await constit.escape(p3, p2, {from:user1});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    // build valid chain.
+    await constit.adopt(p1, p2, {from:user1});
+    await constit.escape(p3, p2, {from:user1});
+    await constit.adopt(p2, p3, {from:user1});
+    await constit.escape(p4, p3, {from:user1});
+    await constit.adopt(p3, p4, {from:user1});
+    // extend too far.
+    try {
+      await constit.escape(p5, p4, {from:user1});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    // circular chains should obviously fail too.
+    try {
+      await constit.escape(p1, p2, {from:user1});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
   });
 
   it('adopting or reject an escaping ship', async function() {

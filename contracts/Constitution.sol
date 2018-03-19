@@ -269,13 +269,46 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     ships.setKey(_ship, _key);
   }
 
+  // we make this check publicly accessible to help with client implementation.
+  function canEscapeTo(uint32 _ship, uint32 _sponsor)
+    public
+    view
+    returns (bool canEscape)
+  {
+    if (!ships.isState(_sponsor, Ships.State.Living)) return false;
+    if (ships.isEscaping(_sponsor)) return false;
+    uint8 ourclass = getShipClass(_ship);
+    uint8 class = getShipClass(_sponsor);
+    // galaxies may not escape. stars may only escape to galaxies.
+    // planets may escape to both stars and planets.
+    if (ourclass != (class + 1)
+        && !(class == 2 && ourclass == 2))
+      return false;
+    // but if a planet's escaping to a planet, that planet chain must be short.
+    // for the non-planet case, we jump out immediately because class != 2.
+    // for the planet case, we look at sponsors of sponsors.
+    // in the end, we want to have found a sponsor star to end our planet chain.
+    // max possible chain consists of one more planet than iteratoins below.
+    // s0 <- p1 <- p2 <- p3 <- p4 <-x- p5
+    uint32 chain = _sponsor;
+    for (uint8 i = 0; (i < 3) && (class == 2); i++)
+    {
+      // if we detect circularity, bail immediately.
+      if (chain == _ship) { break; }
+      chain = ships.getSponsor(chain);
+      class = getShipClass(chain);
+    }
+    // if we didn't find a star within i steps, the chain would get too long.
+    return (class < 2);
+  }
+
   // escape to a new sponsor.
   // takes effect when the new sponsor accepts the adoption.
-  function escape(uint32 _ship, uint16 _sponsor)
+  function escape(uint32 _ship, uint32 _sponsor)
     external
     pilot(_ship)
-    alive(_sponsor)
   {
+    require(canEscapeTo(_ship, _sponsor));
     ships.setEscape(_ship, _sponsor);
   }
 
@@ -288,17 +321,17 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   }
 
   // accept an escaping ship.
-  function adopt(uint16 _sponsor, uint32 _child)
+  function adopt(uint32 _sponsor, uint32 _child)
     external
     pilot(_sponsor)
   {
     require(ships.isEscape(_child, _sponsor));
-    // _child's sponsor becomes _sponsor, and its escape is reset to "no escape".
+    // _child's sponsor becomes _sponsor, its escape is reset to "no escape".
     ships.doEscape(_child);
   }
 
   // reject an escaping ship.
-  function reject(uint16 _sponsor, uint32 _child)
+  function reject(uint32 _sponsor, uint32 _child)
     external
     pilot(_sponsor)
   {
@@ -374,6 +407,17 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     uint256 allowed = curDiff.mul(254).div(totDiff).add(1);
     uint32 children = ships.getChildren(_parent);
     return (allowed > children);
+  }
+
+  // get the class of the ship
+  function getShipClass(uint32 _ship)
+    public
+    pure
+    returns (uint8 _class)
+  {
+    if (_ship < 256) return 0;
+    if (_ship < 65536) return 1;
+    return 2;
   }
 
   // ++mod
