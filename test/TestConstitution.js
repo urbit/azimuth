@@ -259,11 +259,11 @@ contract('Constitution', function([owner, user1, user2]) {
     // adopt as parent owner.
     await constit.adopt(1, 256, {from:user1});
     assert.isFalse(await ships.isEscape(256, 1));
-    assert.equal(await ships.getParent(256), 1);
+    assert.equal(await ships.getSponsor(256), 1);
     // reject as parent owner.
     await constit.reject(1, 512, {from:user1});
     assert.isFalse(await ships.isEscape(512, 1));
-    assert.equal(await ships.getParent(512), 0);
+    assert.equal(await ships.getSponsor(512), 0);
   });
 
   it('casting an abstract vote', async function() {

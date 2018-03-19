@@ -10,7 +10,7 @@ contract Ships is Ownable
   event ChangedPilot(uint32 indexed ship, address owner);
   event ChangedStatus(uint32 indexed ship, State state, uint64 lock);
   event ChangedEscape(uint32 ship, uint16 indexed escape);
-  event ChangedParent(uint32 ship, uint16 indexed parent);
+  event ChangedSponsor(uint32 ship, uint16 indexed sponsor);
   event ChangedKey(uint32 indexed ship, bytes32 key, uint256 revision);
 
   // operating state
@@ -38,8 +38,8 @@ contract Ships is Ownable
     uint16 children;   // amount of non-latent children.
     bytes32 key;       // public key, 0 if none.
     uint256 revision;  // key number.
-    uint16 parent;
-    uint16 escape;     // new parent request.
+    uint16 sponsor;    // supportive ship.
+    uint16 escape;     // new sponsor request.
     bool escaping;     // escape request currently active.
     address launcher;  // non-pilot address allowed to launch children.
     address transferrer;  // non-pilot address allowed to initiate transfer.
@@ -89,7 +89,7 @@ contract Ships is Ownable
              uint16 children,
              bytes32 key,
              uint256 revision,
-             uint16 parent,
+             uint16 sponsor,
              uint16 escape,
              bool escaping,
              address transferrer)
@@ -102,7 +102,7 @@ contract Ships is Ownable
             ship.children,
             ship.key,
             ship.revision,
-            ship.parent,
+            ship.sponsor,
             ship.escape,
             ship.escaping,
             ship.transferrer);
@@ -268,34 +268,34 @@ contract Ships is Ownable
     require(ship.status.state != State.Living);
     ship.status.state = State.Living;
     ChangedStatus(_ship, State.Living, 0);
-    ship.parent = getOriginalParent(_ship);
+    ship.sponsor = getOriginalParent(_ship);
   }
 
-  function getParent(uint32 _ship)
+  function getSponsor(uint32 _ship)
     view
     public
-    returns (uint16 parent)
+    returns (uint16 sponsor)
   {
-    return ships[_ship].parent;
+    return ships[_ship].sponsor;
   }
 
-  function isEscape(uint32 _ship, uint16 _parent)
+  function isEscape(uint32 _ship, uint16 _sponsor)
     view
     public
     returns (bool equals)
   {
     Hull storage ship = ships[_ship];
-    return (ship.escaping && (ship.escape == _parent));
+    return (ship.escaping && (ship.escape == _sponsor));
   }
 
-  function setEscape(uint32 _ship, uint16 _parent)
+  function setEscape(uint32 _ship, uint16 _sponsor)
     onlyOwner
     public
   {
     Hull storage ship = ships[_ship];
-    ship.escape = _parent;
+    ship.escape = _sponsor;
     ship.escaping = true;
-    ChangedEscape(_ship, _parent);
+    ChangedEscape(_ship, _sponsor);
   }
 
   function cancelEscape(uint32 _ship)
@@ -311,8 +311,8 @@ contract Ships is Ownable
   {
     Hull storage ship = ships[_ship];
     require(ship.escaping);
-    ship.parent = ship.escape;
-    ChangedParent(_ship, ship.escape);
+    ship.sponsor = ship.escape;
+    ChangedSponsor(_ship, ship.escape);
     ship.escaping = false;
   }
 
