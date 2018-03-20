@@ -1,5 +1,6 @@
 var Ships = artifacts.require("./Ships.sol");
 var Votes = artifacts.require("./Votes.sol");
+var Claims = artifacts.require("./Claims.sol");
 var Censures = artifacts.require("./Censures.sol");
 var Constitution = artifacts.require("./Constitution.sol");
 var Pool = artifacts.require("./Pool.sol");
@@ -16,7 +17,7 @@ module.exports = async function(deployer) {
   // votes.transferOwnership(constitution.address);
 
   //TODO the above is more consise and should be the same, but... doesn't work?
-  var ships, votes, censures, constitution, pool;
+  var ships, votes, claims, censures, constitution, pool;
   deployer.then(function() {
   }).then(function() {
     return deployer.deploy(Ships);
@@ -29,13 +30,18 @@ module.exports = async function(deployer) {
     return Votes.deployed();
   }).then(function(instance) {
     votes = instance;
+    return deployer.deploy(Claims);
+  }).then(function() {
+    return Claims.deployed();
+  }).then(function(instance) {
+    claims = instance;
     return deployer.deploy(Censures);
   }).then(function() {
     return Censures.deployed();
   }).then(function(instance) {
     censures = instance;
     return deployer.deploy(Constitution, ships.address, votes.address,
-                                         censures.address);
+                                         claims.address, censures.address);
   }).then(function() {
     return Constitution.deployed();
   }).then(function(instance) {

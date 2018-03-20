@@ -1,10 +1,11 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 const Votes = artifacts.require('../contracts/Votes.sol');
+const Claims = artifacts.require('../contracts/Claims.sol');
 const Censures = artifacts.require('../contracts/Censures.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 
 contract('Constitution', function([owner, user1, user2]) {
-  let ships, votes, cens, constit;
+  let ships, votes, claims, cens, constit;
   const LATENT = 0;
   const LOCKED = 1;
   const LIVING = 2;
@@ -24,10 +25,13 @@ contract('Constitution', function([owner, user1, user2]) {
   before('setting up for tests', async function() {
     ships = await Ships.new();
     votes = await Votes.new();
+    claims = await Claims.new();
     cens = await Censures.new();
-    constit = await Constitution.new(ships.address, votes.address, cens.address);
+    constit = await Constitution.new(ships.address, votes.address,
+                                     claims.address, cens.address);
     await ships.transferOwnership(constit.address);
     await votes.transferOwnership(constit.address);
+    await claims.transferOwnership(constit.address);
     await cens.transferOwnership(constit.address);
   });
 
@@ -325,6 +329,27 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.reject(1, 512, {from:user1});
     assert.isFalse(await ships.isEscape(512, 1));
     assert.equal(await ships.getSponsor(512), 0);
+  });
+
+  it('identity operations', async function() {
+    // must be the owner.
+    try {
+      await constit.claim(256, "prot1", "claim", "0x01");
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await constit.claim(256, "prot1", "claim", "0x01", {from:user1});
+    assert.equal(await claims.getClaimCount(256), 1);
+    // must be the owner.
+    try {
+      await constit.disclaim(256, "prot1", "claim");
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await constit.disclaim(256, "prot1", "claim", {from:user1});
+    assert.equal(await claims.getClaimCount(256), 0);
   });
 
   it('reputation operations', async function() {
