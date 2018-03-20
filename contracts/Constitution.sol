@@ -31,11 +31,12 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   // rely on.
   // ownership of these contracts will need to be transfered to the constitution
   // after its contract address becomes known.
-  function Constitution(Ships _ships, Votes _votes)
+  function Constitution(Ships _ships, Votes _votes, Censures _censures)
     public
   {
     ships = _ships;
     votes = _votes;
+    censures = _censures;
     supportedInterfaces[0x6466353c] = true; // ERC721
     supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
     supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
@@ -371,6 +372,34 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     // and have no impact on the constitution.
     votes.castAbstractVote(_galaxy, _proposal, _vote);
   }
+
+  // ++rep
+  // simple reputation operations
+
+  function censure(uint32 _as, uint32 _who)
+    external
+    pilot(_as)
+  {
+    require(_as != _who);
+    require(censures.getCensureCount(_as) < 16);
+    // only for stars and galaxies.
+    // stars may only censure other stars, galaxies may censure both.
+    uint8 asClass = getShipClass(_as);
+    uint8 whoClass = getShipClass(_who);
+    require(asClass < 2
+            && whoClass < 2
+            && whoClass >= asClass);
+    censures.censure(_as, _who);
+  }
+
+  /* function forgive(uint32 _as, uint32 _who)
+    external
+    pilot(_as)
+  {
+    // we don't need to do any more checks here.
+    // for those not allowed to censure, there's nothing to forgive.
+    censures.forgive(_as, _who);
+  } */
 
   // ++urg
   // transactions made by the contract creator.
