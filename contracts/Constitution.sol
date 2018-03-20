@@ -392,14 +392,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     censures.censure(_as, _who);
   }
 
-  /* function forgive(uint32 _as, uint32 _who)
+  function forgive(uint32 _as, uint32 _who)
     external
     pilot(_as)
   {
     // we don't need to do any more checks here.
     // for those not allowed to censure, there's nothing to forgive.
     censures.forgive(_as, _who);
-  } */
+  }
 
   // ++urg
   // transactions made by the contract creator.
