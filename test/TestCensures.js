@@ -48,7 +48,7 @@ contract('Censures', function([owner, user]) {
       assertJump(err);
     }
     await cens.forgive(0, 2);
-    let censures = await cens.getCensures(0)
+    let censures = await cens.getCensures(0);
     assert.equal(censures[0].toNumber(), 1);
     assert.equal(censures[1].toNumber(), 4);
     assert.equal(censures[2].toNumber(), 3);

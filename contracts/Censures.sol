@@ -25,7 +25,7 @@ contract Censures is Ownable
 
   // since it's currently "not possible to return dynamic content from external
   // function calls" we must expose this as an interface to allow in-contract
-  // discoverability of someone's "balance".
+  // discoverability of someone's censure count.
   function getCensureCount(uint32 _whose)
     view
     public
