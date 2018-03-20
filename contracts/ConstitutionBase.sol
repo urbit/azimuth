@@ -7,6 +7,7 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 import './Ships.sol';
 import './Votes.sol';
+import './Censures.sol';
 
 contract ConstitutionBase is Ownable
 {
@@ -14,6 +15,7 @@ contract ConstitutionBase is Ownable
 
   Ships public ships; // ships data storage
   Votes public votes; // votes data storage
+  Censures public censures; // simple reputation data storage
 
   function ConstitutionBase()
     internal
@@ -29,6 +31,7 @@ contract ConstitutionBase is Ownable
   {
     ships.transferOwnership(_new);
     votes.transferOwnership(_new);
+    censures.transferOwnership(_new);
     Upgraded(_new);
     selfdestruct(_new);
   }
