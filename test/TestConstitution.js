@@ -331,27 +331,6 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getSponsor(512), 0);
   });
 
-  it('identity operations', async function() {
-    // must be the owner.
-    try {
-      await constit.claim(256, "prot1", "claim", "0x01");
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    await constit.claim(256, "prot1", "claim", "0x01", {from:user1});
-    assert.equal(await claims.getClaimCount(256), 1);
-    // must be the owner.
-    try {
-      await constit.disclaim(256, "prot1", "claim");
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    await constit.disclaim(256, "prot1", "claim", {from:user1});
-    assert.equal(await claims.getClaimCount(256), 0);
-  });
-
   it('reputation operations', async function() {
     // planets may do nothing.
     try {

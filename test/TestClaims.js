@@ -1,14 +1,17 @@
+const Ships = artifacts.require('../contracts/Ships.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
 
 contract('Claims', function([owner, user]) {
-  let claims;
+  let ships, claims;
 
   function assertJump(error) {
     assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
   }
 
   before('setting up for tests', async function() {
-    claims = await Claims.new();
+    ships = await Ships.new();
+    await ships.setPilot(0, owner);
+    claims = await Claims.new(ships.address);
   });
 
   it('claiming', async function() {
@@ -19,7 +22,7 @@ contract('Claims', function([owner, user]) {
     } catch(err) {
       assertJump(err);
     }
-    // only owner can do this.
+    // only ship owner can do this.
     try {
       await claims.claim(0, "prot1", "claim", "0x0", {from:user});
       assert.fail('should have thrown before');
@@ -45,7 +48,7 @@ contract('Claims', function([owner, user]) {
   });
 
   it('disclaiming', async function() {
-    // only owner can do this.
+    // only ship owner can do this.
     try {
       await claims.disclaim(0, "prot2", "claim", {from:user});
       assert.fail('should have thrown before');

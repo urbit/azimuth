@@ -3,14 +3,16 @@
 
 pragma solidity 0.4.18;
 
+import './Ships.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Claims is Ownable
 {
-  //TODO indexed
   event Claimed(uint32 indexed by, string _protocol, string _claim,
                 bytes _dossier);
   event Disclaimed(uint32 indexed by, string _protocol, string _claim);
+
+  Ships public ships;
 
   struct Claim
   {
@@ -25,10 +27,10 @@ contract Claims is Ownable
   //NOTE these describe the "nth array element", so they're at index n-1.
   mapping(uint32 => mapping(bytes32 => uint256)) public indices;
 
-  function Claims()
+  function Claims(Ships _ships)
     public
   {
-    //
+    ships = _ships;
   }
 
   function getSampleClaim(string _protocol, string _claim, bytes _dossier)
@@ -62,9 +64,10 @@ contract Claims is Ownable
   }
 
   function claim(uint32 _as, string _protocol, string _claim, bytes _dossier)
-    onlyOwner
-    public
+    external
+    pilot(_as)
   {
+    require(claims[_as].length < 16);
     bytes32 id = claimId(_protocol, _claim);
     uint256 cur = indices[_as][id];
     if (cur == 0)
@@ -87,8 +90,8 @@ contract Claims is Ownable
   }
 
   function disclaim(uint32 _as, string _protocol, string _claim)
-    onlyOwner
-    public
+    external
+    pilot(_as)
   {
     bytes32 id = claimId(_protocol, _claim);
     // we delete the target from the list, then fill the gap with the list tail.
@@ -113,5 +116,12 @@ contract Claims is Ownable
     returns (bytes32 id)
   {
     return keccak256(keccak256(_protocol), _claim);
+  }
+
+  // test if msg.sender is pilot of _ship.
+  modifier pilot(uint32 _ship)
+  {
+    require(ships.isPilot(_ship, msg.sender));
+    _;
   }
 }

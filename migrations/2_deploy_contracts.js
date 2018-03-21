@@ -30,7 +30,7 @@ module.exports = async function(deployer) {
     return Votes.deployed();
   }).then(function(instance) {
     votes = instance;
-    return deployer.deploy(Claims);
+    return deployer.deploy(Claims, ships.address);
   }).then(function() {
     return Claims.deployed();
   }).then(function(instance) {
@@ -41,7 +41,7 @@ module.exports = async function(deployer) {
   }).then(function(instance) {
     censures = instance;
     return deployer.deploy(Constitution, ships.address, votes.address,
-                                         claims.address, censures.address);
+                                         censures.address);
   }).then(function() {
     return Constitution.deployed();
   }).then(function(instance) {
