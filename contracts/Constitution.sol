@@ -32,12 +32,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   // ownership of these contracts will need to be transfered to the constitution
   // after its contract address becomes known.
   function Constitution(Ships _ships, Votes _votes,
-                        Claims _claims, Censures _censures)
+                        Censures _censures)
     public
   {
     ships = _ships;
     votes = _votes;
-    claims = _claims;
     censures = _censures;
     supportedInterfaces[0x6466353c] = true; // ERC721
     supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
@@ -373,24 +372,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     // majorities on abstract proposals get recorded within the votes contract
     // and have no impact on the constitution.
     votes.castAbstractVote(_galaxy, _proposal, _vote);
-  }
-
-  // ++say
-  // simple identity operations
-
-  function claim(uint32 _as, string _protocol, string _claim, bytes _dossier)
-    external
-    pilot(_as)
-  {
-    require(claims.getClaimCount(_as) < 16);
-    claims.claim(_as, _protocol, _claim, _dossier);
-  }
-
-  function disclaim(uint32 _as, string _protocol, string _claim)
-    external
-    pilot(_as)
-  {
-    claims.disclaim(_as, _protocol, _claim);
   }
 
   // ++rep
