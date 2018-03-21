@@ -331,50 +331,6 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getSponsor(512), 0);
   });
 
-  it('reputation operations', async function() {
-    // planets may do nothing.
-    try {
-      await constit.censure(65792, 131328, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    // stars can't censor galaxies.
-    try {
-      await constit.censure(256, 0, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    // can't self-censor.
-    try {
-      await constit.censure(256, 256, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    // must be the owner.
-    try {
-      await constit.censure(256, 257);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    await constit.censure(256, 257, {from:user1});
-    await constit.censure(0, 1, {from:user1});
-    await constit.censure(0, 256, {from:user1});
-    assert.equal(await cens.getCensureCount(256), 1);
-    assert.equal(await cens.getCensureCount(0), 2);
-    //
-    try {
-      await constit.forgive(256, 257);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    await constit.forgive(256, 257, {from:user1});
-  });
-
   it('casting an abstract vote', async function() {
     // can't if not galaxy owner.
     try {

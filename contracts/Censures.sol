@@ -3,6 +3,7 @@
 
 pragma solidity 0.4.18;
 
+import './Ships.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Censures is Ownable
@@ -11,16 +12,18 @@ contract Censures is Ownable
   event Censured(uint32 by, uint32 who);
   event Forgiven(uint32 by, uint32 who);
 
+  Ships public ships;
+
   // per ship: censures.
   mapping(uint32 => uint32[]) public censures;
   // per ship: per censure: index in censures array (for efficient deletions).
   //NOTE these describe the "nth array element", so they're at index n-1.
   mapping(uint32 => mapping(uint32 => uint256)) public indices;
 
-  function Reputations()
+  function Censures(Ships _ships)
     public
   {
-    //
+    ships = _ships;
   }
 
   // since it's currently "not possible to return dynamic content from external
@@ -43,19 +46,30 @@ contract Censures is Ownable
   }
 
   function censure(uint32 _as, uint32 _who)
-    onlyOwner
-    public
+    external
+    pilot(_as)
   {
-    require(indices[_as][_who] == 0);
+    require(_as != _who
+            && indices[_as][_who] == 0
+            && censures[_as].length < 16);
+    // only for stars and galaxies.
+    // stars may only censure other stars, galaxies may censure both.
+    uint8 asClass = getShipClass(_as);
+    uint8 whoClass = getShipClass(_who);
+    require(asClass < 2
+            && whoClass < 2
+            && whoClass >= asClass);
     censures[_as].push(_who);
     indices[_as][_who] = censures[_as].length;
     Censured(_as, _who);
   }
 
   function forgive(uint32 _as, uint32 _who)
-    onlyOwner
-    public
+    external
+    pilot(_as)
   {
+    // we don't need to do any convoluted checks here.
+    // for those not allowed to censure, there's nothing to forgive.
     // we delete the target from the list, then fill the gap with the list tail.
     // retrieve current index.
     uint256 i = indices[_as][_who];
@@ -70,5 +84,24 @@ contract Censures is Ownable
     cens.length = last;
     indices[_as][_who] = 0;
     Forgiven(_as, _who);
+  }
+
+  // get the class of the ship
+  //TODO duplicate from constitution, should probably move into ships.
+  function getShipClass(uint32 _ship)
+    public
+    pure
+    returns (uint8 _class)
+  {
+    if (_ship < 256) return 0;
+    if (_ship < 65536) return 1;
+    return 2;
+  }
+
+  // test if msg.sender is pilot of _ship.
+  modifier pilot(uint32 _ship)
+  {
+    require(ships.isPilot(_ship, msg.sender));
+    _;
   }
 }
