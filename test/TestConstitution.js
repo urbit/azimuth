@@ -5,7 +5,7 @@ const Censures = artifacts.require('../contracts/Censures.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 
 contract('Constitution', function([owner, user1, user2]) {
-  let ships, votes, claims, cens, constit;
+  let ships, votes, constit;
   const LATENT = 0;
   const LOCKED = 1;
   const LIVING = 2;
@@ -25,14 +25,9 @@ contract('Constitution', function([owner, user1, user2]) {
   before('setting up for tests', async function() {
     ships = await Ships.new();
     votes = await Votes.new();
-    claims = await Claims.new();
-    cens = await Censures.new();
-    constit = await Constitution.new(ships.address, votes.address,
-                                     claims.address, cens.address);
+    constit = await Constitution.new(ships.address, votes.address);
     await ships.transferOwnership(constit.address);
     await votes.transferOwnership(constit.address);
-    await claims.transferOwnership(constit.address);
-    await cens.transferOwnership(constit.address);
   });
 
   it('creating galaxies', async function() {
