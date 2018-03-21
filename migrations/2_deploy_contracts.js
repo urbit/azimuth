@@ -35,13 +35,12 @@ module.exports = async function(deployer) {
     return Claims.deployed();
   }).then(function(instance) {
     claims = instance;
-    return deployer.deploy(Censures);
+    return deployer.deploy(Censures, ships.address);
   }).then(function() {
     return Censures.deployed();
   }).then(function(instance) {
     censures = instance;
-    return deployer.deploy(Constitution, ships.address, votes.address,
-                                         censures.address);
+    return deployer.deploy(Constitution, ships.address, votes.address);
   }).then(function() {
     return Constitution.deployed();
   }).then(function(instance) {
@@ -50,7 +49,6 @@ module.exports = async function(deployer) {
     console.log(constitution.address);
     ships.transferOwnership(constitution.address);
     votes.transferOwnership(constitution.address);
-    censures.transferOwnership(constitution.address);
   }).then(function() {
     return deployer.deploy(Pool, ships.address);
   }).then(function() {
