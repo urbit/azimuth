@@ -1,5 +1,5 @@
 // the urbit ship data store
-// draft
+// 
 
 pragma solidity 0.4.18;
 
@@ -7,52 +7,105 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract Ships is Ownable
 {
-  event ChangedPilot(uint32 indexed ship, address owner);
-  event ChangedStatus(uint32 indexed ship, State state, uint64 lock);
-  event ChangedEscape(uint32 ship, uint32 indexed escape);
-  event ChangedSponsor(uint32 ship, uint32 indexed sponsor);
-  event ChangedKey(uint32 indexed ship, bytes32 key, uint256 revision);
+  //  Transferred: :ship is now owned by :owner
+  //
+  event Transferred(uint32 ship, address owner);
 
-  // operating state
-  enum State
+  //  Activated: :ship is now activated
+  //
+  event Activated(uint32 ship);
+
+  //  EscapeRequested: :ship has requested a new sponsor, :sponsor
+  //
+  event EscapeRequested(uint32 ship, uint32 sponsor);
+
+  //  EscapeAccepted: :ship confirmed with a new sponsor, :sponsor
+  //
+  event EscapeAccepted(uint32 ship, uint32 sponsor);
+
+  //  ChangedKey: :ship has a new Urbit public key, :crypt and :auth
+  //
+  event ChangedKey(uint32 ship, bytes32 crypt, bytes32 auth);
+
+  //  Class: classes of ship registered on eth
+  //
+  enum Class 
   {
-    Latent, // 0: belongs to parent
-    Locked, // 1: locked til birth (see Status.locked)
-    Living  // 2: fully active
+    Galaxy,
+    Star,
+    Planet
   }
 
-  // operating state + metadata
-  struct Status
-  {
-    State state;
-    uint64 locked;    // locked until, only used for the Locked state.
-    uint64 completed; // fully released at, only set for galaxies.
-                      // used by constitution to determine allowed # children.
-  }
-
-  // full ship state.
+  //  Hull: state of a ship
+  //
   struct Hull
   {
-    address pilot;
-    Status status;     // operating state.
-    uint16 children;   // amount of non-latent children.
-    bytes32 key;       // public key, 0 if none.
-    uint256 revision;  // key number.
-    uint32 sponsor;    // supportive ship.
-    uint32 escape;     // new sponsor request.
-    bool escaping;     // escape request currently active.
-    address launcher;  // non-pilot address allowed to launch children.
-    address transferrer;  // non-pilot address allowed to initiate transfer.
+    //  owner: eth address that owns this ship
+    //
+    address owner;
+
+    //  active: whether ship can be run
+    //    false: ship belongs to parent, cannot be booted
+    //    true: ship has been, or can be, booted
+    //
+    bool active;
+
+    //  spawnCount: for stars and galaxies, number of :active children
+    //
+    uint16 spawnCount;
+
+    //  encryptionKey: Urbit curve25519 encryption key, or 0 for none
+    //
+    bytes32 encryptionKey;
+   
+    //  authenticationKey: Urbit ed25519 authentication key, or 0 for none
+    //
+    bytes32 authenticationKey;
+   
+    //  revisionNumber: incremented every time we change the keys
+    //
+    uint32 revisionNumber;
+
+    //  sponsor: ship that supports this one on the network 
+    //           (by default, the ship's half-width prefix)
+    //
+    uint32 sponsor;
+
+    //  escapeRequested: true if the ship has requested to change sponsors
+    //
+    bool escapeRequested;
+
+    //  escapeRequestedTo: if :escapeRequested is set, new sponsor requested
+    //
+    uint32 escapeRequestedTo;
+
+    //  proxySpawn: 0, or another address with the right to spawn children
+    //
+    address proxySpawn;
+
+    //  proxyTransfer: 0, or another address with the right to transfer owners
+    //
+    address proxyTransfer;
   }
 
-  // per ship: full ship state.
+  //  ships: all Urbit ship state
+  //
   mapping(uint32 => Hull) internal ships;
-  // per owner: iterable list of owned ships.
-  mapping(address => uint32[]) public pilots;
-  // per owner: per ship: index in pilots array (for efficient deletion).
-  //NOTE these describe the "nth array element", so they're at index n-1.
-  mapping(address => mapping(uint32 => uint256)) public shipNumbers;
-  // per owner: addresses allowed to transfer their ships.
+
+  //  owners: per eth address, list of ships owned
+  //
+  mapping(address => uint32[]) public owners;
+
+  //  shipOwnerIndexes: per owner per ship, (index + 1) in owners array
+  //
+  //    We delete owners by moving the last entry in the array to the
+  //    newly emptied slot, which is (n - 1) where n is the value of
+  //    shipOwnerIndexes[owner][ship].
+  //
+  mapping(address => mapping(uint32 => uint256)) public shipOwnerIndexes;
+
+  //  operators: per owner, per address, has the right to transfer ownership
+  //
   mapping(address => mapping(address => bool)) public operators;
 
   function Ships()
@@ -61,10 +114,11 @@ contract Ships is Ownable
     //
   }
 
-  // ++utl
   // utilities
 
-  function getOriginalParent(uint32 _ship)
+  //  getPrefix: compute prefix parent of _ship
+  //
+  function getPrefix(uint32 _ship)
     pure
     public
     returns (uint16 parent)
@@ -76,9 +130,9 @@ contract Ships is Ownable
     return uint16(_ship % 65536);
   }
 
-  // retrieve data from the Hull of the specified ship.
-  // necessary because of compiler error:
-  // "Internal type [Hull] is not allowed for public state variables."
+  //  getShipData: retrieve data from Hull
+  //  XX: update for new Hull!!!
+  //
   function getShipData(uint32 _ship)
     view
     public
@@ -108,60 +162,78 @@ contract Ships is Ownable
             ship.transferrer);
   }
 
+  //  getOwnedShips(): return array of ships that :msg.sender owns
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
   function getOwnedShips()
     view
     public
     returns (uint32[] ownedShips)
   {
-    return pilots[msg.sender];
+    return owners[msg.sender];
   }
 
+  //  getOwnedShips(): return array of ships that _whose owns
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
   function getOwnedShips(address _whose)
     view
     public
     returns (uint32[] ownedShips)
   {
-    return pilots[_whose];
+    return owners[_whose];
   }
 
-  // since it's currently "not possible to return dynamic content from external
-  // function calls" we must expose this as an interface to allow in-contract
-  // discoverability of someone's "balance".
+  //  getOwnedShipCount(): return length of array of ships that _whose owns
+  // 
   function getOwnedShipCount(address _whose)
     view
     public
     returns (uint256 count)
   {
-    return pilots[_whose].length;
+    return owners[_whose].length;
   }
 
+  //  getOwnedShipAtIndex(): get ship at _index from array of ships that 
+  //                         _whose owns
+  //
   function getOwnedShipAtIndex(address _whose, uint256 _index)
     view
     public
     returns (uint32 ship)
   {
-    uint32[] storage owned = pilots[_whose];
+    uint32[] storage owned = owners[_whose];
     require(_index < owned.length);
-    return pilots[_whose][_index];
+    return owners[_whose][_index];
   }
 
-  function hasPilot(uint32 _ship)
+  //  hasOwner(): true if _ship has a valid eth address as owner
+  //
+  function hasOwner(uint32 _ship)
     view
     public
     returns (bool result)
   {
-    return !(isPilot(_ship, 0));
+    return !(isOwner(_ship, 0));
   }
 
-  function isPilot(uint32 _ship, address _addr)
+  //  isOwner(): true if _ship is owned by _address
+  //
+  function isOwner(uint32 _ship, address _address)
     view
     public
     returns (bool result)
   {
-    return (ships[_ship].pilot == _addr);
+    return (ships[_ship].pilot == _address);
   }
 
-  function getPilot(uint32 _ship)
+  //  getOwner(): return owner of _ship
+  //
+  function getOwner(uint32 _ship)
     view
     public
     returns (address pilot)
@@ -169,39 +241,67 @@ contract Ships is Ownable
     return ships[_ship].pilot;
   }
 
-  function setPilot(uint32 _ship, address _owner)
+  //  setOwner(): set owner of _ship to _owner
+  //
+  //    Note: setOwner() only implements the minimal data storage
+  //    logic for a transfer; use the constitution contract for a
+  //    full transfer.
+  //
+  //    Note: _owner must not equal the present owner.
+  //
+  function setOwner(uint32 _ship, address _owner)
     onlyOwner
     public
   {
+    //  prev: previous owner, if any
+    //
     address prev = ships[_ship].pilot;
+
+    //  don't use setOwner() to set to current owner
+    //
     require(prev != _owner);
-    // if the ship used to have a different owner, we do some gymnastics so that
-    // we can keep their list of owned ships gapless.
-    // we delete this ship from the list, then fill that gap with the list tail.
+
+    //  if the ship used to have a different owner, do some gymnastics to
+    //  keep the list of owned ships gapless.  delete this ship from the 
+    //  list, then fill that gap with the list tail.
+    //
     if (prev != 0)
     {
-      // retrieve current index.
-      uint256 i = shipNumbers[prev][_ship];
+      //  i: current index in previous owner's list of owned ships
+      //
+      uint256 i = shipOwnerIndexes[prev][_ship];
+
+      //  we store index + 1, because 0 is the eth default value
+      //
       assert(i > 0);
       i--;
-      // copy last item to current index.
-      uint32[] storage pilot = pilots[prev];
+
+      //  copy the last item in the list into the now-unused slot
+      //
+      uint32[] storage pilot = owners[prev];
       uint256 last = pilot.length - 1;
       pilot[i] = pilot[last];
-      // delete last item.
+
+      //  delete the last item
+      //
       delete(pilot[last]);
       pilot.length = last;
-      shipNumbers[prev][_ship] = 0;
+      shipOwnerIndexes[prev][_ship] = 0;
     }
+
+    //  update the owner list and the owner's index list
+    //
     if (_owner != 0)
     {
-      pilots[_owner].push(_ship);
-      shipNumbers[_owner][_ship] = pilots[_owner].length;
+      owners[_owner].push(_ship);
+      shipOwnerIndexes[_owner][_ship] = owners[_owner].length;
     }
     ships[_ship].pilot = _owner;
-    ChangedPilot(_ship, _owner);
+    ChangedOwner(_ship, _owner);
   }
 
+  //  incrementChildren(): increment the number of children spawned by _ship
+  //
   function incrementChildren(uint32 _ship)
     onlyOwner
     public
@@ -210,65 +310,36 @@ contract Ships is Ownable
     ships[_ship].children++;
   }
 
-  function getChildren(uint32 _ship)
+  //  getSpawnCount(): return the number of children spawned by _ship
+  //
+  function getSpawnCount(uint32 _ship)
     view
     public
-    returns (uint16 children)
+    returns (uint16 spawnCount)
   {
-    return ships[_ship].children;
+    return ships[_ship].spawnCount
   }
 
-  function getCompleted(uint32 _ship)
-    view
-    public
-    returns (uint64 date)
-  {
-    return ships[_ship].status.completed;
-  }
-
-  function isState(uint32 _ship, State _state)
+  //  isActive(): return true if ship is active
+  //
+  function isActive(uint32 _ship)
     view
     public
     returns (bool equals)
   {
-    return (ships[_ship].status.state == _state);
+    return (ships[_ship].active);
   }
 
-  function getLocked(uint32 _ship)
-    view
-    public
-    returns (uint64 date)
-  {
-    return ships[_ship].status.locked;
-  }
-
-  function setLocked(uint32 _ship, uint64 _date)
+  //  setActive(): activate ship
+  //
+  function setActive(uint32 _ship)
     onlyOwner
     public
   {
-    Status storage status = ships[_ship].status;
-    require(status.state != State.Locked || status.locked != _date);
-    status.locked = _date;
-    status.state = State.Locked;
-    ChangedStatus(_ship, State.Locked, _date);
-  }
-
-  function setCompleted(uint32 _ship, uint64 _date)
-    onlyOwner
-    public
-  {
-    ships[_ship].status.completed = _date;
-  }
-
-  function setLiving(uint32 _ship)
-    onlyOwner
-    public
-  {
-    Hull storage ship = ships[_ship];
-    require(ship.status.state != State.Living);
-    ship.status.state = State.Living;
-    ChangedStatus(_ship, State.Living, 0);
-    ship.sponsor = getOriginalParent(_ship);
+    //  XX
+    //
+    //  check that ship is inactive
+    //  increment spawn count
   }
 
   function getSponsor(uint32 _ship)
@@ -333,29 +404,37 @@ contract Ships is Ownable
     return (ship.key, ship.revision);
   }
 
-  function setKey(uint32 _ship, bytes32 _key)
+  //  setKey: set Urbit public keys of _ship to _encryptionKey and
+  //          _authenticationKey
+  //
+  function setKey(uint32 _ship, 
+                  bytes32 _encryptionKey,
+                  bytes32 _authenticationKey)
     onlyOwner
     public
   {
     Hull storage ship = ships[_ship];
-    ship.key = _key;
-    ship.revision++;
-    ChangedKey(_ship, _key, ship.revision);
+
+    ship.encryptionKey = _encryptionKey;
+    ship.authenticationKey = _authenticationKey;
+    ship.revisionNumber = ship.revisionNumber + 1;
+
+    ChangedKey(_ship, _encryptionKey, _authenticationKey);
   }
 
-  function isLauncher(uint16 _star, address _launcher)
+  function isSpawner(uint16 _star, address _spawner)
     view
     public
     returns (bool result)
   {
-    return (ships[_star].launcher == _launcher);
+    return (ships[_star].spawner == _spawner);
   }
 
-  function setLauncher(uint16 _star, address _launcher)
+  function setSpawner(uint16 _star, address _spawner)
     onlyOwner
     public
   {
-    ships[_star].launcher = _launcher;
+    ships[_star].spawner = _spawner;
   }
 
   function isTransferrer(uint32 _ship, address _transferrer)
@@ -395,4 +474,15 @@ contract Ships is Ownable
   {
     operators[_owner][_operator] = _approved;
   }
-}
+
+  //  getShipClass(): return the class of _ship
+  //
+  function getShipClass(uint32 _ship)
+    public
+    pure
+    returns (uint8 _class)
+  {
+    if (_ship < 256) return 0;
+    if (_ship < 65536) return 1;
+    return 2;
+  }
