@@ -12,8 +12,8 @@ contract Votes is Ownable
 
   event ConcretePollStarted(address proposal);
   event AbstractPollStarted(bytes32 proposal);
-  event ConcretePollResult(address proposal, bool majority);
-  event AbstractPollResukt(bytes32 proposal, bool majority);
+  event ConcretePollResult(address proposal, bool passed);
+  event AbstractPollResult(bytes32 proposal, bool passed);
 
   struct Poll
   {

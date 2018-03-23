@@ -8,6 +8,8 @@ import './ERC165Mapping.sol';
 import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
+//  XX planet number restrictions: 1024 in 2018, double every year
+//
 contract Constitution is ConstitutionBase, ERC165Mapping
                          // XX: fix this :-)
                          //
@@ -416,21 +418,21 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       //
       if ( //  normal hierarchical escape structure
            //
-           ((getClass(_sponsor) + 1) != getClass(_ship)) ||
+           ( ( getClass(_sponsor) + 1) != getClass(_ship) ) ||
            //
            //  special peer escape
            //
-           ((getClass(_sponsor) == getClass(_ship)) &&
-            //
-            //  peer escape is only for ships that haven't been booted yet,
-            //  because it's only for lightweight invitation chains
-            //
-            (0 == getRevisionNumber(_ship)) &&
-            //
-            //  the sponsor needs to have been booted already, or strange
-            //  corner cases can be created
-            //
-            (0 != getRevisionNumber(_sponsor))) )
+           ( ( getClass(_sponsor) == getClass(_ship) ) &&
+              //
+              //  peer escape is only for ships that haven't been booted yet,
+              //  because it's only for lightweight invitation chains
+              //
+              (0 == getRevisionNumber(_ship)) &&
+              //
+              //  the sponsor needs to have been booted already, or strange
+              //  corner cases can be created
+              //
+              (0 != getRevisionNumber(_sponsor)) ) )
       {
         return false;
       }
