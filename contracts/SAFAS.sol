@@ -5,282 +5,437 @@ pragma solidity 0.4.18;
 
 import './Constitution.sol';
 
+//  TODO TODO: let participants transfer their right
+
+//  SAFAS: this contract allows stars to be delivered to buyers who have
+//         purchased future stars, conditionally on technical deadlines 
+//         being hit.  If the deadlines are hit (as certified by a 
+//         vote of the galaxies), stars are released to the buyers.
+//         Once a deadline passes without a certifying vote, a buyer
+//         may choose to back out of the transaction, forfeiting stars
+//         to claim an offline refund.
+//
 contract SAFAS is Ownable
 {
+  //  TODO check if safemath is needed anywhere
+  //
   //TODO safemath
 
-  event TrancheUnlocked(uint8 tranch, uint256 when);
+  //  TrancheCompleted: :tranche has either been hit or missed
+  //
+  event TrancheCompleted(uint8 tranche, uint256 when);
+
+  //  Forfeit: :who has chosen to forfeit :stars number of stars
+  //
   event Forfeit(address who, uint16 stars);
 
+  //  ships: public contract which stores ship state
+  //  votes: public contract which registers votes
+  //
   Ships public ships;
   Votes public votes;
 
-  uint256[3] public deadlines;  // deadlines per tranche.
-  uint256[3] public timestamps; // unlock timestamps for tranches.
+  //  deadlines: deadlines after which, if missed, commitments can forfeit;
+  //             if hit (as certified by a galaxy vote), commitments can
+  //             withdraw their stars.
+  //
+  uint64[3] public deadlines;
+ 
+  //  timestamps: timestamps when deadlines of the matching index were 
+  //              hit; or 0 if not yet hit; or equal to the deadline if
+  //              the deadline was missed.
+  //
+  uint64[3] public timestamps; // unlock timestamps for tranches.
 
-  // agreement details and balance.
-  struct Investor
+  //  Commitment: structure that mirrors a signed paper contract
+  //
+  struct Commitment
   {
-    uint16[3] tranches; // release amounts.
-    uint16 total;       // total stars to be released.
-    uint16 rate;        // stars released per month.
+    //  tranches: number of stars to release in each tranche
     //
-    uint16[] stars;     // remaining stars.
-    uint16 withdrawn;   // total stars withdrawn.
+    uint16[3] tranches;
+
+    //  total: tranches[0] + tranches[1] + tranches[2]
     //
-    bool forfeit;       // whether they have forfeited future stars.
-    uint16 forfeited;   // amount of stars they have forfeited.
+    uint16 total;
+
+    //  rate: number of stars released per month
+    //
+    uint16 rate;
+
+    //  stars: specific stars assigned to this commitment, and not yet withdrawn
+    //
+    uint16[] stars;
+
+    //  withdrawn: number of stars withdrawn by this commitment
+    //
+    uint16 withdrawn;
+
+    //  forfeit: true if this commitment has forfeited any future stars
+    //
+    bool forfeit;
+
+    //  forfeited: number of forfeited stars not yet withdrawn by 
+    //             the contract owner
+    //
+    uint16 forfeited;
   }
 
-  mapping(address => Investor) public investors; // registered agreements.
+  //  commitments: all registered purchase agreeements
+  //
+  mapping(address => Commitment) public commitments;
 
+  //  SAFAS: configure SAFAS and reference ship and voting contracts
+  //
   function SAFAS(Ships _ships, uint256[3] _deadlines)
     public
   {
-    // require deadlines to be sequential.
-    require((_deadlines[0] < _deadlines[1])
-            && (_deadlines[1] < _deadlines[2]));
+    //  sanity check: deadlines must be sequential
+    //
+    require( (_deadlines[0] < _deadlines[1]) && 
+             (_deadlines[1] < _deadlines[2]) );
+
+    //  reference ship and voting contracts
+    //
     ships = _ships;
     votes = Constitution(ships.owner()).votes();
+
+    //  install deadlines
+    //
     deadlines = _deadlines;
-    // the first tranche is unlocked right away.
-    checkTranche(0);
+
+    //  the first tranche is defined to be unlocked when these contracts
+    //  are posted to the blockchain
+    //  
+    analyzeTranche(0);
   }
 
-  // functions for the contract owner to call
-
-  // register a new investor after they have signed the safas paper contract.
-  // specify their address, the stars that unlock per tranche, and per month.
-  function register(address _investor, uint16[3] _tranches, uint16 _rate)
-    external
-    onlyOwner
-  {
-    Investor storage inv = investors[_investor];
-    inv.tranches = _tranches;
-    inv.total = totalStars(_tranches, 0);
-    inv.rate = _rate;
-  }
-
-  // deposit a star into this contract to eventually be made available for
-  // withdrawal by the specified address.
-  // make sure that either the star is latent and this contract is the
-  // registered launcher for its parent galaxy, or that this contract is the
-  // registered transferrer for the star itself.
-  function deposit(address _investor, uint16 _star)
-    external
-    onlyOwner
-  {
-    Investor storage inv = investors[_investor];
-    // ensure we can't deposit too many stars.
-    require(inv.total > (inv.stars.length + inv.withdrawn));
-    //NOTE the below logic has been copied from the pool contract.
-    //TODO maybe we should make it available as a library?
-    // there are two possible ways to deposit a star:
-    // 1: for latent stars, grant the contract launch permission on a galaxy.
-    //    the contract will launch the deposited star directly to itself.
-    if (ships.isPilot(ships.getOriginalParent(_star), msg.sender)
-        && ships.isLauncher(ships.getOriginalParent(_star), this))
+  //
+  //  Functions for the contract owner
+  //
+    //  register(): register a new SAFAS commitment 
+    //
+    function register(//  _participant: address of the paper contract signer
+                      //  _tranches: number of stars unlocking per tranche
+                      //  _rate: number of stars that unlock per 30 days
+                      //
+                      address _participant,
+                      uint16[3] _tranches, 
+                      uint16 _rate)
+      external
+      onlyOwner
     {
-      // attempt to launch the star to us.
-      Constitution(ships.owner()).launch(_star, this, 0);
+      Commitment storage com = commitments[_participant];
+
+      com.tranches = _tranches;
+      com.total = totalStars(_tranches, 0);
+      com.rate = _rate;
     }
-    // 2: for locked stars, grant the contract permission to transfer ownership
-    //    of that star. the contract will transfer the deposited star to itself.
-    else if (ships.isPilot(_star, msg.sender)
-        && ships.isTransferrer(_star, this))
-    {
-      // only accept stars that aren't alive, that are reputationless, "clean".
-      require(!ships.isState(_star, Ships.State.Living));
-      // attempt to transfer the star to us.
-      Constitution(ships.owner()).transferShip(_star, this, true);
-    }
-    // if neither of those are possible, error out.
-    else
-    {
-      revert();
-    }
-    // finally, add the star to their balance.
-    investors[_investor].stars.push(_star);
-  }
 
-  // withdraw a star from an investor who has forfeited (some of) their stars.
-  function withdrawForfeited(address _investor, address _to)
-    external
-    onlyOwner
-  {
-    Investor storage inv = investors[_investor];
-    // we can only do this if they have forfeited,
-    // we haven't withdrawn everything they have forfeited,
-    // and they still have stars left.
-    require(inv.forfeit
-            && inv.forfeited > 0
-            && inv.stars.length > 0);
-    uint16 star = inv.stars[inv.stars.length-1];
-    // update contract state,
-    inv.stars.length = inv.stars.length - 1;
-    inv.forfeited = inv.forfeited - 1;
-    // then transfer the star.
-    Constitution(ships.owner()).transferShip(star, _to, false);
-    // false because it saves gas (no reset operations) and since we're
-    // transfering to ourselves we only need to trust ourselves about not having
-    // put in weird permissions initially.
-  }
-
-  // functions for investors to call
-
-  // withdraw to your own address.
-  function withdraw()
-    external
-  {
-    withdraw(msg.sender);
-  }
-
-  // withdraw one of your stars to the specified address.
-  // can only withdraw when you still have stars left, are under your limit,
-  // and haven't forfeited all of the remaining stars.
-  function withdraw(address _to)
-    public
-  {
-    Investor storage inv = investors[msg.sender];
-    // to withdraw, we must have a balance left,
-    // and be under our current limit,
-    // and, if we forfeited, not withdraw stars we gave back.
-    require(inv.stars.length > 0
-            && inv.withdrawn < withdrawLimit(msg.sender)
-            && (!inv.forfeit
-                || (inv.stars.length > inv.forfeited)));
-    uint16 star = inv.stars[inv.stars.length-1];
-    // update contract state,
-    inv.stars.length = inv.stars.length - 1;
-    inv.withdrawn = inv.withdrawn + 1;
-    // then transfer the star.
-    Constitution(ships.owner()).transferShip(star, _to, true);
-  }
-
-  // when a tranche's deadline has been missed, you can choose to forfeit the
-  // stars it and future tranches would've given you. doing this when you have
-  // already withdrawn more than the amount of stars in the tranches before it,
-  // all of your remaining stars are forfeited.
-  function forfeit(uint8 _tranche)
-    external
-  {
-    Investor storage inv = investors[msg.sender];
-    // we can only forfeit if a tranche has hit its deadline,
-    // and we haven't forfeited yet.
-    require(deadlines[_tranche] == timestamps[_tranche]
-            && !inv.forfeit);
-    // calculate the amount of stars we're forfeiting.
-    uint16 forfeited = totalStars(inv.tranches, _tranche);
-    // this can never be higher than the amount of stars we still have left.
-    if (forfeited > (inv.total - inv.withdrawn))
+    //  deposit(): deposit a star into this contract for later withdrawal
+    //
+    function deposit(address _participant, uint16 _star)
+      external
+      onlyOwner
     {
-      forfeited = (inv.total - inv.withdrawn);
-    }
-    inv.forfeited = forfeited;
-    inv.forfeit = true;
-    Forfeit(msg.sender, forfeited);
-  }
+      Commitment storage com = commitments[_participant];
 
-  // utility
+      //  ensure we can't deposit more stars than the participant
+      //  is entitled to 
+      //
+      //  TODO: safe math?
+      //
+      require(com.total > (com.stars.length + com.withdrawn));
 
-  // check whether the specified tranche has been unlocked.
-  // a tranche is unlocked if either its deadline has passed or its conditions
-  // are met.
-  function checkTranche(uint8 _tranche)
-    public
-  {
-    // only check for tranches that haven't been unlocked yet.
-    require(timestamps[_tranche] == 0);
-    // if the deadline has passed, that becomes the tranche's timestamp.
-    if (block.timestamp > deadlines[_tranche])
-    {
-      timestamps[_tranche] = deadlines[_tranche];
-      TrancheUnlocked(_tranche, deadlines[_tranche]);
-      return;
-    }
-    // if the deadline hasn't passed, we check if conditions are met.
-    bool conditionsMet = false;
-    // first tranche unlocks when the constitution and related contracts go live
-    if (_tranche == 0)
-    {
-      conditionsMet = true;
-    }
-    // second tranche unlocks when the senate indicates arvo is stable.
-    else if (_tranche == 1)
-    {
-      conditionsMet = votes.abstractMajorityMap(
-                        keccak256("arvo is stable"));
-    }
-    // third tranche unlocks when the senate indicates continuity is reached.
-    else if (_tranche == 2)
-    {
-      conditionsMet = votes.abstractMajorityMap(
-                        keccak256("continuity and security achieved"));
-    }
-    // if conditions have been met, we set the timestamp.
-    if (conditionsMet)
-    {
-      timestamps[_tranche] = block.timestamp;
-      TrancheUnlocked(_tranche, block.timestamp);
-    }
-  }
-
-  // for a given investor, calculates their current withdrawal limit.
-  // for each tranche that has been unlocked, we calculate the amount of months
-  // since its unlocking and multiply that by the rate of stars per month.
-  // every investor can always withdraw at least one star.
-  function withdrawLimit(address _investor)
-    public
-    view
-    returns (uint16 limit)
-  {
-    Investor storage inv = investors[_investor];
-    // for every tranche, calculate the current limit and add it to the total.
-    for (uint8 i = 0; i < 3; i++)
-    {
-      uint256 ts = timestamps[i];
-      // if a tranche hasn't been unlocked yet, there is nothing to add.
-      if (ts == 0) { continue; }
-      assert(ts < block.timestamp);
-      // calculate the amount of stars available from this tranche by
-      // multiplying the unlock rate (stars per month) by the amount of months
-      // that have passed since the tranche unlocked.
-      uint256 num = (inv.rate * ((block.timestamp - ts) / 30 days));
-      // the upper limit here is the amount of stars specified for this tranche.
-      if (num > inv.tranches[i])
+      //  There are two ways to deposit a star.  One way is for a galaxy to
+      //  grant the SAFAS contract permission to spawn its stars.  The SAFAS
+      //  contract will spawn the star directly to itself.
+      //
+      //  The SAFAS contract can also accept existing stars, as long as their
+      //  Urbit key revision number is 0, indicating that they have not yet 
+      //  been started.  To deposit a star this way, grant the SAFAS contract 
+      //  permission to transfer ownership of the star; the contract will 
+      //  transfer the star to itself.
+      //
+      if ( ships.isOwner(ships.getPrefix(_star), msg.sender) &&
+           ships.isSpawner(ships.getPrefix(_star), this) )
       {
-        num = inv.tranches[i];
+        //  first model: spawn _star to :this contract
+        //
+        Constitution(ships.owner()).spawn(_star, this, 0);
       }
-      // add it to the total limit.
-      limit = limit + uint16(num);
-    }
-    // limit can't be higher than the total amount of stars made available.
-    assert(limit <= inv.total);
-    // allow at least one star.
-    if (limit < 1) { return 1; }
-  }
+      else if ( ships.isOwner(_star, msg.sender) &&
+                ships.isTransferrer(_star, this) )
+      {
+        //  second model: transfer active, unused _star to :this contract
+        //
+        require( ships.isActive(_star) &&
+                 (0 == ships.getKeyRevisionNumber(_star)) );
 
-  //TODO safemath
-  // for a given set of tranches, counts the total amount of stars made
-  // available from the specified tranch onward.
-  function totalStars(uint16[3] _tranches, uint8 _from)
-    public
-    pure
-    returns (uint16 total)
-  {
-    for (uint8 i = _from; i < 3; i++)
+        //  transfer the star to :this contract
+        //
+        Constitution(ships.owner()).transferShip(_star, this, true);
+      }
+      else
+      {
+        //  star is not eligible for deposit
+        //
+        revert();
+      }
+      //  add _star to the participant's star balance
+      //
+      com.stars.push(_star);
+    }
+
+    //  withdrawForfeited(): withdraw one star from forfeiting _participant,
+    //                       to :this contract owner's address _to
+    //
+    function withdrawForfeited(address _participant, address _to)
+      external
+      onlyOwner
     {
-      total = total + _tranches[i];
-    }
-  }
+      Commitment storage com = commitments[_participant];
 
-  // checks to see if the investor's balance contains sufficient stars.
-  function verifyBalance(address _investor)
-    external
-    returns (bool correct)
-  {
-    Investor storage inv = investors[_investor];
-    // remaining amount of stars + amount of stars we've withdrawn.
-    return (inv.total == (inv.stars.length + inv.withdrawn));
-  }
+      //  withdraw is possible only if the participant has forfeited,
+      //  the owner has not yet withdrawn all forfeited stars, and
+      //  the participant still has stars left to withdraw
+      //
+      require( com.forfeit &&
+               (com.forfeited > 0)
+               (com.stars.length > 0) );
+
+      //  star: star to forfeit (from end of array)
+      //
+      uint16 star = com.stars[com.stars.length-1];
+
+      // update contract metadata
+      //
+      com.stars.length = com.stars.length - 1;
+      com.forfeited = com.forfeited - 1;
+
+      //  then transfer the star (don't reset it because no one whom we don't 
+      //  trust has ever had control of it)
+      //
+      Constitution(ships.owner()).transferShip(star, _to, false);
+    }
+
+  //  
+  //  Functions for participants
+  //
+    //  withdraw(): withdraw one star to the sender's address
+    //
+    function withdraw()
+      external
+    {
+      withdraw(msg.sender);
+    }
+
+    //  withdraw(): withdraw one star from the sender's commitment to _to
+    //
+    function withdraw(address _to)
+      public
+    {
+      Commitment storage com = commitments[msg.sender];
+
+      //  to withdraw, the participant must have a star balance, 
+      //  be under their current withdrawal limit, and cannot 
+      //  withdraw forfeited stars
+      //
+      require( (com.stars.length > 0) &&
+               (com.withdrawn < withdrawLimit(msg.sender)) &&
+               (!com.forfeit || (com.stars.length > com.forfeited)) );
+
+      //  star: star being withdrawn
+      //
+      uint16 star = com.stars[com.stars.length - 1];
+
+      //  update contract metadata
+      //
+      com.stars.length = com.stars.length - 1;
+      com.withdrawn = com.withdrawn + 1;
+
+      //  transfer :star
+      //
+      Constitution(ships.owner()).transferShip(star, _to, true);
+    }
+
+    //  forfeit(): forfeit all remaining stars from tranche number _tranche 
+    //             and all tranches after it
+    //
+    function forfeit(uint8 _tranche)
+      external
+    {
+      Commitment storage com = commitments[msg.sender];
+
+      //  the participant can forfeit if and only if the tranche is missed
+      //  (its deadline has passed without confirmation), and has not
+      //  previously forfeited
+      //
+      require( (deadlines[_tranche] == timestamps[_tranche]) &&
+               !com.forfeit );
+      
+      //  forfeited: number of stars the participant will forfeit
+      //
+      uint16 forfeited = totalStars(com.tranches, _tranche);
+
+      //  restrict :forfeited to the number of stars not withdrawn
+      //
+      //    TODO safe math?
+      //
+      if ( (forfeited + com.withdrawn) > com.total )
+      {
+        forfeited = (com.total - com.withdrawn);
+      }
+
+      //  update commitment metadata
+      //
+      com.forfeited = forfeited;
+      com.forfeit = true;
+
+      //  propagate event
+      //
+      Forfeit(msg.sender, forfeited);
+    }
+
+  //
+  //  Public operations and utilities
+  //
+    //  analyzeTranche(): analyze tranche number _tranche for completion;
+    //                    set :timestamps[_tranche] if either the tranche's
+    //                    deadline has passed, or its conditions have been met
+    //
+    function analyzeTranche(uint8 _tranche)
+      public
+    {
+      //  only analyze tranches that haven't been unlocked yet
+      //
+      require(timestamps[_tranche] == 0);
+
+      //  if the deadline has passed, the tranche is missed, and the
+      //  deadline becomes the tranche's timestamp.
+      //
+      if (block.timestamp > deadlines[_tranche])
+      {
+        timestamps[_tranche] = deadlines[_tranche];
+        TrancheCompleted(_tranche, deadlines[_tranche]);
+        return;
+      }
+
+      //  conditionsMet: true if the tranche has met its success condition
+      //
+      bool conditionsMet = false;
+
+      //  first tranche completes by default once this contract is live
+      //
+      if ( _tranche == 0 )
+      {
+        conditionsMet = true;
+      }
+
+      //  second tranche completes when the galaxies pass a stability resolution
+      //
+      else if ( _tranche == 1 )
+      {
+        conditionsMet = votes.abstractMajorityMap(
+                          keccak256("arvo is stable"));
+      }
+
+      //  third tranche completes when the galaxies pass a 
+      //  continuity/security resolution
+      //
+      else if ( _tranche == 2 )
+      {
+        conditionsMet = votes.abstractMajorityMap(
+                          keccak256("continuity and security achieved"));
+      }
+
+      //  if the tranche is completed, set :timestamps[_tranche] to the
+      //  timestamp of the current eth block
+      //
+      if ( conditionsMet )
+      {
+        timestamps[_tranche] = block.timestamp;
+        TrancheCompleted(_tranche, block.timestamp);
+      }
+    }
+
+    //  withdrawLimit(): return the number of stars _participant can withdraw
+    //                   at the current block timestamp
+    //
+    function withdrawLimit(address _participant)
+      public
+      view
+      returns (uint16 limit)
+    {
+      Commitment storage com = commitments[_participant];
+
+      // for each tranche, calculate the current limit and add it to the total.
+      //
+      for (uint8 i = 0; i < 3; i++)
+      {
+        uint256 ts = timestamps[i];
+
+        //  if a tranche hasn't completed yet, there is nothing to add.
+        //
+        if ( ts == 0 ) { 
+          continue;
+        }
+        assert(ts <= block.timestamp);
+
+        //  calculate the amount of stars available from this tranche by
+        //  multiplying the release rate (stars per month) by the number
+        //  of 30-day months that have passed since the tranche unlocked.
+        //
+        uint256 num = (com.rate * ((block.timestamp - ts) / 30 days));
+
+        //  bound the release rate by the tranche count
+        // 
+        if ( num > com.tranches[i] ) 
+        {
+          num = com.tranches[i];
+        }
+
+        //  add it to the total limit.
+        //
+        limit = limit + uint16(num);
+      }
+
+      // limit can't be higher than the total amount of stars made available
+      //
+      assert(limit <= com.total);
+
+      // allow at least one star
+      //
+      if ( limit < 1 ) 
+        { return 1; }
+    }
+
+    //  totalStars(): return the number of stars available after tranche _from
+    //                in the _tranches array
+    //
+    function totalStars(uint16[3] _tranches, uint8 _from)
+      public
+      pure
+      returns (uint16 total)
+    {
+      //  TODO safemath
+      //
+      for (uint8 i = _from; i < 3; i++)
+      {
+        total = total + _tranches[i];
+      }
+    }
+
+    //  verifyBalance: check the balance of _participant
+    //
+    function verifyBalance(address _participant)
+      external
+      returns (bool correct)
+    {
+      Commitment storage com = commitments[_participant];
+
+      //  return count of remaining stars + stars we've withdrawn.
+      //
+      return (com.total == (com.stars.length + com.withdrawn));
+    }
 }

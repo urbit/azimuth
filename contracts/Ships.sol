@@ -62,9 +62,9 @@ contract Ships is Ownable
     //
     bytes32 authenticationKey;
    
-    //  revisionNumber: incremented every time we change the keys
+    //  keyRevisionNumber: incremented every time we change the keys
     //
-    uint32 revisionNumber;
+    uint32 keyRevisionNumber;
 
     //  sponsor: ship that supports this one on the network 
     //           (by default, the ship's half-width prefix)
@@ -114,7 +114,9 @@ contract Ships is Ownable
     //
   }
 
-  // utilities
+  //
+  //  Utility functions
+  //
 
   //  getPrefix: compute prefix parent of _ship
   //
@@ -417,7 +419,7 @@ contract Ships is Ownable
 
     ship.encryptionKey = _encryptionKey;
     ship.authenticationKey = _authenticationKey;
-    ship.revisionNumber = ship.revisionNumber + 1;
+    ship.keyRevisionNumber = ship.keyRevisionNumber + 1;
 
     ChangedKey(_ship, _encryptionKey, _authenticationKey);
   }

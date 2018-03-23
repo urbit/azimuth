@@ -48,10 +48,10 @@ contract PlanetInvites
     view
     returns (bool result)
   {
-    uint16 prefix = ships.getPrefix(_ship);
+    uint16 prefix = ships.getPrefix(_as);
     uint16 invitePrefix = ships.getPrefix(_invite); 
     return ((prefix == invitePrefix)
-            && invited[_ship] < limits[prefix]
+            && invited[_as] < limits[prefix]
             && !ships.isActive(_invite)
             && ships.isSpawner(prefix, this)
             && ships.isActive(prefix));
