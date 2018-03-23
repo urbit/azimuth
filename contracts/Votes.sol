@@ -15,15 +15,18 @@ contract Votes is Ownable
 
   // we depend on the constitution to tell us how many voters there are, so that
   // we can determine how many votes are necessary for a majority.
+  //
   uint8 public totalVoters;
 
   // for concrete votes, we keep track of them *per constitution*, so that votes
   // from a "previous era" can't take effect when an upgrade has already
   // happened. this prevents issues with incompatible constitutions.
 
-  // per constitution, we keep track of the votes for each proposed address.
-  // we use these to determine whether a vote gets added or retracted.
+  //  per current constitution, we keep track of the votes for each 
+  //  proposed replacement.
+  //
   mapping(address => mapping(address => bool[256])) private concreteVotes;
+
   // we also keep track of vote counts per proposed address.
   // we use these to determine majorities.
   mapping(address => mapping(address => uint8)) public concreteVoteCounts;

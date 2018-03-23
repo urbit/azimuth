@@ -9,6 +9,8 @@ import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 contract Constitution is ConstitutionBase, ERC165Mapping
+                         // XX: fix this :-)
+                         //
                          // including the following interfaces somehow causes
                          // the contract to not deploy properly. we toggle them
                          // on when developing to make sure they're satisfied,
@@ -27,10 +29,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping
   string constant public symbol = "URS";
   uint256 constant public totalSupply = 4294967296;
 
-  // during contract construction, set the addresses of the (data) contracts we
-  // rely on.
-  // ownership of these contracts will need to be transfered to the constitution
-  // after its contract address becomes known.
+  //  Constitution(): set Urbit data addresses and signal interface support
+  //
+  //    Note: ownership of these contracts must be transferred to this
+  //    contract after it's on the chain and its contract address is known.
+  //
   function Constitution(Ships _ships, Votes _votes)
     public
   {
@@ -41,304 +44,436 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
   }
 
-  // ++erc
-  // support for ERC standards
-
-  // erc721 core
-
-  function balanceOf(address _owner)
-    external
-    view
-    returns (uint256)
-  {
-    return ships.getOwnedShipCount(_owner);
-  }
-
-  function ownerOf(uint256 _tokenId)
-    external
-    view
-    shipId(_tokenId)
-    returns (address owner)
-  {
-    uint32 id = uint32(_tokenId);
-    require(ships.hasPilot(id));
-    return ships.getPilot(id);
-  }
-
-  function safeTransferFrom(address _from, address _to, uint256 _tokenId)
-    external
-  {
-    safeTransferFrom(_from, _to, _tokenId, "");
-  }
-
-  function safeTransferFrom(address _from, address _to, uint256 _tokenId,
-                            bytes data)
-    public
-  {
-    transferFrom(_from, _to, _tokenId);
-    // do the callback last to avoid re-entrancy.
-    uint256 codeSize;
-    assembly { codeSize := extcodesize(_to) }
-    if (codeSize > 0)
+  //  ERC721 interface
+  //
+    function balanceOf(address _owner)
+      external
+      view
+      returns (uint256)
     {
-      bytes4 retval = ERC721TokenReceiver(_to)
-                      .onERC721Received(_from, _tokenId, data);
-      require(retval ==
-              bytes4(keccak256("onERC721Received(address,uint256,bytes)")));
+      return ships.getOwnedShipCount(_owner);
     }
-  }
 
-  function transferFrom(address _from, address _to, uint256 _tokenId)
-    public
-    shipId(_tokenId)
-  {
-    uint32 id = uint32(_tokenId);
-    require(ships.isPilot(id, _from));
-    transferShip(id, _to, true);
-  }
-
-  function approve(address _approved, uint256 _tokenId)
-    external
-    shipId(_tokenId)
-  {
-    allowTransferBy(uint32(_tokenId), _approved);
-  }
-
-  function setApprovalForAll(address _operator, bool _approved)
-    external
-  {
-    ships.setOperator(msg.sender, _operator, _approved);
-    ApprovalForAll(msg.sender, _operator, _approved);
-  }
-
-  function getApproved(uint256 _tokenId)
-    external
-    view
-    shipId(_tokenId)
-    returns (address)
-  {
-    return ships.getTransferrer(uint32(_tokenId));
-  }
-
-  function isApprovedForAll(address _owner, address _operator)
-    external
-    view
-    returns (bool)
-  {
-    return ships.isOperator(_owner, _operator);
-  }
-
-  // erc721enumerable
-
-  // every ship is indexes by its ship number.
-  function tokenByIndex(uint256 _index)
-    external
-    pure
-    returns (uint256)
-  {
-    return _index;
-  }
-
-  //TODO surely it's okay for NFTs at indices to change over time?
-  function tokenOfOwnerByIndex(address _owner, uint256 _index)
-    external
-    view
-    returns (uint256 _tokenId)
-  {
-    return ships.getOwnedShipAtIndex(_owner, _index);
-  }
-
-  // erc721metadata
-
-  function tokenURI(uint256 _tokenId)
-    external
-    pure
-    shipId(_tokenId)
-    returns (string _tokenURI)
-  {
-    _tokenURI = "https://eth.urbit.org/erc721/0000000000.json";
-    bytes memory _tokenURIBytes = bytes(_tokenURI);
-    _tokenURIBytes[29] = byte(48+(_tokenId / 1000000000) % 10);
-    _tokenURIBytes[30] = byte(48+(_tokenId / 100000000) % 10);
-    _tokenURIBytes[31] = byte(48+(_tokenId / 10000000) % 10);
-    _tokenURIBytes[32] = byte(48+(_tokenId / 1000000) % 10);
-    _tokenURIBytes[33] = byte(48+(_tokenId / 100000) % 10);
-    _tokenURIBytes[34] = byte(48+(_tokenId / 10000) % 10);
-    _tokenURIBytes[35] = byte(48+(_tokenId / 1000) % 10);
-    _tokenURIBytes[36] = byte(48+(_tokenId / 100) % 10);
-    _tokenURIBytes[37] = byte(48+(_tokenId / 10) % 10);
-    _tokenURIBytes[38] = byte(48+(_tokenId / 1) % 10);
-  }
-
-  // ++nav
-  // transactions made by ship owners.
-
-  // launch a star or planet, making a target address its owner. the launched
-  // ship becomes startable after the specified lock time.
-  function launch(uint32 _ship, address _target, uint64 _lockTime)
-    external
-  {
-    // only latent ships can be launched. locked and living ones already have an
-    // owner.
-    require(ships.isState(_ship, Ships.State.Latent));
-    uint16 parent = ships.getOriginalParent(_ship);
-    require(ships.isState(parent, Ships.State.Living));
-    // galaxies need to adhere to star creation limitations.
-    require(parent > 255 || canSpawn(parent, block.timestamp));
-    // the owner of a parent can always launch its children, other addresses
-    // need explicit permission (the role of "launcher") to do so.
-    require(ships.isPilot(parent, msg.sender)
-            || ships.isLauncher(parent, msg.sender));
-    ships.setPilot(_ship, _target);
-    // lock the ship.
-    ships.setLocked(_ship, _lockTime);
-    // parent has gained a child.
-    ships.incrementChildren(parent);
-  }
-
-  // allow the given address to launch children of the ship.
-  function allowLaunchBy(uint16 _ship, address _launcher)
-    external
-    pilot(_ship)
-    alive(_ship)
-  {
-    ships.setLauncher(_ship, _launcher);
-  }
-
-  // allow the given address to transfer ownership of the ship.
-  function allowTransferBy(uint32 _ship, address _transferrer)
-    public
-    unlocked(_ship)
-  {
-    address pilot = ships.getPilot(_ship);
-    require((pilot == msg.sender)
-            || ships.isOperator(pilot, msg.sender));
-    ships.setTransferrer(_ship, _transferrer);
-    Approval(pilot, _transferrer, uint256(_ship));
-  }
-
-  // bring a locked ship to life and set its public key.
-  function start(uint32 _ship, bytes32 _key)
-    external
-    pilot(_ship)
-  {
-    // locked ships can only be started after their locktime is over.
-    require(ships.isState(_ship, Ships.State.Locked));
-    require(ships.getLocked(_ship) <= block.timestamp);
-    ships.setKey(_ship, _key);
-    ships.setLiving(_ship);
-    // if a galaxy becomes living, it gains the ability to vote. we keep track
-    // of the amount of voters so we can calculate votes needed for majority.
-    if (_ship < 256)
+    function ownerOf(uint256 _tokenId)
+      external
+      view
+      shipId(_tokenId)
+      returns (address owner)
     {
-      votes.incrementTotalVoters();
+      uint32 id = uint32(_tokenId);
+      require(ships.hasPilot(id));
+      return ships.getPilot(id);
     }
-  }
 
-  // transfer a ship to a different address. this can be done by its owner,
-  // an operator of the owner, or an approved transferrer.
-  function transferShip(uint32 _ship, address _target, bool _reset)
-    public
-  {
-    address old = ships.getPilot(_ship);
-    require((old == msg.sender)
-            || ships.isOperator(old, msg.sender)
-            || ships.isTransferrer(_ship, msg.sender));
-    // we may not always want to reset the ship's key, transferrer and launcher,
-    // to allow for ownership transfer without any changes. eg, when transfering
-    // to ourselves.
-    if (_reset)
+    //  safeTransferFrom(): transfer ship _tokenId from _from to _to.
+    //
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId)
+      external
     {
-      ships.setKey(_ship, 0);
-      ships.setTransferrer(_ship, 0);
-      if (_ship < 65536)
+      //  transfer with empty data
+      //
+      safeTransferFrom(_from, _to, _tokenId, "");
+    }
+
+    //  safeTransferFrom(): transfer ship _tokenId from _from to _to, 
+    //                      and call recipient if it's a contract.
+    //
+    function safeTransferFrom(address _from, address _to, uint256 _tokenId,
+                              bytes data)
+      public
+    {
+      //  perform raw transfer
+      //
+      transferFrom(_from, _to, _tokenId);
+
+      //  do the callback last to avoid re-entrancy
+      //
       {
-        ships.setLauncher(uint16(_ship), 0);
+        uint256 codeSize;
+
+        //  eth idiom to check if _to is a contract
+        //
+        assembly { codeSize := extcodesize(_to) }
+        if (codeSize > 0)
+        {
+          bytes4 retval = ERC721TokenReceiver(_to)
+                          .onERC721Received(_from, _tokenId, data);
+          //
+          //  standard return idiom to confirm contract semantics
+          //
+          require(retval ==
+                  bytes4(keccak256("onERC721Received(address,uint256,bytes)")));
+        }
       }
     }
-    ships.setPilot(_ship, _target);
-    Transfer(old, _target, uint256(_ship));
-  }
 
-  // set the public key for a ship.
-  function rekey(uint32 _ship, bytes32 _key)
-    external
-    pilot(_ship)
-    alive(_ship)
-  {
-    ships.setKey(_ship, _key);
-  }
-
-  // we make this check publicly accessible to help with client implementation.
-  function canEscapeTo(uint32 _ship, uint32 _sponsor)
-    public
-    view
-    returns (bool canEscape)
-  {
-    if (!ships.isState(_sponsor, Ships.State.Living)) return false;
-    if (ships.isEscaping(_sponsor)) return false;
-    uint8 ourclass = getShipClass(_ship);
-    uint8 class = getShipClass(_sponsor);
-    // galaxies may not escape. stars may only escape to galaxies.
-    // planets may escape to both stars and planets.
-    if (ourclass != (class + 1)
-        && !(class == 2 && ourclass == 2))
-      return false;
-    // but if a planet's escaping to a planet, that planet chain must be short.
-    // for the non-planet case, we jump out immediately because class != 2.
-    // for the planet case, we look at sponsors of sponsors.
-    // in the end, we want to have found a sponsor star to end our planet chain.
-    // max possible chain consists of one more planet than iteratoins below.
-    // s0 <- p1 <- p2 <- p3 <- p4 <-x- p5
-    uint32 chain = _sponsor;
-    for (uint8 i = 0; (i < 3) && (class == 2); i++)
+    //  transferFrom(): transfer ship _tokenId from _from to _to, 
+    //                  WITHOUT notifying recipient contract
+    //
+    function transferFrom(address _from, address _to, uint256 _tokenId)
+      public
+      shipId(_tokenId)
     {
-      // if we detect circularity, bail immediately.
-      if (chain == _ship) { break; }
-      chain = ships.getSponsor(chain);
-      class = getShipClass(chain);
+      uint32 id = uint32(_tokenId);
+      require(ships.isPilot(id, _from));
+      transferShip(id, _to, true);
     }
-    // if we didn't find a star within i steps, the chain would get too long.
-    return (class < 2);
-  }
 
-  // escape to a new sponsor.
-  // takes effect when the new sponsor accepts the adoption.
-  function escape(uint32 _ship, uint32 _sponsor)
-    external
-    pilot(_ship)
-  {
-    require(canEscapeTo(_ship, _sponsor));
-    ships.setEscape(_ship, _sponsor);
-  }
+    //  approve(): allow _approved to transfer ownership of ship _tokenId
+    //
+    function approve(address _approved, uint256 _tokenId)
+      external
+      shipId(_tokenId)
+    {
+      allowTransferBy(uint32(_tokenId), _approved);
+    }
 
-  // cancel an escape.
-  function cancelEscape(uint32 _ship)
-    external
-    pilot(_ship)
-  {
-    ships.cancelEscape(_ship);
-  }
+    //  setApprovalForAll(): allow or disallow _operator to transfer ownership
+    //                       of ALL ships owned by :msg.sender
+    //
+    function setApprovalForAll(address _operator, bool _approved)
+      external
+    {
+      ships.setOperator(msg.sender, _operator, _approved);
+      ApprovalForAll(msg.sender, _operator, _approved);
+    }
 
-  // accept an escaping ship.
-  function adopt(uint32 _sponsor, uint32 _child)
-    external
-    pilot(_sponsor)
-  {
-    require(ships.isEscape(_child, _sponsor));
-    // _child's sponsor becomes _sponsor, its escape is reset to "no escape".
-    ships.doEscape(_child);
-  }
+    function getApproved(uint256 _tokenId)
+      external
+      view
+      shipId(_tokenId)
+      returns (address)
+    {
+      return ships.getTransferrer(uint32(_tokenId));
+    }
 
-  // reject an escaping ship.
-  function reject(uint32 _sponsor, uint32 _child)
-    external
-    pilot(_sponsor)
-  {
-    require(ships.isEscape(_child, _sponsor));
-    // cancels the escape, making it inactive.
-    ships.cancelEscape(_child);
-  }
+    function isApprovedForAll(address _owner, address _operator)
+      external
+      view
+      returns (bool)
+    {
+      return ships.isOperator(_owner, _operator);
+    }
+
+  //  ERC721Enumerable interface
+  //
+    //  tokenByIndex(): translate _index (token identity) into ship number
+    //
+    function tokenByIndex(uint256 _index)
+      external
+      pure
+      returns (uint256)
+    {
+      return _index;
+    }
+
+    //  tokenOfOwnerByIndex(): return the _indexth ship owned by _owner
+    //
+    //    Note: these indexes are not stable across time, as ownership
+    //    lists can change.
+    //
+    function tokenOfOwnerByIndex(address _owner, uint256 _index)
+      external
+      view
+      returns (uint256 _tokenId)
+    {
+      return ships.getOwnedShipAtIndex(_owner, _index);
+    }
+
+  //  ERC721Metadata interface
+  //
+    //  tokenURI(): produce a URL to a standard JSON file
+    //
+      function tokenURI(uint256 _tokenId)
+        external
+        pure
+        shipId(_tokenId)
+        returns (string _tokenURI)
+      {
+        _tokenURI = "https://eth.urbit.org/erc721/0000000000.json";
+        bytes memory _tokenURIBytes = bytes(_tokenURI);
+        _tokenURIBytes[29] = byte(48+(_tokenId / 1000000000) % 10);
+        _tokenURIBytes[30] = byte(48+(_tokenId / 100000000) % 10);
+        _tokenURIBytes[31] = byte(48+(_tokenId / 10000000) % 10);
+        _tokenURIBytes[32] = byte(48+(_tokenId / 1000000) % 10);
+        _tokenURIBytes[33] = byte(48+(_tokenId / 100000) % 10);
+        _tokenURIBytes[34] = byte(48+(_tokenId / 10000) % 10);
+        _tokenURIBytes[35] = byte(48+(_tokenId / 1000) % 10);
+        _tokenURIBytes[36] = byte(48+(_tokenId / 100) % 10);
+        _tokenURIBytes[37] = byte(48+(_tokenId / 10) % 10);
+        _tokenURIBytes[38] = byte(48+(_tokenId / 1) % 10);
+      }
+
+  //  Urbit functions for all ships
+  //
+    //  spawn(): spawn _ship, giving ownership to _target, with a spawning
+    //           window from _spawnStart to _spawnComplete
+    //
+    function spawn(uint32 _ship, 
+                   address _target, 
+                   uint64 _spawnStart,
+                   uint64 _spawnComplete)
+    {
+      //  XX should not be called by planets
+
+      //  only currently inactive ships can be spawned
+      //
+      require(!ships.isActive(_ship));
+
+      //  prefix: half-width prefix of _ship
+      //
+      uint16 prefix = ships.getPrefix(_ship);
+
+      //  XX: galaxies can't create planets!
+
+      //  prefix ship must be active
+      //
+      require(ships.isActive(prefix));
+
+      //  check spawning limitations
+      //
+      require(canSpawn(prefix, block.timestamp));
+
+      //  the owner of a prefix can always spawn its children; 
+      //  other addresses need explicit permission (the role
+      //  of "spawner" in the Ships contract)
+      //
+      require(ships.isOwner(prefix, msg.sender)
+              || ships.isSpawner(prefix, msg.sender));
+
+      //  set the new owner of the ship
+      //
+      ships.setOwner(_ship, _target);
+
+      //  set the spawning window and make the ship active
+      //
+      ships.setActive(_ship);
+    }
+
+    //  canSpawn(): true if _ship can create a new child
+    //
+    function canSpawn(uint32 _ship, uint256 _time)
+      public
+      view
+      returns (bool can)
+    {
+      Class class = getClass(_ship);
+      uint16 count 
+
+      if ( class == Planet ) {
+        //
+        //  planets can create moons, but moons aren't on the chain
+        //
+        return false;
+      }
+      if ( class == Galaxy ) {
+        return (getSpawnCount(_ship) < 255);
+      }
+      if ( class == Star ) {
+        //  XX: limit to 1024 until end of 2018, then doubling every year
+        //
+        return (getSpawnCount(_ship) < 65535) 
+      }
+    }
+
+    //  allowLaunchBy(): give _spawner the right to spawn children from _ship
+    //
+    function allowLaunchBy(uint16 _ship, address _spawner)
+      external
+      pilot(_ship)
+      alive(_ship)
+    {
+      ships.setLauncher(_ship, _spawner);
+    }
+
+    //  allowTransferBy(): give _transferrer the right to transfer _ship
+    //
+    function allowTransferBy(uint32 _ship, address _transferrer)
+      public
+      unlocked(_ship)
+    {
+      //  owner: owner of _ship
+      //
+      address owner = ships.getOwner(_ship);
+
+      //  caller must be :owner, or an operator designated by the owner.
+      //
+      require((owner == msg.sender) || ships.isOperator(owner, msg.sender));
+
+      //  set transferrer field in Ships contract
+      //
+      ships.setTransferrer(_ship, _transferrer);
+
+      //  send Approval event
+      //
+      Approval(pilot, _transferrer, uint256(_ship));
+    }
+
+    //  configureKeys(): configure _ship with Urbit public keys _encryptionKey
+    //                   and _authenticationKey
+    //
+    function configureKeys(uint32 _ship, 
+                           bytes32 _encryptionKey, 
+                           bytes32 _authenticationKey)
+      external
+      pilot(_ship)
+    {
+      //  a ship cannot be booted unless it's active
+      //
+      require(ships.isActive());
+
+      ships.setKey(_ship, _encryptionKey, _authenticationKey);
+    }
+
+    // transferShip(): transfer _ship to _target, clearing all sensitive data
+    //                 if _reset is true
+    //
+    //  Note: the _reset flag is useful when transferring the ship to
+    //  a recipient who doesn't trust the previous owner.
+    //
+    function transferShip(uint32 _ship, address _target, bool _reset)
+      public
+    {
+      //  old: current ship owner
+      //
+      address old = ships.getOwner(_ship);
+
+      //  transfer is legitimate if the caller is the old owner, or
+      //  has operator or transfer rights
+      //
+      require((old == msg.sender)
+              || ships.isOperator(old, msg.sender)
+              || ships.isTransferrer(_ship, msg.sender));
+
+      //  reset sensitive data --  are transferring the
+      //  ship to a new owner 
+      //
+      if ( _reset )
+      {
+        //  clear Urbit public keys
+        //
+        ships.setKey(_ship, 0, 0);
+
+        //  clear transfer proxy
+        //
+        ships.setTransferrer(_ship, 0);
+
+        //  clear spawning proxy
+        //
+        ships.setSpawner(uint16(_ship), 0);
+      }
+      ships.setOwner(_ship, _target);
+
+      //  post Transfer event
+      //
+      Transfer(old, _target, uint256(_ship));
+    }
+
+    //  rekey(): reset Urbit public keys for _ship to _encryptionKey and 
+    //           _authenticationKey
+    //
+    function rekey(uint32 _ship, 
+                   bytes32 _encryptionKey, 
+                   bytes32 _authenticationKey)
+      external
+      owner(_ship)
+      alive(_ship)
+    {
+      ships.setKey(_ship, _encryptionKey, _authenticationKey);
+    }
+
+    //  canEscapeTo(): true if _ship could try to escape to _sponsor
+    //
+    //    Note: public to help with clients
+    //
+    function canEscapeTo(uint32 _ship, uint32 _sponsor)
+      public
+      view
+      returns (bool canEscape)
+    {
+      //  can't escape to a sponsor if it's not active
+      //
+      if ( !ships.isActive(_sponsor)) return false;
+
+      //  can't escape to a sponsor that hasn't been born
+      //
+      if ( 0 == ships.getRevisionNumber(_sponsor) ) return false;
+
+      //  We must escape to a sponsor of the same class, except in
+      //  the special case where the escaping ship hasn't been
+      //  born yet -- to support lightweight invitation chains.
+      //
+      //  The use case for lightweight invitations is that a planet
+      //  owner should be able to invite their friends to Urbit in
+      //  a two-party transaction, without a new star relationship.
+      //  The lightweight invitation process works by escaping
+      //  your own active, but never booted, ship, to yourself,
+      //  then transferring it to your friend.
+      //
+      //  These planet sponsorship chains can grow to arbitrary length,
+      //  but can only be extended at the ends.  Most users will want
+      //  improve to their performance by switching to direct star sponsors.
+      //
+      if ( //  normal hierarchical escape structure
+           //
+           ((getClass(_sponsor) + 1) != getClass(_ship)) ||
+           //
+           //  special peer escape
+           //
+           ((getClass(_sponsor) == getClass(_ship)) &&
+            //
+            //  peer escape is only for ships that haven't been booted yet,
+            //  because it's only for lightweight invitation chains
+            //
+            (0 == getRevisionNumber(_ship)) &&
+            //
+            //  the sponsor needs to have been booted already, or strange
+            //  corner cases can be created
+            //
+            (0 != getRevisionNumber(_sponsor))) )
+      {
+        return false;
+      }
+      return true;
+    }
+
+    //  escape(): request escape from _ship to _sponsor.
+    //
+    function escape(uint32 _ship, uint32 _sponsor)
+      external
+      pilot(_ship)
+    {
+      require(canEscapeTo(_ship, _sponsor));
+      ships.setEscape(_ship, _sponsor);
+    }
+
+    // cancel an escape.
+    function cancelEscape(uint32 _ship)
+      external
+      pilot(_ship)
+    {
+      ships.cancelEscape(_ship);
+    }
+
+    // accept an escaping ship.
+    function adopt(uint32 _sponsor, uint32 _child)
+      external
+      pilot(_sponsor)
+    {
+      require(ships.isEscape(_child, _sponsor));
+      // _child's sponsor becomes _sponsor, its escape is reset to "no escape".
+      ships.doEscape(_child);
+    }
+
+    // reject an escaping ship.
+    function reject(uint32 _sponsor, uint32 _child)
+      external
+      pilot(_sponsor)
+    {
+      require(ships.isEscape(_child, _sponsor));
+      // cancels the escape, making it inactive.
+      ships.cancelEscape(_child);
+    }
 
   // ++sen
   // transactions made by galaxy owners
@@ -388,68 +523,30 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     ships.setPilot(_galaxy, _target);
   }
 
-  // test if the galaxy can liquify/launch another star right now.
-  function canSpawn(uint16 _parent, uint256 _time)
-    public
-    view
-    returns (bool can)
-  {
-    if (!ships.isState(_parent, Ships.State.Living)) { return false; }
-    uint64 completed = ships.getCompleted(_parent);
-    // after the completion date, they can launch everything.
-    if (completed <= _time) { return true; }
-    // if unlocked after completion, only the above check remains important.
-    uint64 locked = ships.getLocked(_parent);
-    if (completed <= locked) { return false; }
-    uint256 curDiff = _time.sub(locked); // living guarantees > 0.
-    uint256 totDiff = uint256(completed).sub(locked);
-    // start out with 1 star, then grow over time.
-    uint256 allowed = curDiff.mul(254).div(totDiff).add(1);
-    uint32 children = ships.getChildren(_parent);
-    return (allowed > children);
-  }
 
-  // get the class of the ship
-  function getShipClass(uint32 _ship)
-    public
-    pure
-    returns (uint8 _class)
-  {
-    if (_ship < 256) return 0;
-    if (_ship < 65536) return 1;
-    return 2;
-  }
+  //  Function modifiers for this contract
+  //
+    //  shipId(): require that _id is a valid ship
+    //
+    modifier shipId(uint256 _id)
+    {
+      require(_id < 4294967296);
+      _;
+    }
 
-  // ++mod
-  // function modifiers.
+    //  owner(): require that :msg.sender is the owner of _ship
+    //
+    modifier owner(uint32 _ship)
+    {
+      require(ships.isOwner(_ship, msg.sender));
+      _;
+    }
 
-  // test if the given uint256 fits a uint32.
-  modifier shipId(uint256 _id)
-  {
-    require(_id < 4294967296);
-    _;
-  }
-
-  // test if msg.sender is pilot of _ship.
-  modifier pilot(uint32 _ship)
-  {
-    require(ships.isPilot(_ship, msg.sender));
-    _;
-  }
-
-  // test if the _ship is live.
-  modifier alive(uint32 _ship)
-  {
-    require(ships.isState(_ship, Ships.State.Living));
-    _;
-  }
-
-  // test if the _ship is either locked and past its locktime, or live.
-  modifier unlocked(uint32 _ship)
-  {
-    require(ships.isState(_ship, Ships.State.Living)
-            || (ships.isState(_ship, Ships.State.Locked)
-                && ships.getLocked(_ship) < block.timestamp));
-    _;
-  }
+    //  active(): require that _ship is in the active state
+    //
+    modifier active(uint32 _ship)
+    {
+      require(ships.isActive(_ship)
+      _;
+    }
 }

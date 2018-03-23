@@ -21,9 +21,14 @@ contract ConstitutionBase is Ownable
     //
   }
 
-  // transfer ownership of the data and token contracts to the new
-  // constitution, then self-destruct. any eth that have somehow ended up in
-  // the contract are also sent to the new constitution.
+  //  upgrade(): transfer ownership of the constitution data to the new
+  //             constitution contract, then self-destruct. 
+  //
+  //    Note: any eth that have somehow ended up in the contract are also 
+  //          sent to the new constitution.
+  //
+  //    XX: old constitution should call an update hook function on the new.
+  //
   function upgrade(address _new)
     internal
   {
