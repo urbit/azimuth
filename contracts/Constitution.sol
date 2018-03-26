@@ -8,7 +8,7 @@ import './ERC165Mapping.sol';
 import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-contract Constitution is ConstitutionBase, ERC165Mapping
+contract Constitution is ConstitutionBase(0), ERC165Mapping
                          // XX: fix this :-)
                          //
                          // including the following interfaces somehow causes
@@ -483,7 +483,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     //TODO  new votes contract
 
     // vote on a new constitution contract
-    function castConcreteVote(uint8 _galaxy, address _proposal, bool _vote)
+    function castConcreteVote(uint8 _galaxy,
+                              ConstitutionBase _proposal,
+                              bool _vote)
       external
       shipOwner(_galaxy)
     {
