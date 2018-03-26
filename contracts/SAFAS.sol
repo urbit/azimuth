@@ -5,11 +5,9 @@ pragma solidity 0.4.18;
 
 import './Constitution.sol';
 
-//  TODO TODO: let participants transfer their right
-
 //  SAFAS: this contract allows stars to be delivered to buyers who have
-//         purchased future stars, conditionally on technical deadlines 
-//         being hit.  If the deadlines are hit (as certified by a 
+//         purchased future stars, conditionally on technical deadlines
+//         being hit.  If the deadlines are hit (as certified by a
 //         vote of the galaxies), stars are released to the buyers.
 //         Once a deadline passes without a certifying vote, a buyer
 //         may choose to back out of the transaction, forfeiting stars
@@ -39,13 +37,13 @@ contract SAFAS is Ownable
   //             if hit (as certified by a galaxy vote), commitments can
   //             withdraw their stars.
   //
-  uint64[3] public deadlines;
- 
-  //  timestamps: timestamps when deadlines of the matching index were 
+  uint256[3] public deadlines;
+
+  //  timestamps: timestamps when deadlines of the matching index were
   //              hit; or 0 if not yet hit; or equal to the deadline if
   //              the deadline was missed.
   //
-  uint64[3] public timestamps; // unlock timestamps for tranches.
+  uint256[3] public timestamps; // unlock timestamps for tranches.
 
   //  Commitment: structure that mirrors a signed paper contract
   //
@@ -75,15 +73,19 @@ contract SAFAS is Ownable
     //
     bool forfeit;
 
-    //  forfeited: number of forfeited stars not yet withdrawn by 
+    //  forfeited: number of forfeited stars not yet withdrawn by
     //             the contract owner
     //
     uint16 forfeited;
   }
 
-  //  commitments: all registered purchase agreeements
+  //  commitments: all registered purchase agreements
   //
   mapping(address => Commitment) public commitments;
+
+  //  transfers: approved commitment transfers
+  //
+  mapping(address => address) public transfers;
 
   //  SAFAS: configure SAFAS and reference ship and voting contracts
   //
@@ -92,7 +94,7 @@ contract SAFAS is Ownable
   {
     //  sanity check: deadlines must be sequential
     //
-    require( (_deadlines[0] < _deadlines[1]) && 
+    require( (_deadlines[0] < _deadlines[1]) &&
              (_deadlines[1] < _deadlines[2]) );
 
     //  reference ship and voting contracts
@@ -106,21 +108,22 @@ contract SAFAS is Ownable
 
     //  the first tranche is defined to be unlocked when these contracts
     //  are posted to the blockchain
-    //  
+    //
     analyzeTranche(0);
   }
 
   //
   //  Functions for the contract owner
   //
-    //  register(): register a new SAFAS commitment 
+
+    //  register(): register a new SAFAS commitment
     //
     function register(//  _participant: address of the paper contract signer
                       //  _tranches: number of stars unlocking per tranche
                       //  _rate: number of stars that unlock per 30 days
                       //
                       address _participant,
-                      uint16[3] _tranches, 
+                      uint16[3] _tranches,
                       uint16 _rate)
       external
       onlyOwner
@@ -141,7 +144,7 @@ contract SAFAS is Ownable
       Commitment storage com = commitments[_participant];
 
       //  ensure we can't deposit more stars than the participant
-      //  is entitled to 
+      //  is entitled to
       //
       //  TODO: safe math?
       //
@@ -152,20 +155,20 @@ contract SAFAS is Ownable
       //  contract will spawn the star directly to itself.
       //
       //  The SAFAS contract can also accept existing stars, as long as their
-      //  Urbit key revision number is 0, indicating that they have not yet 
-      //  been started.  To deposit a star this way, grant the SAFAS contract 
-      //  permission to transfer ownership of the star; the contract will 
+      //  Urbit key revision number is 0, indicating that they have not yet
+      //  been started.  To deposit a star this way, grant the SAFAS contract
+      //  permission to transfer ownership of the star; the contract will
       //  transfer the star to itself.
       //
       if ( ships.isOwner(ships.getPrefix(_star), msg.sender) &&
-           ships.isSpawner(ships.getPrefix(_star), this) )
+           ships.isSpawnProxy(ships.getPrefix(_star), this) )
       {
         //  first model: spawn _star to :this contract
         //
-        Constitution(ships.owner()).spawn(_star, this, 0);
+        Constitution(ships.owner()).spawn(_star, this);
       }
       else if ( ships.isOwner(_star, msg.sender) &&
-                ships.isTransferrer(_star, this) )
+                ships.isTransferProxy(_star, this) )
       {
         //  second model: transfer active, unused _star to :this contract
         //
@@ -201,7 +204,7 @@ contract SAFAS is Ownable
       //  the participant still has stars left to withdraw
       //
       require( com.forfeit &&
-               (com.forfeited > 0)
+               (com.forfeited > 0) &&
                (com.stars.length > 0) );
 
       //  star: star to forfeit (from end of array)
@@ -213,15 +216,39 @@ contract SAFAS is Ownable
       com.stars.length = com.stars.length - 1;
       com.forfeited = com.forfeited - 1;
 
-      //  then transfer the star (don't reset it because no one whom we don't 
+      //  then transfer the star (don't reset it because no one whom we don't
       //  trust has ever had control of it)
       //
       Constitution(ships.owner()).transferShip(star, _to, false);
     }
 
-  //  
+  //
   //  Functions for participants
   //
+
+    //  approveCommitmentTransfer(): transfer the commitment to another address
+    //
+    function approveCommitmentTransfer(address _to)
+      external
+    {
+      transfers[msg.sender] = _to;
+    }
+
+    //  transferCommitment(): make an approved transfer of _from's commitment
+    //                        to the caller's address
+    //
+    function transferCommitment(address _from)
+      external
+    {
+      require(transfers[_from] == msg.sender);
+      Commitment storage com = commitments[_from];
+      commitments[msg.sender] = com;
+      commitments[_from] = Commitment([uint16(0), 0, 0],
+                                      0, 0, new uint16[](0),
+                                      0, false, 0);
+      transfers[_from] = 0;
+    }
+
     //  withdraw(): withdraw one star to the sender's address
     //
     function withdraw()
@@ -237,8 +264,8 @@ contract SAFAS is Ownable
     {
       Commitment storage com = commitments[msg.sender];
 
-      //  to withdraw, the participant must have a star balance, 
-      //  be under their current withdrawal limit, and cannot 
+      //  to withdraw, the participant must have a star balance,
+      //  be under their current withdrawal limit, and cannot
       //  withdraw forfeited stars
       //
       require( (com.stars.length > 0) &&
@@ -259,7 +286,7 @@ contract SAFAS is Ownable
       Constitution(ships.owner()).transferShip(star, _to, true);
     }
 
-    //  forfeit(): forfeit all remaining stars from tranche number _tranche 
+    //  forfeit(): forfeit all remaining stars from tranche number _tranche
     //             and all tranches after it
     //
     function forfeit(uint8 _tranche)
@@ -273,7 +300,7 @@ contract SAFAS is Ownable
       //
       require( (deadlines[_tranche] == timestamps[_tranche]) &&
                !com.forfeit );
-      
+
       //  forfeited: number of stars the participant will forfeit
       //
       uint16 forfeited = totalStars(com.tranches, _tranche);
@@ -340,7 +367,7 @@ contract SAFAS is Ownable
                           keccak256("arvo is stable"));
       }
 
-      //  third tranche completes when the galaxies pass a 
+      //  third tranche completes when the galaxies pass a
       //  continuity/security resolution
       //
       else if ( _tranche == 2 )
@@ -377,7 +404,7 @@ contract SAFAS is Ownable
 
         //  if a tranche hasn't completed yet, there is nothing to add.
         //
-        if ( ts == 0 ) { 
+        if ( ts == 0 ) {
           continue;
         }
         assert(ts <= block.timestamp);
@@ -389,8 +416,8 @@ contract SAFAS is Ownable
         uint256 num = (com.rate * ((block.timestamp - ts) / 30 days));
 
         //  bound the release rate by the tranche count
-        // 
-        if ( num > com.tranches[i] ) 
+        //
+        if ( num > com.tranches[i] )
         {
           num = com.tranches[i];
         }
@@ -406,7 +433,7 @@ contract SAFAS is Ownable
 
       // allow at least one star
       //
-      if ( limit < 1 ) 
+      if ( limit < 1 )
         { return 1; }
     }
 
@@ -430,6 +457,7 @@ contract SAFAS is Ownable
     //
     function verifyBalance(address _participant)
       external
+      view
       returns (bool correct)
     {
       Commitment storage com = commitments[_participant];
