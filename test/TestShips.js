@@ -14,101 +14,80 @@ contract('Ships', function([owner, user]) {
     ships = await Ships.new();
   });
 
-  it('getting original parent', async function() {
+  it('getting prefix parent', async function() {
     // galaxies
-    assert.equal(await ships.getOriginalParent(0), 0);
-    assert.equal(await ships.getOriginalParent(255), 255);
+    assert.equal(await ships.getPrefix(0), 0);
+    assert.equal(await ships.getPrefix(255), 255);
     // stars
-    assert.equal(await ships.getOriginalParent(256), 0);
-    assert.equal(await ships.getOriginalParent(65535), 255);
+    assert.equal(await ships.getPrefix(256), 0);
+    assert.equal(await ships.getPrefix(65535), 255);
     // planets
-    assert.equal(await ships.getOriginalParent(1245952), 768);
+    assert.equal(await ships.getPrefix(1245952), 768);
   });
 
-  it('getting and setting the ship pilot', async function() {
-    assert.equal(await ships.hasPilot(0), false);
+  it('getting class', async function() {
+    // galaxies
+    assert.equal(await ships.getShipClass(0), 0);
+    assert.equal(await ships.getShipClass(255), 0);
+    // stars
+    assert.equal(await ships.getShipClass(256), 1);
+    assert.equal(await ships.getShipClass(65535), 1);
+    // planets
+    assert.equal(await ships.getShipClass(1245952), 2);
+  });
+
+  it('getting and setting the ship owner', async function() {
+    assert.equal(await ships.getOwner(0), 0);
     // only owner can do this.
     try {
-      await ships.setPilot(0, user, {from:user});
+      await ships.setOwner(0, user, {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setPilot(0, user);
-    // can't set to same pilot.
+    await ships.setOwner(0, user);
+    // can't set to same owner.
     try {
-      await ships.setPilot(0, user);
+      await ships.setOwner(0, user);
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    assert.equal(await ships.hasPilot(0), true);
-    assert.equal(await ships.isPilot(0, user), true);
-    assert.equal(await ships.isPilot(0, owner), false);
+    assert.equal(await ships.isOwner(0, user), true);
+    assert.equal(await ships.isOwner(0, owner), false);
   });
 
   it('getting owned ships', async function() {
-    await ships.setPilot(1, user);
-    await ships.setPilot(2, user);
+    await ships.setOwner(1, user);
+    await ships.setOwner(2, user);
     let owned = await ships.getOwnedShips(user);
     assert.equal(owned[0].toNumber(), 0);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned[2].toNumber(), 2);
     assert.equal(owned.length, 3);
-    await ships.setPilot(0, 0);
+    await ships.setOwner(0, 0);
     owned = await ships.getOwnedShips(user);
     assert.equal(owned[0].toNumber(), 2);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned.length, 2);
   });
 
-  it('setting and testing ship state', async function() {
-    // latent
-    assert.isTrue(await ships.isState(0, LATENT));
-    // locked
-    assert.equal(await ships.getLocked(0), 0);
+  it('activating and spawn count', async function() {
+    assert.isFalse(await ships.isActive(0));
+    assert.equal(await ships.getSpawnCount(0), 0);
+    assert.isFalse(await ships.isActive(256));
     // only owner can do this.
     try {
-      await ships.setLocked(0, 123, {from:user});
+      await ships.setActive(0, {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setLocked(0, 123);
-    assert.equal(await ships.getLocked(0), 123);
-    assert.isTrue(await ships.isState(0, LOCKED));
-    // completed
-    assert.equal(await ships.getCompleted(0), 0);
-    // only owner can do this.
-    try {
-      await ships.setCompleted(0, 124, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    await ships.setCompleted(0, 124);
-    assert.equal(await ships.getCompleted(0), 124);
-    // living
-    // only owner can do this.
-    try {
-      await ships.setLiving(257, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    await ships.setLiving(257);
-    assert.equal(await ships.getSponsor(257), 1);
-    assert.isTrue(await ships.isState(257, LIVING));
-    assert.isFalse(await ships.isEscape(257, 0));
-    // only owner can do this.
-    try {
-      await ships.incrementChildren(0, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    await ships.incrementChildren(0);
-    assert.equal(await ships.getChildren(0), 1);
+    await ships.setActive(0);
+    await ships.setActive(256);
+    assert.isTrue(await ships.isActive(0));
+    assert.equal(await ships.getSpawnCount(0), 1);
+    assert.isTrue(await ships.isActive(256));
   });
 
   it('setting, canceling, and doing escape', async function() {
@@ -150,51 +129,56 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getSponsor(257), 2);
   });
 
-  it('setting key', async function() {
-    let [key, rev] = await ships.getKey(0);
-    assert.equal(key,
+  it('setting keys', async function() {
+    let [crypt, auth] = await ships.getKeys(0);
+    assert.equal(crypt,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
-    assert.equal(rev, 0);
+    assert.equal(auth,
+      '0x0000000000000000000000000000000000000000000000000000000000000000');
+    assert.equal(await ships.getKeyRevisionNumber(0), 0);
     // only owner can do this.
     try {
-      await ships.setKey(0, 10, {from:user});
+      await ships.setKeys(0, 10, 11, {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setKey(0, 10);
-    [key, rev] = await ships.getKey(0);
-    assert.equal(key,
+    await ships.setKeys(0, 10, 11);
+    [crypt, auth] = await ships.getKeys(0);
+    assert.equal(crypt,
       '0xa000000000000000000000000000000000000000000000000000000000000000');
-    assert.equal(rev, 1);
+    assert.equal(auth,
+      '0xb000000000000000000000000000000000000000000000000000000000000000');
+    assert.equal(await ships.getKeyRevisionNumber(0), 1);
   });
 
-  it('setting launcher', async function() {
-    assert.isFalse(await ships.isLauncher(0, owner)); // only owner can do this.
+  it('setting spawn proxy', async function() {
+    // only owner can do this.
+    assert.isFalse(await ships.isSpawnProxy(0, owner));
     try {
-      await ships.setLauncher(0, owner, {from:user});
+      await ships.setSpawnProxy(0, owner, {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setLauncher(0, owner);
-    assert.isTrue(await ships.isLauncher(0, owner));
-    await ships.setLauncher(0, 0);
-    assert.isFalse(await ships.isLauncher(0, owner));
+    await ships.setSpawnProxy(0, owner);
+    assert.isTrue(await ships.isSpawnProxy(0, owner));
+    await ships.setSpawnProxy(0, 0);
+    assert.isFalse(await ships.isSpawnProxy(0, owner));
   });
 
-  it('setting transferrer', async function() {
-    assert.isFalse(await ships.isTransferrer(0, owner));
+  it('setting transfer proxy', async function() {
+    assert.isFalse(await ships.isTransferProxy(0, owner));
     // only owner can do this.
     try {
-      await ships.setTransferrer(0, owner, {from:user});
+      await ships.setTransferProxy(0, owner, {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setTransferrer(0, owner);
-    assert.isTrue(await ships.isTransferrer(0, owner));
-    await ships.setTransferrer(0, 0);
-    assert.isFalse(await ships.isTransferrer(0, owner));
+    await ships.setTransferProxy(0, owner);
+    assert.isTrue(await ships.isTransferProxy(0, owner));
+    await ships.setTransferProxy(0, 0);
+    assert.isFalse(await ships.isTransferProxy(0, owner));
   });
 });
