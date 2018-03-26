@@ -8,8 +8,6 @@ import './ERC165Mapping.sol';
 import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-//  XX planet number restrictions: 1024 in 2018, double every year
-//
 contract Constitution is ConstitutionBase, ERC165Mapping
                          // XX: fix this :-)
                          //
@@ -46,8 +44,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
   }
 
+  //
   //  ERC721 interface
   //
+
     function balanceOf(address _owner)
       external
       view
@@ -63,8 +63,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       returns (address owner)
     {
       uint32 id = uint32(_tokenId);
-      require(ships.hasPilot(id));
-      return ships.getPilot(id);
+      require(ships.isActive(id));
+      return ships.getOwner(id);
     }
 
     //  safeTransferFrom(): transfer ship _tokenId from _from to _to.
@@ -77,7 +77,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       safeTransferFrom(_from, _to, _tokenId, "");
     }
 
-    //  safeTransferFrom(): transfer ship _tokenId from _from to _to, 
+    //  safeTransferFrom(): transfer ship _tokenId from _from to _to,
     //                      and call recipient if it's a contract.
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId,
@@ -109,7 +109,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       }
     }
 
-    //  transferFrom(): transfer ship _tokenId from _from to _to, 
+    //  transferFrom(): transfer ship _tokenId from _from to _to,
     //                  WITHOUT notifying recipient contract
     //
     function transferFrom(address _from, address _to, uint256 _tokenId)
@@ -117,7 +117,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       shipId(_tokenId)
     {
       uint32 id = uint32(_tokenId);
-      require(ships.isPilot(id, _from));
+      require(ships.isOwner(id, _from));
       transferShip(id, _to, true);
     }
 
@@ -127,7 +127,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       external
       shipId(_tokenId)
     {
-      allowTransferBy(uint32(_tokenId), _approved);
+      setTransferProxy(uint32(_tokenId), _approved);
     }
 
     //  setApprovalForAll(): allow or disallow _operator to transfer ownership
@@ -146,7 +146,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       shipId(_tokenId)
       returns (address)
     {
-      return ships.getTransferrer(uint32(_tokenId));
+      return ships.getTransferProxy(uint32(_tokenId));
     }
 
     function isApprovedForAll(address _owner, address _operator)
@@ -157,8 +157,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       return ships.isOperator(_owner, _operator);
     }
 
+  //
   //  ERC721Enumerable interface
   //
+
     //  tokenByIndex(): translate _index (token identity) into ship number
     //
     function tokenByIndex(uint256 _index)
@@ -182,8 +184,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       return ships.getOwnedShipAtIndex(_owner, _index);
     }
 
+  //
   //  ERC721Metadata interface
   //
+
     //  tokenURI(): produce a URL to a standard JSON file
     //
       function tokenURI(uint256 _tokenId)
@@ -206,18 +210,28 @@ contract Constitution is ConstitutionBase, ERC165Mapping
         _tokenURIBytes[38] = byte(48+(_tokenId / 1) % 10);
       }
 
+  //
   //  Urbit functions for all ships
   //
-    //  spawn(): spawn _ship, giving ownership to _target, with a spawning
-    //           window from _spawnStart to _spawnComplete
-    //
-    function spawn(uint32 _ship, 
-                   address _target, 
-                   uint64 _spawnStart,
-                   uint64 _spawnComplete)
-    {
-      //  XX should not be called by planets
 
+    //  configureKeys(): configure _ship with Urbit public keys _encryptionKey
+    //                   and _authenticationKey
+    //
+    function configureKeys(uint32 _ship,
+                           bytes32 _encryptionKey,
+                           bytes32 _authenticationKey)
+      external
+      shipOwner(_ship)
+    {
+      ships.setKeys(_ship, _encryptionKey, _authenticationKey);
+    }
+
+    //  spawn(): spawn _ship, giving ownership to _target
+    //
+    function spawn(uint32 _ship,
+                   address _target)
+      external
+    {
       //  only currently inactive ships can be spawned
       //
       require(!ships.isActive(_ship));
@@ -226,105 +240,86 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       //
       uint16 prefix = ships.getPrefix(_ship);
 
-      //  XX: galaxies can't create planets!
-
-      //  prefix ship must be active
+      //  prevent galaxies from spawning planets
       //
-      require(ships.isActive(prefix));
+      require( (uint8(ships.getShipClass(prefix)) + 1) ==
+               uint8(ships.getShipClass(_ship)) );
 
-      //  check spawning limitations
+      //  prefix ship must be active and able to spawn
       //
-      require(canSpawn(prefix, block.timestamp));
+      require( ships.isActive(prefix) &&
+               (ships.getSpawnCount(prefix) <
+                getSpawnLimit(prefix, block.timestamp)) );
 
-      //  the owner of a prefix can always spawn its children; 
+      //  the owner of a prefix can always spawn its children;
       //  other addresses need explicit permission (the role
-      //  of "spawner" in the Ships contract)
+      //  of "spawnProxy" in the Ships contract)
       //
       require(ships.isOwner(prefix, msg.sender)
-              || ships.isSpawner(prefix, msg.sender));
+              || ships.isSpawnProxy(prefix, msg.sender));
 
-      //  set the new owner of the ship
+      //  set the new owner of the ship and make it active
       //
       ships.setOwner(_ship, _target);
-
-      //  set the spawning window and make the ship active
-      //
       ships.setActive(_ship);
     }
 
-    //  canSpawn(): true if _ship can create a new child
+    //  getSpawnLimit(): returns the total number of children the ship _ship
+    //                   is allowed to spawn at datetime _time.
     //
-    function canSpawn(uint32 _ship, uint256 _time)
+    function getSpawnLimit(uint32 _ship, uint256 _time)
       public
       view
-      returns (bool can)
+      returns (uint32 limit)
     {
-      Class class = getClass(_ship);
-      uint16 count 
+      Ships.Class class = ships.getShipClass(_ship);
 
-      if ( class == Planet ) {
+      if ( class == Ships.Class.Planet )
+      {
         //
         //  planets can create moons, but moons aren't on the chain
         //
-        return false;
+        return 0;
       }
-      if ( class == Galaxy ) {
-        return (getSpawnCount(_ship) < 255);
+      if ( class == Ships.Class.Galaxy )
+      {
+        return 255;
       }
-      if ( class == Star ) {
-        //  XX: limit to 1024 until end of 2018, then doubling every year
+      if ( class == Ships.Class.Star )
+      {
+        //  in 2018, stars may spawn at most 1024 planets. this limit doubles
+        //  for every subsequent year.
         //
-        return (getSpawnCount(_ship) < 65535) 
+        //    Note: 1514764800 corresponds to 2018-01-01
+        //
+        uint256 yearsSince2018 = (_time - 1514764800) / 1 years;
+        if (yearsSince2018 > 6)
+        {
+          yearsSince2018 = 6;
+        }
+        limit = 1024;
+        while (yearsSince2018 > 0)
+        {
+          limit = limit * 2;
+          yearsSince2018--;
+        }
+        if (limit > 65535)
+        {
+          limit = 65535;
+        }
+        return limit;
       }
     }
 
-    //  allowLaunchBy(): give _spawner the right to spawn children from _ship
+    //  setSpawnProxy(): give _spawnProxy the right to spawn ships
+    //                   with the prefix _ship
     //
-    function allowLaunchBy(uint16 _ship, address _spawner)
+    function setSpawnProxy(uint16 _ship, address _spawnProxy)
       external
-      pilot(_ship)
-      alive(_ship)
+      shipOwner(_ship)
+      active(_ship)
     {
-      ships.setLauncher(_ship, _spawner);
-    }
-
-    //  allowTransferBy(): give _transferrer the right to transfer _ship
-    //
-    function allowTransferBy(uint32 _ship, address _transferrer)
-      public
-      unlocked(_ship)
-    {
-      //  owner: owner of _ship
-      //
-      address owner = ships.getOwner(_ship);
-
-      //  caller must be :owner, or an operator designated by the owner.
-      //
-      require((owner == msg.sender) || ships.isOperator(owner, msg.sender));
-
-      //  set transferrer field in Ships contract
-      //
-      ships.setTransferrer(_ship, _transferrer);
-
-      //  send Approval event
-      //
-      Approval(pilot, _transferrer, uint256(_ship));
-    }
-
-    //  configureKeys(): configure _ship with Urbit public keys _encryptionKey
-    //                   and _authenticationKey
-    //
-    function configureKeys(uint32 _ship, 
-                           bytes32 _encryptionKey, 
-                           bytes32 _authenticationKey)
-      external
-      pilot(_ship)
-    {
-      //  a ship cannot be booted unless it's active
-      //
-      require(ships.isActive());
-
-      ships.setKey(_ship, _encryptionKey, _authenticationKey);
+      ships.setSpawnProxy(_ship, _spawnProxy);
     }
 
     // transferShip(): transfer _ship to _target, clearing all sensitive data
@@ -345,24 +340,24 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       //
       require((old == msg.sender)
               || ships.isOperator(old, msg.sender)
-              || ships.isTransferrer(_ship, msg.sender));
+              || ships.isTransferProxy(_ship, msg.sender));
 
       //  reset sensitive data --  are transferring the
-      //  ship to a new owner 
+      //  ship to a new owner
       //
       if ( _reset )
       {
         //  clear Urbit public keys
         //
-        ships.setKey(_ship, 0, 0);
+        ships.setKeys(_ship, 0, 0);
 
         //  clear transfer proxy
         //
-        ships.setTransferrer(_ship, 0);
+        ships.setTransferProxy(_ship, 0);
 
         //  clear spawning proxy
         //
-        ships.setSpawner(uint16(_ship), 0);
+        ships.setSpawnProxy(_ship, 0);
       }
       ships.setOwner(_ship, _target);
 
@@ -371,17 +366,27 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       Transfer(old, _target, uint256(_ship));
     }
 
-    //  rekey(): reset Urbit public keys for _ship to _encryptionKey and 
-    //           _authenticationKey
+    //  setTransferProxy(): give _transferProxy the right to transfer _ship
     //
-    function rekey(uint32 _ship, 
-                   bytes32 _encryptionKey, 
-                   bytes32 _authenticationKey)
-      external
-      owner(_ship)
-      alive(_ship)
+    function setTransferProxy(uint32 _ship, address _transferProxy)
+      public
+      active(_ship)
     {
-      ships.setKey(_ship, _encryptionKey, _authenticationKey);
+      //  owner: owner of _ship
+      //
+      address owner = ships.getOwner(_ship);
+
+      //  caller must be :owner, or an operator designated by the owner.
+      //
+      require((owner == msg.sender) || ships.isOperator(owner, msg.sender));
+
+      //  set transferrer field in Ships contract
+      //
+      ships.setTransferProxy(_ship, _transferProxy);
+
+      //  send Approval event
+      //
+      Approval(owner, _transferProxy, uint256(_ship));
     }
 
     //  canEscapeTo(): true if _ship could try to escape to _sponsor
@@ -393,13 +398,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       view
       returns (bool canEscape)
     {
-      //  can't escape to a sponsor if it's not active
-      //
-      if ( !ships.isActive(_sponsor)) return false;
-
       //  can't escape to a sponsor that hasn't been born
       //
-      if ( 0 == ships.getRevisionNumber(_sponsor) ) return false;
+      if ( 0 == ships.getKeyRevisionNumber(_sponsor) ) return false;
 
       //  We must escape to a sponsor of the same class, except in
       //  the special case where the escaping ship hasn't been
@@ -416,34 +417,32 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       //  but can only be extended at the ends.  Most users will want
       //  improve to their performance by switching to direct star sponsors.
       //
-      if ( //  normal hierarchical escape structure
-           //
-           ( ( getClass(_sponsor) + 1) != getClass(_ship) ) ||
-           //
-           //  special peer escape
-           //
-           ( ( getClass(_sponsor) == getClass(_ship) ) &&
-              //
-              //  peer escape is only for ships that haven't been booted yet,
-              //  because it's only for lightweight invitation chains
-              //
-              (0 == getRevisionNumber(_ship)) &&
-              //
-              //  the sponsor needs to have been booted already, or strange
-              //  corner cases can be created
-              //
-              (0 != getRevisionNumber(_sponsor)) ) )
-      {
-        return false;
-      }
-      return true;
+      Ships.Class shipClass = ships.getShipClass(_ship);
+      Ships.Class sponsorClass = ships.getShipClass(_sponsor);
+      return ( //  normal hierarchical escape structure
+               //
+               ( (uint8(sponsorClass) + 1) == uint8(shipClass) ) ||
+               //
+               //  special peer escape
+               //
+               ( (sponsorClass == shipClass) &&
+                 //
+                 //  peer escape is only for ships that haven't been booted yet,
+                 //  because it's only for lightweight invitation chains
+                 //
+                 (0 == ships.getKeyRevisionNumber(_ship)) &&
+                 //
+                 //  the sponsor needs to have been booted already, or strange
+                 //  corner cases can be created
+                 //
+                 (0 != ships.getKeyRevisionNumber(_sponsor)) ) );
     }
 
     //  escape(): request escape from _ship to _sponsor.
     //
     function escape(uint32 _ship, uint32 _sponsor)
       external
-      pilot(_ship)
+      shipOwner(_ship)
     {
       require(canEscapeTo(_ship, _sponsor));
       ships.setEscape(_ship, _sponsor);
@@ -452,7 +451,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     // cancel an escape.
     function cancelEscape(uint32 _ship)
       external
-      pilot(_ship)
+      shipOwner(_ship)
     {
       ships.cancelEscape(_ship);
     }
@@ -460,7 +459,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     // accept an escaping ship.
     function adopt(uint32 _sponsor, uint32 _child)
       external
-      pilot(_sponsor)
+      shipOwner(_sponsor)
     {
       require(ships.isEscape(_child, _sponsor));
       // _child's sponsor becomes _sponsor, its escape is reset to "no escape".
@@ -470,64 +469,65 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     // reject an escaping ship.
     function reject(uint32 _sponsor, uint32 _child)
       external
-      pilot(_sponsor)
+      shipOwner(_sponsor)
     {
       require(ships.isEscape(_child, _sponsor));
       // cancels the escape, making it inactive.
       ships.cancelEscape(_child);
     }
 
-  // ++sen
-  // transactions made by galaxy owners
+  //
+  //  Senate actions
+  //
 
-  // vote on a new constitution contract
-  function castConcreteVote(uint8 _galaxy, address _proposal, bool _vote)
-    external
-    pilot(_galaxy)
-    alive(_galaxy)
-  {
-    // the votes contract returns true if a majority is achieved.
-    bool majority = votes.castConcreteVote(_galaxy, _proposal, _vote);
-    //NOTE the votes contract protects against this or an older contract being
-    //     pushed as a "new" majority.
-    if (majority)
+    //TODO  new votes contract
+
+    // vote on a new constitution contract
+    function castConcreteVote(uint8 _galaxy, address _proposal, bool _vote)
+      external
+      shipOwner(_galaxy)
     {
-      // transfer ownership of the data and token contracts to the new
-      // constitution, then self-destruct.
-      upgrade(_proposal);
+      // the votes contract returns true if a majority is achieved.
+      bool majority = votes.castConcreteVote(_galaxy, _proposal, _vote);
+      //NOTE the votes contract protects against this or an older contract being
+      //     pushed as a "new" majority.
+      if (majority)
+      {
+        // transfer ownership of the data and token contracts to the new
+        // constitution, then self-destruct.
+        upgrade(_proposal);
+      }
     }
-  }
 
-  // vote on a documented proposal's hash
-  function castAbstractVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
-    external
-    pilot(_galaxy)
-    alive(_galaxy)
-  {
-    // majorities on abstract proposals get recorded within the votes contract
-    // and have no impact on the constitution.
-    votes.castAbstractVote(_galaxy, _proposal, _vote);
-  }
+    // vote on a documented proposal's hash
+    function castAbstractVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
+      external
+      shipOwner(_galaxy)
+    {
+      // majorities on abstract proposals get recorded within the votes contract
+      // and have no impact on the constitution.
+      votes.castAbstractVote(_galaxy, _proposal, _vote);
+    }
 
-  // ++urg
-  // transactions made by the contract creator.
+  //
+  //  Contract owner operations
+  //
 
-  // assign initial galaxy owner, birthdate and liquidity completion date.
-  // can only be done once.
-  function createGalaxy(uint8 _galaxy, address _target, uint64 _lockTime,
-                        uint64 _completeTime)
-    external
-    onlyOwner
-  {
-    require(!ships.hasPilot(_galaxy));
-    ships.setLocked(_galaxy, _lockTime);
-    ships.setCompleted(_galaxy, _completeTime);
-    ships.setPilot(_galaxy, _target);
-  }
+    //  createGalaxy(): grant _target ownership of the _galaxy
+    //
+    function createGalaxy(uint8 _galaxy, address _target)
+      external
+      onlyOwner
+    {
+      require(!ships.isActive(_galaxy));
+      ships.setActive(_galaxy);
+      ships.setOwner(_galaxy, _target);
+    }
 
-
+  //
   //  Function modifiers for this contract
   //
+
     //  shipId(): require that _id is a valid ship
     //
     modifier shipId(uint256 _id)
@@ -536,9 +536,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping
       _;
     }
 
-    //  owner(): require that :msg.sender is the owner of _ship
+    //  shipOwner(): require that :msg.sender is the owner of _ship
     //
-    modifier owner(uint32 _ship)
+    //    Note: ships with non-zore owners are guaranteed to be active.
+    //
+    modifier shipOwner(uint32 _ship)
     {
       require(ships.isOwner(_ship, msg.sender));
       _;
@@ -548,7 +550,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping
     //
     modifier active(uint32 _ship)
     {
-      require(ships.isActive(_ship)
+      require(ships.isActive(_ship));
       _;
     }
 }
