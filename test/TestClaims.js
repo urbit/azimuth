@@ -10,7 +10,7 @@ contract('Claims', function([owner, user]) {
 
   before('setting up for tests', async function() {
     ships = await Ships.new();
-    await ships.setPilot(0, owner);
+    await ships.setOwner(0, owner);
     claims = await Claims.new(ships.address);
   });
 
