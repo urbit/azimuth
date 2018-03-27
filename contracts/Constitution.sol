@@ -247,7 +247,7 @@ contract Constitution is ConstitutionBase(0), ERC165Mapping
 
       //  prefix ship must be active and able to spawn
       //
-      require( ships.isActive(prefix) &&
+      require( (0 != ships.getKeyRevisionNumber(prefix)) &&
                (ships.getSpawnCount(prefix) <
                 getSpawnLimit(prefix, block.timestamp)) );
 

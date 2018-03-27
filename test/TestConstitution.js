@@ -6,9 +6,6 @@ const Constitution = artifacts.require('../contracts/Constitution.sol');
 
 contract('Constitution', function([owner, user1, user2]) {
   let ships, votes, constit;
-  const LATENT = 0;
-  const LOCKED = 1;
-  const LIVING = 2;
 
   function assertJump(error) {
     assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
@@ -55,20 +52,21 @@ contract('Constitution', function([owner, user1, user2]) {
   });
 
   it('spawning ships', async function() {
-    // can't start if not parent owner.
+    // can't spawn if not parent owner.
     try {
       await constit.spawn(256, user1, {from:user2});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    // can't start if parent not living.
+    // can't spawn if parent not live.
     try {
-      await constit.spawn(259, user1, {from:user1});
+      await constit.spawn(256, user1, {from:user1});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
+    await constit.configureKeys(0, 1, 2, {from:user1});
     // spawn child.
     await constit.spawn(256, user1, {from:user1});
     assert.isTrue(await ships.isOwner(256, user1));
@@ -131,7 +129,7 @@ contract('Constitution', function([owner, user1, user2]) {
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(auth,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
-    assert.equal(await ships.getKeyRevisionNumber(0), 1);
+    assert.equal(await ships.getKeyRevisionNumber(0), 2);
     assert.isFalse(await ships.isSpawnProxy(0, user2));
     assert.isFalse(await ships.isTransferProxy(0, user2));
   });
@@ -175,7 +173,7 @@ contract('Constitution', function([owner, user1, user2]) {
       '0x9000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(auth,
       '0x8000000000000000000000000000000000000000000000000000000000000000');
-    assert.equal(await ships.getKeyRevisionNumber(0), 2);
+    assert.equal(await ships.getKeyRevisionNumber(0), 3);
   });
 
   it('setting and canceling an escape', async function() {
@@ -215,6 +213,7 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.escape(256, 1, {from:user1});
     await constit.escape(512, 1, {from:user1});
     // try out peer sponsorship.
+    await constit.configureKeys(256, 1, 2, {from:user1});
     await constit.spawn(65792, owner, {from:user1});
     await constit.spawn(131328, owner, {from:user1});
     assert.isFalse(await constit.canEscapeTo(131328, 65792));
