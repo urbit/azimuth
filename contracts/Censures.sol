@@ -1,34 +1,45 @@
 // simple reputations store
-// draft
 
 pragma solidity 0.4.18;
 
 import './Ships.sol';
-import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
-contract Censures is Ownable
+contract Censures
 {
-  //TODO indexed
+  //  Censured: :who got censures by :by
+  //
   event Censured(uint32 by, uint32 who);
+
+  //  Forgiven: :who is no longer censured by :by
+  //
   event Forgiven(uint32 by, uint32 who);
 
+  //  ships: ships data storage
+  //
   Ships public ships;
 
-  // per ship: censures.
+  //  censures: per ship, their registered censures
+  //
   mapping(uint32 => uint32[]) public censures;
-  // per ship: per censure: index in censures array (for efficient deletions).
-  //NOTE these describe the "nth array element", so they're at index n-1.
+
+  //  indices: per ship per censure, (index + 1) in censures array
+  //
+  //    We delete censures by moving the last entry in the array to the
+  //    newly emptied slot, which is (n - 1) where n is the value of
+  //    indices[ship][censure].
+  //
   mapping(uint32 => mapping(uint32 => uint256)) public indices;
 
+  //  Censures(): register the ships contract
+  //
   function Censures(Ships _ships)
     public
   {
     ships = _ships;
   }
 
-  // since it's currently "not possible to return dynamic content from external
-  // function calls" we must expose this as an interface to allow in-contract
-  // discoverability of someone's censure count.
+  //  getCensureCount(): return length of array of censures made by _whose
+  //
   function getCensureCount(uint32 _whose)
     view
     public
@@ -37,6 +48,11 @@ contract Censures is Ownable
     return censures[_whose].length;
   }
 
+  //  getCensures(): return array of censures made by _whose
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
   function getCensures(uint32 _whose)
     view
     public
@@ -45,63 +61,75 @@ contract Censures is Ownable
     return censures[_whose];
   }
 
+  //  censure(): register a censure of _who as _as
+  //
   function censure(uint32 _as, uint32 _who)
     external
-    pilot(_as)
+    shipOwner(_as)
   {
-    require(_as != _who
-            && indices[_as][_who] == 0
-            && censures[_as].length < 16);
-    // only for stars and galaxies.
-    // stars may only censure other stars, galaxies may censure both.
-    uint8 asClass = getShipClass(_as);
-    uint8 whoClass = getShipClass(_who);
-    require(asClass < 2
-            && whoClass < 2
-            && whoClass >= asClass);
+    require( //  can't censure self
+             //
+             (_as != _who) &&
+             //
+             //  must not haven censured _who already
+             //
+             (indices[_as][_who] == 0) &&
+             //
+             //  may only censure up to 16 ships
+             //
+             (censures[_as].length < 16) );
+
+    //  only stars and galaxies may censure, and only galaxies may censure
+    //  other galaxies
+    //
+    Ships.Class asClass = ships.getShipClass(_as);
+    Ships.Class whoClass = ships.getShipClass(_who);
+    require( (asClass < Ships.Class.Planet) &&
+             (whoClass < Ships.Class.Planet) &&
+             (whoClass >= asClass) );
+
+    //  update contract state with the new censure
+    //
     censures[_as].push(_who);
     indices[_as][_who] = censures[_as].length;
     Censured(_as, _who);
   }
 
+  //  forgive(): unregister a censure of _who as _as
+  //
   function forgive(uint32 _as, uint32 _who)
     external
-    pilot(_as)
+    shipOwner(_as)
   {
-    // we don't need to do any convoluted checks here.
-    // for those not allowed to censure, there's nothing to forgive.
-    // we delete the target from the list, then fill the gap with the list tail.
-    // retrieve current index.
+    //  i: current index in _as's list of censures
+    //
     uint256 i = indices[_as][_who];
+
+    //  we store index + 1, because 0 is the eth default value
+    //  can only delete an existing censure
+    //
     require(i > 0);
     i--;
-    // copy last item to current index.
+
+    //  copy last item in the list into the now-unused slot
+    //
     uint32[] storage cens = censures[_as];
     uint256 last = cens.length - 1;
     cens[i] = cens[last];
-    // delete last item.
+
+    //  delete the last item
+    //
     delete(cens[last]);
     cens.length = last;
     indices[_as][_who] = 0;
     Forgiven(_as, _who);
   }
 
-  // get the class of the ship
-  //TODO duplicate from constitution, should probably move into ships.
-  function getShipClass(uint32 _ship)
-    public
-    pure
-    returns (uint8 _class)
+  //  shipOwner(): require that :msg.sender is the owner of _ship
+  //
+  modifier shipOwner(uint32 _ship)
   {
-    if (_ship < 256) return 0;
-    if (_ship < 65536) return 1;
-    return 2;
-  }
-
-  // test if msg.sender is pilot of _ship.
-  modifier pilot(uint32 _ship)
-  {
-    require(ships.isPilot(_ship, msg.sender));
+    require(ships.isOwner(_ship, msg.sender));
     _;
   }
 }
