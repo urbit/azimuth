@@ -6,21 +6,23 @@ pragma solidity 0.4.18;
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 import './Ships.sol';
-import './Votes.sol';
+import './Polls.sol';
 
 contract ConstitutionBase is Ownable
 {
   event Upgraded(address to);
 
   Ships public ships; // ships data storage
-  Votes public votes; // votes data storage
+  Polls public polls; // polls data storage
 
   address public previousConstitution;
 
-  function ConstitutionBase(address _previous)
+  function ConstitutionBase(address _previous, Ships _ships, Polls _polls)
     internal
   {
     previousConstitution = _previous;
+    ships = _ships;
+    polls = _polls;
   }
 
   //  upgraded(): called by previous constitution when upgrading
@@ -41,7 +43,7 @@ contract ConstitutionBase is Ownable
     internal
   {
     ships.transferOwnership(_new);
-    votes.transferOwnership(_new);
+    polls.transferOwnership(_new);
     _new.upgraded();
     Upgraded(_new);
     selfdestruct(_new);

@@ -1,30 +1,32 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
-const Votes = artifacts.require('../contracts/Votes.sol');
+const Polls = artifacts.require('../contracts/Polls.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
 const Censures = artifacts.require('../contracts/Censures.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 
 contract('Constitution', function([owner, user1, user2]) {
-  let ships, votes, constit;
+  let ships, polls, constit, consti2, pollTime;
 
   function assertJump(error) {
     assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
   }
 
   // because setTimeout doesn't work.
-  function busywait(ms) {
+  function busywait(s) {
     var start = Date.now();
+    var ms = s * 1000;
     while (true) {
       if ((Date.now() - start) > ms) break;
     }
   }
 
   before('setting up for tests', async function() {
+    pollTime = 2;
     ships = await Ships.new();
-    votes = await Votes.new();
-    constit = await Constitution.new(ships.address, votes.address);
+    polls = await Polls.new(pollTime, pollTime, 1);
+    constit = await Constitution.new(0, ships.address, polls.address);
     await ships.transferOwnership(constit.address);
-    await votes.transferOwnership(constit.address);
+    await polls.transferOwnership(constit.address);
   });
 
   it('creating galaxies', async function() {
@@ -49,6 +51,7 @@ contract('Constitution', function([owner, user1, user2]) {
     // prep for next tests.
     await constit.createGalaxy(1, user1);
     await constit.createGalaxy(2, user1);
+    assert.equal(await polls.totalVoters(), 3);
   });
 
   it('spawning ships', async function() {
@@ -260,23 +263,32 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getSponsor(512), 0);
   });
 
-  it('casting an abstract vote', async function() {
+  it('voting on and updating abstract poll', async function() {
     // can't if not galaxy owner.
+    try {
+      await constit.startAbstractPoll(0, 10, {from:user2});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
     try {
       await constit.castAbstractVote(0, 10, true, {from:user2});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    // TODO can't if galaxy not keyed?
+    await constit.startAbstractPoll(0, 10, {from:user1});
     await constit.castAbstractVote(0, 10, true, {from:user1});
-    assert.equal(await votes.abstractVoteCounts(10), 1);
-    await constit.castAbstractVote(0, 10, false, {from:user1});
-    assert.equal(await votes.abstractVoteCounts(10), 0);
+    // assert.isTrue(await polls.hasVotedOnAbstractPoll(0, 10));
+    // busywait(pollTime * 1.3); // make timing less tight
+    // await constit.updateAbstractPoll(10);
+    // assert.isTrue(await polls.abstractMajorityMap(10));
   });
 
-  it('casting a concrete vote', async function() {
-    let consti2 = await Constitution.new(ships.address, votes.address);
+  it('voting on concrete poll', async function() {
+    consti2 = await Constitution.new(constit.address,
+                                     ships.address,
+                                     polls.address);
     // can't if not galaxy owner.
     try {
       await constit.castConcreteVote(0, consti2.address, true, {from:user2});
@@ -284,18 +296,28 @@ contract('Constitution', function([owner, user1, user2]) {
     } catch(err) {
       assertJump(err);
     }
-    //TODO can't if galaxy not keyed?
-    await constit.castConcreteVote(0, consti2.address, true, {from:user1});
-    assert.equal(
-        await votes.concreteVoteCounts(constit.address, consti2.address),
-        1);
-    await constit.castConcreteVote(0, consti2.address, false, {from:user1});
-    assert.equal(
-        await votes.concreteVoteCounts(constit.address, consti2.address),
-        0);
+    try {
+      await constit.startConcretePoll(0, consti2.address, {from:user2});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await constit.startConcretePoll(0, consti2.address, {from:user1});
     await constit.castConcreteVote(0, consti2.address, true, {from:user1});
     await constit.castConcreteVote(1, consti2.address, true, {from:user1});
     assert.equal(await ships.owner(), consti2.address);
-    assert.equal(await votes.owner(), consti2.address);
+    assert.equal(await polls.owner(), consti2.address);
+  });
+
+  it('updating concrete poll', async function() {
+    let consti3 = await Constitution.new(consti2.address,
+                                         ships.address,
+                                         polls.address);
+    await consti2.startConcretePoll(0, consti3.address, {from:user1});
+    await consti2.castConcreteVote(0, consti3.address, true, {from:user1});
+    busywait(pollTime * 1.3); // make timing less tight
+    await consti2.updateConcretePoll(consti3.address);
+    assert.equal(await ships.owner(), consti3.address);
+    assert.equal(await polls.owner(), consti3.address);
   });
 });
