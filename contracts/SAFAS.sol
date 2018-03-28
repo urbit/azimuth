@@ -28,10 +28,10 @@ contract SAFAS is Ownable
   event Forfeit(address who, uint16 stars);
 
   //  ships: public contract which stores ship state
-  //  votes: public contract which registers votes
+  //  polls: public contract which registers polls
   //
   Ships public ships;
-  Votes public votes;
+  Polls public polls;
 
   //  deadlines: deadlines after which, if missed, commitments can forfeit;
   //             if hit (as certified by a galaxy vote), commitments can
@@ -100,7 +100,7 @@ contract SAFAS is Ownable
     //  reference ship and voting contracts
     //
     ships = _ships;
-    votes = Constitution(ships.owner()).votes();
+    polls = Constitution(ships.owner()).polls();
 
     //  install deadlines
     //
@@ -363,7 +363,7 @@ contract SAFAS is Ownable
       //
       else if ( _tranche == 1 )
       {
-        conditionsMet = votes.abstractMajorityMap(
+        conditionsMet = polls.abstractMajorityMap(
                           keccak256("arvo is stable"));
       }
 
@@ -372,7 +372,7 @@ contract SAFAS is Ownable
       //
       else if ( _tranche == 2 )
       {
-        conditionsMet = votes.abstractMajorityMap(
+        conditionsMet = polls.abstractMajorityMap(
                           keccak256("continuity and security achieved"));
       }
 

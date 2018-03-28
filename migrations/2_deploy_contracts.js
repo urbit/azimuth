@@ -1,23 +1,23 @@
 var Ships = artifacts.require("./Ships.sol");
-var Votes = artifacts.require("./Votes.sol");
+var Polls = artifacts.require("./Polls.sol");
 var Claims = artifacts.require("./Claims.sol");
 var Censures = artifacts.require("./Censures.sol");
 var Constitution = artifacts.require("./Constitution.sol");
 var Pool = artifacts.require("./Pool.sol");
 
 module.exports = async function(deployer) {
-  // deployer.deploy([Ships, Votes]);
+  // deployer.deploy([Ships, Polls]);
   // let ships = await Ships.deployed();
-  // let votes = await Votes.deployed();
-  // deployer.deploy(Constitution, ships.address, votes.address);
+  // let polls = await Polls.deployed();
+  // deployer.deploy(Constitution, ships.address, polls.address);
   // let constitution = await Constitution.deployed();
   // console.log("Constitution: -- ")
   // console.log(constitution.address)
   // ships.transferOwnership(constitution.address);
-  // votes.transferOwnership(constitution.address);
+  // polls.transferOwnership(constitution.address);
 
   //TODO the above is more consise and should be the same, but... doesn't work?
-  var ships, votes, claims, censures, constitution, pool;
+  var ships, polls, claims, censures, constitution, pool;
   deployer.then(function() {
   }).then(function() {
     return deployer.deploy(Ships);
@@ -25,11 +25,12 @@ module.exports = async function(deployer) {
     return Ships.deployed();
   }).then(function(instance) {
     ships = instance;
-    return deployer.deploy(Votes);
+    //TODO test data, maybe in separate migration.
+    return deployer.deploy(Polls);
   }).then(function() {
-    return Votes.deployed();
+    return Polls.deployed();
   }).then(function(instance) {
-    votes = instance;
+    polls = instance;
     return deployer.deploy(Claims, ships.address);
   }).then(function() {
     return Claims.deployed();
@@ -40,7 +41,7 @@ module.exports = async function(deployer) {
     return Censures.deployed();
   }).then(function(instance) {
     censures = instance;
-    return deployer.deploy(Constitution, ships.address, votes.address);
+    return deployer.deploy(Constitution, 0, ships.address, polls.address);
   }).then(function() {
     return Constitution.deployed();
   }).then(function(instance) {
@@ -48,7 +49,7 @@ module.exports = async function(deployer) {
     console.log("new owner is:");
     console.log(constitution.address);
     ships.transferOwnership(constitution.address);
-    votes.transferOwnership(constitution.address);
+    polls.transferOwnership(constitution.address);
   }).then(function() {
     return deployer.deploy(Pool, ships.address);
   }).then(function() {

@@ -1,5 +1,5 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
-const Votes = artifacts.require('../contracts/Votes.sol');
+const Polls = artifacts.require('../contracts/Polls.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 const DelegatedSending = artifacts.require('../contracts/DelegatedSending.sol');
 
@@ -12,9 +12,10 @@ contract('DelegatedSending', function([owner, user]) {
 
   before('setting up for tests', async function() {
     ships = await Ships.new();
-    votes = await Votes.new();
-    constit = await Constitution.new(ships.address, votes.address);
+    polls = await Polls.new();
+    constit = await Constitution.new(0, ships.address, polls.address);
     await ships.transferOwnership(constit.address);
+    await polls.transferOwnership(constit.address);
     dese = await DelegatedSending.new(ships.address);
     //
     await constit.createGalaxy(0, owner);

@@ -8,7 +8,7 @@ import './ERC165Mapping.sol';
 import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-contract Constitution is ConstitutionBase(0), ERC165Mapping
+contract Constitution is ConstitutionBase, ERC165Mapping
                          // XX: fix this :-)
                          //
                          // including the following interfaces somehow causes
@@ -34,11 +34,10 @@ contract Constitution is ConstitutionBase(0), ERC165Mapping
   //    Note: ownership of these contracts must be transferred to this
   //    contract after it's on the chain and its contract address is known.
   //
-  function Constitution(Ships _ships, Votes _votes)
+  function Constitution(address _previous, Ships _ships, Polls _polls)
+    ConstitutionBase(_previous, _ships, _polls)
     public
   {
-    ships = _ships;
-    votes = _votes;
     supportedInterfaces[0x6466353c] = true; // ERC721
     supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
     supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
@@ -477,51 +476,109 @@ contract Constitution is ConstitutionBase(0), ERC165Mapping
     }
 
   //
-  //  Senate actions
+  //  Poll actions
   //
 
-    //TODO  new votes contract
+    //  startConcretePoll(): as _galaxy, start a poll for the constitution
+    //                       upgrade _proposal
+    //
+    function startConcretePoll(uint8 _galaxy, ConstitutionBase _proposal)
+      external
+      shipOwner(_galaxy)
+    {
+      //  ensure that the upgrade target expects this contract as the source
+      //
+      require(_proposal.previousConstitution() == address(this));
+      polls.startConcretePoll(_proposal);
+    }
 
-    // vote on a new constitution contract
+    //  startAbstractPoll(): as _galaxy, start a poll for the _proposal
+    //
+    function startAbstractPoll(uint8 _galaxy, bytes32 _proposal)
+      external
+      shipOwner(_galaxy)
+    {
+      polls.startAbstractPoll(_proposal);
+    }
+
+    //  castConcreteVote(): as _galaxy, cast a _vote on the constitution
+    //                      upgrade _proposal
+    //
+    //    _vote is true when in favor of the proposal, false otherwise
+    //
     function castConcreteVote(uint8 _galaxy,
                               ConstitutionBase _proposal,
                               bool _vote)
       external
       shipOwner(_galaxy)
     {
-      // the votes contract returns true if a majority is achieved.
-      bool majority = votes.castConcreteVote(_galaxy, _proposal, _vote);
-      //NOTE the votes contract protects against this or an older contract being
-      //     pushed as a "new" majority.
+      //  majority: true if the vote resulted in a majority, false otherwise
+      //
+      bool majority = polls.castConcreteVote(_galaxy, _proposal, _vote);
+
+      //  if a majority is in favor of the upgrade, it happens as defined
+      //  in the constitution base contract
+      //
       if (majority)
       {
-        // transfer ownership of the data and token contracts to the new
-        // constitution, then self-destruct.
         upgrade(_proposal);
       }
     }
 
-    // vote on a documented proposal's hash
+    //  castAbstractVote(): as _galaxy, cast a _vote on the _proposal
+    //
+    //    _vote is true when in favor of the proposal, false otherwise
+    //
     function castAbstractVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
       external
       shipOwner(_galaxy)
     {
-      // majorities on abstract proposals get recorded within the votes contract
-      // and have no impact on the constitution.
-      votes.castAbstractVote(_galaxy, _proposal, _vote);
+      polls.castAbstractVote(_galaxy, _proposal, _vote);
+    }
+
+    //  updateConcretePoll(): check whether the _proposal has achieved majority,
+    //                        upgrading to it if it has
+    //
+    function updateConcretePoll(ConstitutionBase _proposal)
+      external
+    {
+      //  majority: true if the poll ended in a majority, false otherwise
+      //
+      bool majority = polls.updateConcretePoll(_proposal);
+
+      //  if a majority is in favor of the upgrade, it happens as defined
+      //  in the constitution base contract
+      //
+      if (majority)
+      {
+        upgrade(_proposal);
+      }
+    }
+
+    //  updateAbstractPoll(): check whether the _proposal has achieved majority
+    //
+    //    the polls contract publicly exposes the function this calls,
+    //    but we offer it in the constitution interface as a convenience
+    //
+    function updateAbstractPoll(bytes32 _proposal)
+      external
+    {
+      polls.updateAbstractPoll(_proposal);
     }
 
   //
   //  Contract owner operations
   //
 
-    //  createGalaxy(): grant _target ownership of the _galaxy
+    //  createGalaxy(): grant _target ownership of the _galaxy and register
+    //                  it for voting
     //
     function createGalaxy(uint8 _galaxy, address _target)
       external
       onlyOwner
     {
       require(!ships.isActive(_galaxy));
+      polls.incrementTotalVoters();
       ships.setActive(_galaxy);
       ships.setOwner(_galaxy, _target);
     }
