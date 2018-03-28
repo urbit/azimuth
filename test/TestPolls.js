@@ -23,7 +23,7 @@ contract('Polls', function([owner, user]) {
   }
 
   before('setting up for tests', async function() {
-    polls = await Polls.new(1, 2, 3);
+    polls = await Polls.new(1, 2);
     duration = 2;
     cooldown = 3;
   });
@@ -31,15 +31,13 @@ contract('Polls', function([owner, user]) {
   it('configuring polls', async function() {
     assert.equal(await polls.pollDuration(), 1);
     assert.equal(await polls.pollCooldown(), 2);
-    assert.equal(await polls.minimumVotes(), 3);
     assert.equal(await polls.totalVoters(), 0);
-    polls.reconfigure(duration, cooldown, 1);
+    polls.reconfigure(duration, cooldown);
     for (var i = 0; i < 3; i++) {
       await polls.incrementTotalVoters();
     }
     assert.equal(await polls.pollDuration(), duration);
     assert.equal(await polls.pollCooldown(), cooldown);
-    assert.equal(await polls.minimumVotes(), 1);
     assert.equal(await polls.totalVoters(), 3);
   });
 

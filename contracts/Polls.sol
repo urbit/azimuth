@@ -52,10 +52,6 @@ contract Polls is Ownable
   //
   uint256 public pollCooldown;
 
-  //  minimumVotes: minimum amount of votes required for a poll to be valid
-  //
-  uint8 public minimumVotes;
-
   //  totalVoters: amount of active galaxies
   //
   uint8 public totalVoters;
@@ -95,25 +91,20 @@ contract Polls is Ownable
 
   //  Polls(): initial contract configuration
   //
-  function Polls(uint256 _pollDuration,
-                 uint256 _pollCooldown,
-                 uint8 _minimumVotes)
+  function Polls(uint256 _pollDuration, uint256 _pollCooldown)
     public
   {
-    reconfigure(_pollDuration, _pollCooldown, _minimumVotes);
+    reconfigure(_pollDuration, _pollCooldown);
   }
 
   //  reconfigure(): change poll duration, cooldown, and vote requirements
   //
-  function reconfigure(uint256 _pollDuration,
-                       uint256 _pollCooldown,
-                       uint8 _minimumVotes)
+  function reconfigure(uint256 _pollDuration, uint256 _pollCooldown)
     public
     onlyOwner
   {
     pollDuration = _pollDuration;
     pollCooldown = _pollCooldown;
-    minimumVotes = _minimumVotes;
   }
 
   //  incrementTotalVoters(): increase the amount of registered voters
@@ -345,7 +336,7 @@ contract Polls is Ownable
   {
     return ( //  poll must have at least the minimum required votes
              //
-             (_poll.votes >= minimumVotes) &&
+             (_poll.votes >= (totalVoters / 2)) &&
              ( //
                //  and either have an indisputable majority
                //
