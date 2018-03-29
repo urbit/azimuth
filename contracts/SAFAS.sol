@@ -1,5 +1,4 @@
-// simple agreement for future address space
-// draft
+//  simple agreement for future address space
 
 pragma solidity 0.4.18;
 
@@ -15,9 +14,6 @@ import './Constitution.sol';
 //
 contract SAFAS is Ownable
 {
-  //  TODO check if safemath is needed anywhere
-  //
-  //TODO safemath
 
   //  TrancheCompleted: :tranche has either been hit or missed
   //
@@ -33,17 +29,24 @@ contract SAFAS is Ownable
   Ships public ships;
   Polls public polls;
 
-  //  deadlines: deadlines after which, if missed, commitments can forfeit;
-  //             if hit (as certified by a galaxy vote), commitments can
-  //             withdraw their stars.
+  //  conditions: hashes for abstract proposals that must achieve majority
+  //              in the polls contract
   //
-  uint256[3] public deadlines;
+  bytes32[] public conditions;
+
+  //  deadlines: deadlines by which conditions for a tranche must have been
+  //             met. if the polls does not contain a majority vote for the
+  //             appropriate condition by the time its deadline is hit,
+  //             stars in a commitment can be forfeit and withdrawn by the
+  //             safas contract owner.
+  //
+  uint256[] public deadlines;
 
   //  timestamps: timestamps when deadlines of the matching index were
   //              hit; or 0 if not yet hit; or equal to the deadline if
   //              the deadline was missed.
   //
-  uint256[3] public timestamps; // unlock timestamps for tranches.
+  uint256[] public timestamps;
 
   //  Commitment: structure that mirrors a signed paper contract
   //
@@ -51,17 +54,23 @@ contract SAFAS is Ownable
   {
     //  tranches: number of stars to release in each tranche
     //
-    uint16[3] tranches;
+    uint16[] tranches;
 
-    //  total: tranches[0] + tranches[1] + tranches[2]
+    //  total: sum of stars in all tranches
     //
     uint16 total;
 
-    //  rate: number of stars released per month
+    //  rate: number of stars released per unlocked tranche per :rateUnit
     //
     uint16 rate;
 
-    //  stars: specific stars assigned to this commitment, and not yet withdrawn
+    //  rateUnit: amount of time it takes for the next :rate stars to be
+    //            released
+    //
+    uint256 rateUnit;
+
+    //  stars: specific stars assigned to this commitment that have not yet
+    //         been withdrawn
     //
     uint16[] stars;
 
@@ -89,25 +98,26 @@ contract SAFAS is Ownable
 
   //  SAFAS: configure SAFAS and reference ship and voting contracts
   //
-  function SAFAS(Ships _ships, uint256[3] _deadlines)
+  function SAFAS(Ships _ships, bytes32[] _conditions, uint256[] _deadlines)
     public
   {
-    //  sanity check: deadlines must be sequential
+    //  sanity check: condition per deadline
     //
-    require( (_deadlines[0] < _deadlines[1]) &&
-             (_deadlines[1] < _deadlines[2]) );
+    require(_deadlines.length == _conditions.length);
 
     //  reference ship and voting contracts
     //
     ships = _ships;
     polls = Constitution(ships.owner()).polls();
 
-    //  install deadlines
+    //  install conditions and deadlines, and prepare timestamps array
     //
+    conditions = _conditions;
     deadlines = _deadlines;
+    timestamps.length = _deadlines.length;
 
-    //  the first tranche is defined to be unlocked when these contracts
-    //  are posted to the blockchain
+    //  check if the first tranche can be unlocked. most uses of this
+    //  contract will set its condition to 0, unlocking it immediately
     //
     analyzeTranche(0);
   }
@@ -118,21 +128,33 @@ contract SAFAS is Ownable
 
     //  register(): register a new SAFAS commitment
     //
-    function register(//  _participant: address of the paper contract signer
-                      //  _tranches: number of stars unlocking per tranche
-                      //  _rate: number of stars that unlock per 30 days
-                      //
-                      address _participant,
-                      uint16[3] _tranches,
-                      uint16 _rate)
+    function register( //  _participant: address of the paper contract signer
+                       //  _tranches: number of stars unlocking per tranche
+                       //  _rate: number of stars that unlock per _rateUnit
+                       //  _rateUnit: amount of time it takes for the next
+                       //             _rate stars to unlock
+                       //
+                       address _participant,
+                       uint16[] _tranches,
+                       uint16 _rate,
+                       uint256 _rateUnit )
       external
       onlyOwner
     {
-      Commitment storage com = commitments[_participant];
+      //  for every condition/deadline, a tranche release amount must be
+      //  specified, even if it's zero
+      //
+      require(_tranches.length == conditions.length);
 
+      //  make sure a sane rate is submitted
+      //
+      require(_rate > 0);
+
+      Commitment storage com = commitments[_participant];
       com.tranches = _tranches;
       com.total = totalStars(_tranches, 0);
       com.rate = _rate;
+      com.rateUnit = _rateUnit;
     }
 
     //  deposit(): deposit a star into this contract for later withdrawal
@@ -146,9 +168,7 @@ contract SAFAS is Ownable
       //  ensure we can't deposit more stars than the participant
       //  is entitled to
       //
-      //  TODO: safe math?
-      //
-      require(com.total > (com.stars.length + com.withdrawn));
+      require( com.stars.length < (com.total - com.withdrawn) );
 
       //  There are two ways to deposit a star.  One way is for a galaxy to
       //  grant the SAFAS contract permission to spawn its stars.  The SAFAS
@@ -161,21 +181,19 @@ contract SAFAS is Ownable
       //  transfer the star to itself.
       //
       if ( ships.isOwner(ships.getPrefix(_star), msg.sender) &&
-           ships.isSpawnProxy(ships.getPrefix(_star), this) )
+           ships.isSpawnProxy(ships.getPrefix(_star), this) &&
+           !ships.isActive(_star) )
       {
         //  first model: spawn _star to :this contract
         //
         Constitution(ships.owner()).spawn(_star, this);
       }
       else if ( ships.isOwner(_star, msg.sender) &&
-                ships.isTransferProxy(_star, this) )
+                ships.isTransferProxy(_star, this) &&
+                ships.isActive(_star) &&
+                (0 == ships.getKeyRevisionNumber(_star)) )
       {
         //  second model: transfer active, unused _star to :this contract
-        //
-        require( ships.isActive(_star) &&
-                 (0 == ships.getKeyRevisionNumber(_star)) );
-
-        //  transfer the star to :this contract
         //
         Constitution(ships.owner()).transferShip(_star, this, true);
       }
@@ -211,7 +229,7 @@ contract SAFAS is Ownable
       //
       uint16 star = com.stars[com.stars.length-1];
 
-      // update contract metadata
+      //  update contract metadata
       //
       com.stars.length = com.stars.length - 1;
       com.forfeited = com.forfeited - 1;
@@ -231,6 +249,9 @@ contract SAFAS is Ownable
     function approveCommitmentTransfer(address _to)
       external
     {
+      //  make sure the target isn't also a participant
+      //
+      require(0 == commitments[_to].total);
       transfers[msg.sender] = _to;
     }
 
@@ -240,22 +261,31 @@ contract SAFAS is Ownable
     function transferCommitment(address _from)
       external
     {
+      //  make sure the :msg.sender is authorized to make this transfer
+      //
       require(transfers[_from] == msg.sender);
+
+      //  make sure the target isn't also a participant
+      //
+      require(0 == commitments[msg.sender].total);
+
+      //  copy the commitment to the :msg.sender and clear _from's
+      //
       Commitment storage com = commitments[_from];
       commitments[msg.sender] = com;
-      commitments[_from] = Commitment([uint16(0), 0, 0],
-                                      0, 0, new uint16[](0),
-                                      0, false, 0);
+      commitments[_from] = Commitment(new uint16[](0), 0, 0, 0,
+                                      new uint16[](0), 0, false, 0);
       transfers[_from] = 0;
     }
 
     //  withdraw(): withdraw one star to the sender's address
     //
-    function withdraw()
+    //TODO  why does this overshadow withdraw(address)?
+    /* function withdraw()
       external
     {
       withdraw(msg.sender);
-    }
+    } */
 
     //  withdraw(): withdraw one star from the sender's commitment to _to
     //
@@ -307,9 +337,7 @@ contract SAFAS is Ownable
 
       //  restrict :forfeited to the number of stars not withdrawn
       //
-      //    TODO safe math?
-      //
-      if ( (forfeited + com.withdrawn) > com.total )
+      if ( forfeited > (com.total - com.withdrawn) )
       {
         forfeited = (com.total - com.withdrawn);
       }
@@ -327,6 +355,7 @@ contract SAFAS is Ownable
   //
   //  Public operations and utilities
   //
+
     //  analyzeTranche(): analyze tranche number _tranche for completion;
     //                    set :timestamps[_tranche] if either the tranche's
     //                    deadline has passed, or its conditions have been met
@@ -336,51 +365,34 @@ contract SAFAS is Ownable
     {
       //  only analyze tranches that haven't been unlocked yet
       //
-      require(timestamps[_tranche] == 0);
+      require(0 == timestamps[_tranche]);
+
 
       //  if the deadline has passed, the tranche is missed, and the
       //  deadline becomes the tranche's timestamp.
       //
-      if (block.timestamp > deadlines[_tranche])
+      uint256 deadline = deadlines[_tranche];
+      if (block.timestamp > deadline)
       {
-        timestamps[_tranche] = deadlines[_tranche];
-        TrancheCompleted(_tranche, deadlines[_tranche]);
+        timestamps[_tranche] = deadline;
+        TrancheCompleted(_tranche, deadline);
         return;
       }
 
-      //  conditionsMet: true if the tranche has met its success condition
+      //  check if the tranche condition has been met
       //
-      bool conditionsMet = false;
-
-      //  first tranche completes by default once this contract is live
-      //
-      if ( _tranche == 0 )
+      bytes32 condition = conditions[_tranche];
+      if ( //  if there is no condition, it is always met
+           //
+           (bytes32(0) == condition) ||
+           //
+           //  an real condition is met when it has achieved a majority vote
+           //
+           polls.abstractMajorityMap(condition) )
       {
-        conditionsMet = true;
-      }
-
-      //  second tranche completes when the galaxies pass a stability resolution
-      //
-      else if ( _tranche == 1 )
-      {
-        conditionsMet = polls.abstractMajorityMap(
-                          keccak256("arvo is stable"));
-      }
-
-      //  third tranche completes when the galaxies pass a
-      //  continuity/security resolution
-      //
-      else if ( _tranche == 2 )
-      {
-        conditionsMet = polls.abstractMajorityMap(
-                          keccak256("continuity and security achieved"));
-      }
-
-      //  if the tranche is completed, set :timestamps[_tranche] to the
-      //  timestamp of the current eth block
-      //
-      if ( conditionsMet )
-      {
+        //  if the tranche is completed, set :timestamps[_tranche] to the
+        //  timestamp of the current eth block
+        //
         timestamps[_tranche] = block.timestamp;
         TrancheCompleted(_tranche, block.timestamp);
       }
@@ -396,24 +408,28 @@ contract SAFAS is Ownable
     {
       Commitment storage com = commitments[_participant];
 
-      // for each tranche, calculate the current limit and add it to the total.
+      //  for each tranche, calculate the current limit and add it to the total.
       //
-      for (uint8 i = 0; i < 3; i++)
+      for (uint256 i = 0; i < timestamps.length; i++)
       {
         uint256 ts = timestamps[i];
 
         //  if a tranche hasn't completed yet, there is nothing to add.
         //
-        if ( ts == 0 ) {
+        if ( ts == 0 )
+        {
           continue;
         }
+
+        //  a tranche can't have been unlocked in the future
+        //
         assert(ts <= block.timestamp);
 
         //  calculate the amount of stars available from this tranche by
-        //  multiplying the release rate (stars per month) by the number
-        //  of 30-day months that have passed since the tranche unlocked.
+        //  multiplying the release rate (stars per :rateUnit) by the number
+        //  of rateUnits that have passed since the tranche unlocked.
         //
-        uint256 num = (com.rate * ((block.timestamp - ts) / 30 days));
+        uint256 num = (com.rate * ((block.timestamp - ts) / com.rateUnit));
 
         //  bound the release rate by the tranche count
         //
@@ -427,28 +443,31 @@ contract SAFAS is Ownable
         limit = limit + uint16(num);
       }
 
-      // limit can't be higher than the total amount of stars made available
+      //  limit can't be higher than the total amount of stars made available
       //
       assert(limit <= com.total);
 
-      // allow at least one star
+      //  allow at least one star
       //
       if ( limit < 1 )
-        { return 1; }
+      {
+        return 1;
+      }
     }
 
     //  totalStars(): return the number of stars available after tranche _from
     //                in the _tranches array
     //
-    function totalStars(uint16[3] _tranches, uint8 _from)
+    function totalStars(uint16[] _tranches, uint8 _from)
       public
       pure
       returns (uint16 total)
     {
-      //  TODO safemath
-      //
-      for (uint8 i = _from; i < 3; i++)
+      for (uint256 i = _from; i < _tranches.length; i++)
       {
+        //  simple safemath
+        //
+        require( (total + _tranches[i]) >= total);
         total = total + _tranches[i];
       }
     }
@@ -462,8 +481,29 @@ contract SAFAS is Ownable
     {
       Commitment storage com = commitments[_participant];
 
-      //  return count of remaining stars + stars we've withdrawn.
+      //  return true if this contract holds as many stars as we'll ever
+      //  be entitled to withdraw
       //
-      return (com.total == (com.stars.length + com.withdrawn));
+      return ( (com.total - com.withdrawn) == com.stars.length );
+    }
+
+    //  getTranches(): get the configured tranche sizes for a commitment
+    //
+    function getTranches(address _participant)
+      external
+      view
+      returns (uint16[] tranches)
+    {
+      return commitments[_participant].tranches;
+    }
+
+    //  getRemainingStars(): get the stars deposited into the commitment
+    //
+    function getRemainingStars(address _participant)
+      external
+      view
+      returns (uint16[] stars)
+    {
+      return commitments[_participant].stars;
     }
 }
