@@ -1,5 +1,4 @@
-// default planet sale
-// draft
+//  bare-bones sample planet sale contract
 
 pragma solidity 0.4.18;
 
@@ -9,100 +8,103 @@ import './Constitution.sol';
 
 contract PlanetSale is Ownable
 {
-  event PlanetSold(uint32 planet, uint256 remaining);
-  event SaleEnded();
+  //  PlanetSold: _planet has been sold
+  //
+  event PlanetSold(uint32 planet);
 
-  Constitution public constitution;
-  uint32[] public available;
-  uint256 public price; // in wei
+  //  ships: ships state data store
+  //
+  Ships public ships;
 
-  function PlanetSale(Constitution _constitution, uint32[] _planets,
-                      uint256 _price)
+  //  price: ether per planet, in wei
+  //
+  uint256 public price;
+
+  //  PlanetSale(): configure the ships data store and initial sale price
+  //
+  function PlanetSale(Ships _ships, uint256 _price)
   {
-    constitution = _constitution;
-    available = _planets;
+    ships = _ships;
     price = _price;
   }
 
-  function getAvailable()
-    external
-    view
-    returns (uint32[] availablePlanets)
-  {
-    return available;
-  }
+  //
+  //  Buyer operations
+  //
 
-  function getRemaining()
-    external
-    view
-    returns (uint256 remainingPlanets)
-  {
-    return available.length;
-  }
-
-  // buys a planet from the top of the stack.
-  function buyAny()
-    external
-    payable
-  {
-    require(msg.value == price);
-    require(available.length > 0);
-    launch(available.length-1, msg.sender);
-  }
-
-  // buys a specific planet from the pile.
-  // we require the index to make the contract's work easier,
-  // we require the planet to prevent race-conditions resulting in an unintended
-  // purchase.
-  function buySpecific(uint256 _index, uint32 _planet)
-    external
-    payable
-  {
-    require(msg.value == price);
-    require(_planet == available[_index]);
-    launch(_index, msg.sender);
-  }
-
-  // send the planet at the given index to the target address.
-  function launch(uint256 _index, address _target)
-    internal
-  {
-    uint32 planet = available[_index];
-    uint256 last = available.length - 1;
-    // replace the new "gap" with the last planet in the list, and then shorten
-    // the list by one.
-    available[_index] = available[last];
-    available.length = last;
-    constitution.launch(planet, _target, 0);
-    PlanetSold(planet, last);
-    if (last == 0)
+    //  available(): returns true if the _planet is available for purchase
+    //
+    function available(uint32 _planet)
+      public
+      view
+      returns (bool result)
     {
-      SaleEnded();
+      uint16 prefix = ships.getPrefix(_planet);
+
+      return ( //  planet must not be active yet
+               //
+               !ships.isActive(_planet) &&
+               //
+               //  this contract must be allowed to spawn for the prefix
+               //
+               ships.isSpawnProxy(prefix, this) &&
+               //
+               //  prefix must be live
+               //
+               ( 0 != ships.getKeyRevisionNumber(prefix) ) );
     }
-  }
 
-  // withdraw the funds sent to this contract.
-  function withdraw(address _target)
-    external
-    onlyOwner
-  {
-    _target.transfer(this.balance);
-  }
+    //  purchase(): pay the :price, acquire ownership of the _planet
+    //
+    //    discovery of available planets can be done off-chain
+    //
+    function purchase(uint32 _planet)
+      external
+      payable
+    {
+      require( //  caller must pay exactly the price of a planet
+               //
+               (msg.value == price) &&
+               //
+               //  the planet must be available for purchase
+               //
+               available(_planet) );
 
-  // close the sale and send any remaining funds to the target address.
-  function close(address _target)
-    external
-    onlyOwner
-  {
-    SaleEnded();
-    selfdestruct(_target);
-  }
+      //  spawn the planet to its new owner
+      //
+      Constitution(ships.owner()).spawn(_planet, msg.sender);
+      PlanetSold(_planet);
+    }
 
-  // this may be needed when a constitution upgrade has happened.
-  function changeConstitution(Constitution _constitution)
-    external
-    onlyOwner
-  {
-    constitution = _constitution;
-  }
+  //
+  //  Seller operations
+  //
+
+    //  setPrice(): configure the price in wei per planet
+    //
+    function setPrice(uint256 _price)
+      external
+      onlyOwner
+    {
+      price = _price;
+    }
+
+    //  withdraw(): withdraw ether funds held by this contract to _target
+    //
+    function withdraw(address _target)
+      external
+      onlyOwner
+    {
+      _target.transfer(this.balance);
+    }
+
+    //  close(): end the sale by destroying this contract and transfering
+    //           remaining funds to _target
+    //
+    function close(address _target)
+      external
+      onlyOwner
+    {
+      selfdestruct(_target);
+    }
 }
