@@ -1,7 +1,5 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 const Polls = artifacts.require('../contracts/Polls.sol');
-const Claims = artifacts.require('../contracts/Claims.sol');
-const Censures = artifacts.require('../contracts/Censures.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 
 contract('Constitution', function([owner, user1, user2]) {
@@ -21,9 +19,9 @@ contract('Constitution', function([owner, user1, user2]) {
   }
 
   before('setting up for tests', async function() {
-    pollTime = 2;
+    pollTime = 3;
     ships = await Ships.new();
-    polls = await Polls.new(pollTime, pollTime, 1);
+    polls = await Polls.new(pollTime, pollTime);
     constit = await Constitution.new(0, ships.address, polls.address);
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
@@ -279,10 +277,10 @@ contract('Constitution', function([owner, user1, user2]) {
     }
     await constit.startAbstractPoll(0, 10, {from:user1});
     await constit.castAbstractVote(0, 10, true, {from:user1});
-    // assert.isTrue(await polls.hasVotedOnAbstractPoll(0, 10));
-    // busywait(pollTime * 1.3); // make timing less tight
-    // await constit.updateAbstractPoll(10);
-    // assert.isTrue(await polls.abstractMajorityMap(10));
+    assert.isTrue(await polls.hasVotedOnAbstractPoll(0, 10));
+    busywait(pollTime * 1.3); // make timing less tight
+    await constit.updateAbstractPoll(10);
+    assert.isTrue(await polls.abstractMajorityMap(10));
   });
 
   it('voting on concrete poll', async function() {
