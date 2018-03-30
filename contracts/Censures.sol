@@ -22,13 +22,13 @@ contract Censures
   //
   mapping(uint32 => uint32[]) public censures;
 
-  //  indices: per ship per censure, (index + 1) in censures array
+  //  indexes: per ship per censure, (index + 1) in censures array
   //
   //    We delete censures by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
-  //    indices[ship][censure].
+  //    indexes[ship][censure].
   //
-  mapping(uint32 => mapping(uint32 => uint256)) public indices;
+  mapping(uint32 => mapping(uint32 => uint256)) public indexes;
 
   //  Censures(): register the ships contract
   //
@@ -73,7 +73,7 @@ contract Censures
              //
              //  must not haven censured _who already
              //
-             (indices[_as][_who] == 0) &&
+             (indexes[_as][_who] == 0) &&
              //
              //  may only censure up to 16 ships
              //
@@ -91,7 +91,7 @@ contract Censures
     //  update contract state with the new censure
     //
     censures[_as].push(_who);
-    indices[_as][_who] = censures[_as].length;
+    indexes[_as][_who] = censures[_as].length;
     Censured(_as, _who);
   }
 
@@ -103,7 +103,7 @@ contract Censures
   {
     //  i: current index in _as's list of censures
     //
-    uint256 i = indices[_as][_who];
+    uint256 i = indexes[_as][_who];
 
     //  we store index + 1, because 0 is the eth default value
     //  can only delete an existing censure
@@ -121,7 +121,7 @@ contract Censures
     //
     delete(cens[last]);
     cens.length = last;
-    indices[_as][_who] = 0;
+    indexes[_as][_who] = 0;
     Forgiven(_as, _who);
   }
 
