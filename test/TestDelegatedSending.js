@@ -3,7 +3,7 @@ const Polls = artifacts.require('../contracts/Polls.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 const DelegatedSending = artifacts.require('../contracts/DelegatedSending.sol');
 
-contract('DelegatedSending', function([owner, user]) {
+contract('Delegated Sending', function([owner, user]) {
   let ships, constit, dese;
 
   function assertJump(error) {

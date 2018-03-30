@@ -109,6 +109,13 @@ contract('SAFAS', function([owner, user1, user2]) {
     assert.equal((await safas.getRemainingStars(user1))[7], 2048);
     assert.isTrue(await ships.isOwner(256, safas.address));
     assert.isTrue(await safas.verifyBalance(user1));
+    // can't deposit too many
+    try {
+      await safas.deposit(user1, 2304);
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
   });
 
   it('withdrawing', async function() {
@@ -154,5 +161,5 @@ contract('SAFAS', function([owner, user1, user2]) {
       await safas.withdrawForfeited(user1, owner);
     }
     assert.isTrue(await ships.isOwner(256, owner));
-  })
+  });
 });
