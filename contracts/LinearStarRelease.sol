@@ -4,11 +4,10 @@ pragma solidity 0.4.18;
 
 import './Constitution.sol';
 
-//  StarRelease: this contract allows stars to be released to participants
-//               linearly over a period of four years, starting at one year
-//               after the launch of this contract.
+//  LinearStarRelease: this contract allows stars to be released to
+//                     participants linearly at an arbitrary rate.
 //
-contract StarRelease is Ownable
+contract LinearStarRelease is Ownable
 {
   //  ships: public contract which stores ship state
   //
@@ -58,9 +57,9 @@ contract StarRelease is Ownable
   //
   mapping(address => address) public transfers;
 
-  //  StarRelease: configure ships contract and set starting date
+  //  LinearStarRelease: configure ships contract and set starting date
   //
-  function StarRelease(Ships _ships)
+  function LinearStarRelease(Ships _ships)
     public
   {
     ships = _ships;
@@ -113,12 +112,12 @@ contract StarRelease is Ownable
       require( batch.stars.length < (batch.amount - batch.withdrawn) );
 
       //  There are two ways to deposit a star.  One way is for a galaxy to
-      //  grant the SAFAS contract permission to spawn its stars.  The SAFAS
+      //  grant the LSR contract permission to spawn its stars.  The LSR
       //  contract will spawn the star directly to itself.
       //
-      //  The SAFAS contract can also accept existing stars, as long as their
+      //  The LSR contract can also accept existing stars, as long as their
       //  Urbit key revision number is 0, indicating that they have not yet
-      //  been started.  To deposit a star this way, grant the SAFAS contract
+      //  been started.  To deposit a star this way, grant the LSR contract
       //  permission to transfer ownership of the star; the contract will
       //  transfer the star to itself.
       //

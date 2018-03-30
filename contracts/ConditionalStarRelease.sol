@@ -1,18 +1,21 @@
-//  simple agreement for future address space
+//  conditional star release
 
 pragma solidity 0.4.18;
 
 import './Constitution.sol';
 
-//  SAFAS: this contract allows stars to be delivered to buyers who have
-//         purchased future stars, conditionally on technical deadlines
-//         being hit.  If the deadlines are hit (as certified by a
-//         vote of the galaxies), stars are released to the buyers.
-//         Once a deadline passes without a certifying vote, a buyer
-//         may choose to back out of the transaction, forfeiting stars
-//         to claim an offline refund.
+//  CSR: the Conditional Star Release contract.
+//       This contract allows stars to be delivered to recipients.
+//       The rate at which these stars get delivered depends on
+//       contract-owner configured conditions being met, which are checked
+//       for through a vote by the senate.  If the deadlines for these
+//       conditions are hit, the stars associated with the condition are
+//       released to the recipients.  If a deadline passes without a
+//       certifying vote, a recipient may choose to back out of the release
+//       agreement altogether, forfeiting unclaimed stars and settling
+//       further compensation off-chain.
 //
-contract SAFAS is Ownable
+contract ConditionalStarRelease is Ownable
 {
 
   //  TrancheCompleted: :tranche has either been hit or missed
@@ -38,7 +41,7 @@ contract SAFAS is Ownable
   //             met. if the polls does not contain a majority vote for the
   //             appropriate condition by the time its deadline is hit,
   //             stars in a commitment can be forfeit and withdrawn by the
-  //             safas contract owner.
+  //             CSR contract owner.
   //
   uint256[] public deadlines;
 
@@ -96,9 +99,11 @@ contract SAFAS is Ownable
   //
   mapping(address => address) public transfers;
 
-  //  SAFAS: configure SAFAS and reference ships and polls contracts
+  //  ConditionalStarRelease(): configure conditions and deadlines
   //
-  function SAFAS(Ships _ships, bytes32[] _conditions, uint256[] _deadlines)
+  function ConditionalStarRelease(Ships _ships,
+                                  bytes32[] _conditions,
+                                  uint256[] _deadlines)
     public
   {
     //  sanity check: condition per deadline
@@ -126,7 +131,7 @@ contract SAFAS is Ownable
   //  Functions for the contract owner
   //
 
-    //  register(): register a new SAFAS commitment
+    //  register(): register a new commitment
     //
     function register( //  _participant: address of the paper contract signer
                        //  _tranches: number of stars unlocking per tranche
@@ -171,12 +176,12 @@ contract SAFAS is Ownable
       require( com.stars.length < (com.total - com.withdrawn) );
 
       //  There are two ways to deposit a star.  One way is for a galaxy to
-      //  grant the SAFAS contract permission to spawn its stars.  The SAFAS
+      //  grant the CSR contract permission to spawn its stars.  The CSR
       //  contract will spawn the star directly to itself.
       //
-      //  The SAFAS contract can also accept existing stars, as long as their
+      //  The CSR contract can also accept existing stars, as long as their
       //  Urbit key revision number is 0, indicating that they have not yet
-      //  been started.  To deposit a star this way, grant the SAFAS contract
+      //  been started.  To deposit a star this way, grant the CSR contract
       //  permission to transfer ownership of the star; the contract will
       //  transfer the star to itself.
       //
