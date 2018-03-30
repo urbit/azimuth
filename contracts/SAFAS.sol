@@ -88,15 +88,15 @@ contract SAFAS is Ownable
     uint16 forfeited;
   }
 
-  //  commitments: all registered purchase agreements
+  //  commitments: per participant, the registered purchase agreement
   //
   mapping(address => Commitment) public commitments;
 
-  //  transfers: approved commitment transfers
+  //  transfers: per participant, the approved commitment transfer
   //
   mapping(address => address) public transfers;
 
-  //  SAFAS: configure SAFAS and reference ship and voting contracts
+  //  SAFAS: configure SAFAS and reference ships and polls contracts
   //
   function SAFAS(Ships _ships, bytes32[] _conditions, uint256[] _deadlines)
     public
@@ -105,7 +105,7 @@ contract SAFAS is Ownable
     //
     require(_deadlines.length == _conditions.length);
 
-    //  reference ship and voting contracts
+    //  reference ships and polls contracts
     //
     ships = _ships;
     polls = Constitution(ships.owner()).polls();
@@ -229,7 +229,7 @@ contract SAFAS is Ownable
       //
       uint16 star = com.stars[com.stars.length-1];
 
-      //  update contract metadata
+      //  update contract state
       //
       com.stars.length = com.stars.length - 1;
       com.forfeited = com.forfeited - 1;
@@ -306,7 +306,7 @@ contract SAFAS is Ownable
       //
       uint16 star = com.stars[com.stars.length - 1];
 
-      //  update contract metadata
+      //  update contract state
       //
       com.stars.length = com.stars.length - 1;
       com.withdrawn = com.withdrawn + 1;
@@ -427,7 +427,7 @@ contract SAFAS is Ownable
 
         //  calculate the amount of stars available from this tranche by
         //  multiplying the release rate (stars per :rateUnit) by the number
-        //  of rateUnits that have passed since the tranche unlocked.
+        //  of rateUnits that have passed since the tranche unlocked
         //
         uint256 num = (com.rate * ((block.timestamp - ts) / com.rateUnit));
 
@@ -438,7 +438,7 @@ contract SAFAS is Ownable
           num = com.tranches[i];
         }
 
-        //  add it to the total limit.
+        //  add it to the total limit
         //
         limit = limit + uint16(num);
       }

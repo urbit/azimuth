@@ -46,8 +46,6 @@ module.exports = async function(deployer) {
     return Constitution.deployed();
   }).then(function(instance) {
     constitution = instance;
-    console.log("new owner is:");
-    console.log(constitution.address);
     ships.transferOwnership(constitution.address);
     polls.transferOwnership(constitution.address);
   }).then(function() {
@@ -56,7 +54,5 @@ module.exports = async function(deployer) {
     return Pool.deployed();
   }).then(function(instance) {
     pool = instance;
-    console.log("new pool address:");
-    console.log(pool.address);
   });
 };
