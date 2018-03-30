@@ -8,14 +8,13 @@ import './ERC165Mapping.sol';
 import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-contract Constitution is ConstitutionBase, ERC165Mapping
-                         // XX: fix this :-)
+contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
+                         // TODO: fix this :-)
                          //
-                         // including the following interfaces somehow causes
-                         // the contract to not deploy properly. we toggle them
-                         // on when developing to make sure they're satisfied,
-                         // but toggle them off for tests and deploys.
-                         //, ERC721, ERC721Metadata, ERC721Enumerable
+                         // including more interfaces causes the contract to
+                         // not deploy properly, so we only temporarily
+                         // enable these during compilation
+                         //, ERC721Metadata, ERC721Enumerable
 {
   using SafeMath for uint256;
 
