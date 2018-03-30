@@ -40,14 +40,14 @@ contract Claims
   //
   mapping(uint32 => Claim[]) public claims;
 
-  //  indices: per ship, per claim hash, (index + 1) in claims array
+  //  indexes: per ship, per claim hash, (index + 1) in claims array
   //
   //    We delete claims by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
-  //    indices[ship][claimHash].
+  //    indexes[ship][claimHash].
   //    We use hashes because structures can't be used as keys.
   //
-  mapping(uint32 => mapping(bytes32 => uint256)) public indices;
+  mapping(uint32 => mapping(bytes32 => uint256)) public indexes;
 
   //  Claims(): register the ships contract.
   //
@@ -99,14 +99,14 @@ contract Claims
 
     //  cur: index + 1 of the claim if it already exists, 0 otherwise
     //
-    uint256 cur = indices[_as][id];
+    uint256 cur = indexes[_as][id];
 
     //  if the claim doesn't yet exist, store it in state
     //
     if (cur == 0)
     {
       claims[_as].push(Claim(_protocol, _claim, _dossier));
-      indices[_as][id] = claims[_as].length;
+      indexes[_as][id] = claims[_as].length;
       Claimed(_as, _protocol, _claim, _dossier);
     }
     //
@@ -131,7 +131,7 @@ contract Claims
 
     //  i: current index in _as's list of censures
     //
-    uint256 i = indices[_as][id];
+    uint256 i = indexes[_as][id];
 
     //  we store index + 1, because 0 is the eth default value
     //  can only delete an existing claim
@@ -149,7 +149,7 @@ contract Claims
     //
     delete(clams[last]);
     clams.length = last;
-    indices[_as][id] = 0;
+    indexes[_as][id] = 0;
     Disclaimed(_as, _protocol, _claim);
   }
 
