@@ -97,7 +97,7 @@ contract DelegatedSending
              //
              //  the prefix must be live
              //
-             (0 != ships.getKeyRevisionNumber(prefix)) );
+             ships.hasBeenBooted(prefix) );
   }
 
   //  shipOwner(): require that :msg.sender is the owner of _ship

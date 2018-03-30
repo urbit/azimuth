@@ -51,7 +51,7 @@ contract PlanetSale is Ownable
                //
                //  prefix must be live
                //
-               ( 0 != ships.getKeyRevisionNumber(prefix) ) );
+               ships.hasBeenBooted(prefix) );
     }
 
     //  purchase(): pay the :price, acquire ownership of the _planet

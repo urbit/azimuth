@@ -245,7 +245,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
       //  prefix ship must be active and able to spawn
       //
-      require( (0 != ships.getKeyRevisionNumber(prefix)) &&
+      require( (ships.hasBeenBooted(prefix)) &&
                (ships.getSpawnCount(prefix) <
                 getSpawnLimit(prefix, block.timestamp)) );
 
@@ -398,7 +398,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     {
       //  can't escape to a sponsor that hasn't been born
       //
-      if ( 0 == ships.getKeyRevisionNumber(_sponsor) ) return false;
+      if ( !ships.hasBeenBooted(_sponsor) ) return false;
 
       //  We must escape to a sponsor of the same class, except in
       //  the special case where the escaping ship hasn't been
@@ -428,12 +428,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
                  //  peer escape is only for ships that haven't been booted yet,
                  //  because it's only for lightweight invitation chains
                  //
-                 (0 == ships.getKeyRevisionNumber(_ship)) &&
-                 //
-                 //  the sponsor needs to have been booted already, or strange
-                 //  corner cases can be created
-                 //
-                 (0 != ships.getKeyRevisionNumber(_sponsor)) ) );
+                 !ships.hasBeenBooted(_ship) ) );
     }
 
     //  escape(): request escape from _ship to _sponsor.

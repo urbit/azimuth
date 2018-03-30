@@ -332,6 +332,16 @@ contract Ships is Ownable
       return ships[_ship].keyRevisionNumber;
     }
 
+    //  hasBeenBooted(): returns true if the ship has ever been assigned keys
+    //
+    function hasBeenBooted(uint32 _ship)
+      view
+      public
+      returns (bool result)
+    {
+      return ( ships[_ship].keyRevisionNumber > 0 );
+    }
+
     //  setKeys(): set Urbit public keys of _ship to _encryptionKey and
     //            _authenticationKey
     //
@@ -345,7 +355,7 @@ contract Ships is Ownable
 
       ship.encryptionKey = _encryptionKey;
       ship.authenticationKey = _authenticationKey;
-      ship.keyRevisionNumber = ship.keyRevisionNumber + 1;
+      ship.keyRevisionNumber++;
 
       ChangedKeys(_ship, _encryptionKey, _authenticationKey);
     }
