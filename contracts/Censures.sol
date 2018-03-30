@@ -1,4 +1,4 @@
-// simple reputations store
+//  simple reputations store
 
 pragma solidity 0.4.18;
 

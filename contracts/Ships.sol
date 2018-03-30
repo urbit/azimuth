@@ -1,5 +1,4 @@
-// the urbit ship data store
-//
+//  the urbit ship data store
 
 pragma solidity 0.4.18;
 

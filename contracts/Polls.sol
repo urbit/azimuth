@@ -1,4 +1,4 @@
-// the urbit polls data store
+//  the urbit polls data store
 
 pragma solidity 0.4.18;
 

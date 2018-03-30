@@ -1,5 +1,4 @@
-// simple claims store
-// draft
+//  simple claims store
 
 pragma solidity 0.4.18;
 
