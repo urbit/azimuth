@@ -191,7 +191,7 @@ contract SAFAS is Ownable
       else if ( ships.isOwner(_star, msg.sender) &&
                 ships.isTransferProxy(_star, this) &&
                 ships.isActive(_star) &&
-                (0 == ships.getKeyRevisionNumber(_star)) )
+                !ships.hasBeenBooted(_star) )
       {
         //  second model: transfer active, unused _star to :this contract
         //
