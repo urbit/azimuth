@@ -1,5 +1,4 @@
-// the urbit ethereum constitution
-// draft
+//  the urbit ethereum constitution
 
 pragma solidity 0.4.18;
 

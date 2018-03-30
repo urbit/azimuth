@@ -1,5 +1,5 @@
-// base contract for the urbit constitution
-// encapsulates dependencies all constitutions need.
+//  base contract for the urbit constitution
+//  encapsulates dependencies all constitutions need.
 
 pragma solidity 0.4.18;
 

@@ -1,5 +1,4 @@
-// simple planet invitation management contract
-// draft
+//  simple planet invitation management contract
 
 pragma solidity 0.4.18;
 
