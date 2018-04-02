@@ -8,8 +8,6 @@ This is a work in progress nearing completion. Feel free to poke around and open
 
 This is just a quick summary of the different contracts and their purposes. For more detailed descriptions, check out the contracts themselves.
 
-The following contracts will be deployed on-chain:
-
 * **Ships**: contains all on-chain state for Urbit ships. Most notably, ownership and public keys. Can't be modified directly, you must use the Constitution.
 * **Constitution**: is used as an interface for interacting with your ships on-chain. Allows you to configure keys, transfer ownership, etc.
 * **Polls**: registers votes by the senate on proposals. These can be either static documents or Constitution upgrades.
@@ -44,5 +42,9 @@ truffle test
 ## Tests
 
 To successfully run the tests, make sure [Ganache](https://github.com/trufflesuite/ganache-cli) (or any other RPC enabled node) is running locally.
+
+```
+ganache-cli --gasLimit 5000000
+```
 
 Some tests, most notably those for Polls and Star Releases, make heavy use of timing, and thus might be performance-dependent in some cases. Fixing this is nice, but not a priority. If they fail on you, try running them again. If they still fail, try tweaking the numbers in the test's setup.
