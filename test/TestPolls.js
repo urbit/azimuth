@@ -24,8 +24,8 @@ contract('Polls', function([owner, user]) {
 
   before('setting up for tests', async function() {
     polls = await Polls.new(1, 2);
-    duration = 2;
-    cooldown = 3;
+    duration = 3;
+    cooldown = 4;
   });
 
   it('configuring polls', async function() {
