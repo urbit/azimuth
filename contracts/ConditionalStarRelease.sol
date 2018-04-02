@@ -4,16 +4,43 @@ pragma solidity 0.4.18;
 
 import './Constitution.sol';
 
-//  CSR: the Conditional Star Release contract.
-//       This contract allows stars to be delivered to recipients.
-//       The rate at which these stars get delivered depends on
-//       contract-owner configured conditions being met, which are checked
-//       for through a vote by the senate.  If the deadlines for these
-//       conditions are hit, the stars associated with the condition are
-//       released to the recipients.  If a deadline passes without a
-//       certifying vote, a recipient may choose to back out of the release
-//       agreement altogether, forfeiting unclaimed stars and settling
-//       further compensation off-chain.
+//  ConditionalStarRelease: star transfer over time, based on conditions
+//
+//    This contract allows its owner to transfer a batch of stars to a
+//    recipient (also "participant") gradually over time, assuming
+//    the specified conditions are met.
+//
+//    The contract state holds an arbitrary number of conditions and
+//    deadlines, which get configured during contract creation.
+//    The conditions take the form of hashes, and they are checked for
+//    by looking at the Votes contract. A condition is met if it has
+//    achieved a majority in the Votes contract, or its deadline has
+//    passed.
+//    Completion timestamps are stored for each completed condition.
+//    They are equal to the time at which majority was observed, or
+//    the condition's deadline, whichever comes first.
+//
+//    Per participant, the contract stores a commitment. This structure
+//    contains the details of the stars to be made available to the
+//    participant. The amount of stars is specified per condition, in
+//    so-called tranches.
+//
+//    When a timestamp for a condition is set, the amount of stars in
+//    the tranche corresponding to that condition is released to the
+//    participant at the rate specified in the commitment.
+//
+//    If a condition's timestamp is equal to its deadline, participants
+//    have the option to forfeit any stars that remain in their commitment
+//    from that condition's tranche and onward. The participant will no
+//    longer be able to withdraw any of the forfeited stars (they are to
+//    be collected by the contract owner), and will settle compensation
+//    with the contract owner off-chain.
+//
+//    The contract owner can register commitments, deposit stars into
+//    them, and withdraw any stars that got forfeited.
+//    Participants can withdraw stars as they get released, and forfeit
+//    the remainder of their commitment if a deadline is missed.
+//    Anyone can check unsatisfied conditions for completion.
 //
 contract ConditionalStarRelease is Ownable
 {

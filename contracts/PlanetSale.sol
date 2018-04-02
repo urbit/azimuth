@@ -6,6 +6,21 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 import './Constitution.sol';
 
+//  PlanetSale: a practically stateless ship sale contract
+//
+//    This contract facilitates the sale of ships (most commonly planets).
+//    Instead of "depositing" ships into this contract, ships are
+//    available for sale when this contract is able to spawn them.
+//    This is the case when the ship is inactive and its prefix has
+//    allowed this contract to spawn for it.
+//
+//    The contract owner can determine the price per ship, withdraw funds
+//    that have been sent to this contract, and shut down the contract
+//    to prevent further sales.
+//
+//    This contract is intended to be deployed by star owners that want
+//    to sell that planets on-chain.
+//
 contract PlanetSale is Ownable
 {
   //  PlanetSold: _planet has been sold

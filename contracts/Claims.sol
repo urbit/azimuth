@@ -4,6 +4,17 @@ pragma solidity 0.4.18;
 
 import './Ships.sol';
 
+//  Claims: simple identity management
+//
+//    This contract allows ships to document claims about their owner.
+//    Most commonly, these are about identity, with a claim's protocol
+//    defining the context or platform of the claim, and its dossier
+//    containing proof of its validity.
+//
+//    For existing claims, the dossier can be updated, or the claim can
+//    be removed entirely. It is recommended to remove any claims associated
+//    with a ship when it is about to be transfered to a new owner.
+//
 contract Claims
 {
   //  Claimed: a claim was made by :by

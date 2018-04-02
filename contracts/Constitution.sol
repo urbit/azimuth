@@ -7,8 +7,38 @@ import './ERC165Mapping.sol';
 import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
+//  Constitution: logic for interacting with the Urbit ledger
+//
+//    This contract is the point of entry for all operations on the Urbit
+//    ledger as stored in the Ships contract. The functions herein are
+//    responsbile for performing all necessary business logic.
+//    Examples of such logic include verifying permissions of the caller
+//    and ensuring a requested change is actually valid.
+//
+//    This contract uses external contracts (Ships, Polls) for data storage
+//    so that it itself can easily be replaced in case its logic needs to
+//    be changed. In other words, it can be upgraded. It does this by passing
+//    ownership of the data contracts to a new Constitution contract.
+//
+//    Because of this, it is advised for clients to not store this contract's
+//    address directly, but rather ask the Ships contract for its owner
+//    attribute to ensure transactions get sent to the latest Constitution.
+//
+//    Upgrading happens based on polls held by the senate (galaxy owners).
+//    Through this contract, the senate can submit proposals, opening polls
+//    for the senate to cast votes on. These proposals can be either abstract
+//    (hashes of documents) or concrete (addresses of new Constitutions).
+//    If a concrete proposal gains majority, this contract will transfer
+//    ownership of the data storage contracts to that address, so that it may
+//    operate on the date they contain. This contract will selfdestruct at
+//    the end of the upgrade process.
+//
+//    This contracts implements the ERC721 interface for non-fungible tokens,
+//    allowing ships to be managed using generic clients that support the
+//    standard. It also implements ERC165 to allow this to be discovered.
+//
 contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
-                         // TODO: fix this :-)
+                         //TODO: fix this :-)
                          //
                          // including more interfaces causes the contract to
                          // not deploy properly, so we only temporarily
@@ -23,19 +53,24 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
   event ApprovalForAll(address indexed _owner, address indexed _operator,
                        bool _approved);
 
+  //  ERC721 metadata
+  //
   string constant public name = "Urbit Ship";
   string constant public symbol = "URS";
   uint256 constant public totalSupply = 4294967296;
 
   //  Constitution(): set Urbit data addresses and signal interface support
   //
-  //    Note: ownership of these contracts must be transferred to this
-  //    contract after it's on the chain and its contract address is known.
+  //    Note: during first deploy, ownership of these contracts must be
+  //    manually transferred to this contract after it's on the chain and
+  //    its address is known.
   //
   function Constitution(address _previous, Ships _ships, Polls _polls)
     ConstitutionBase(_previous, _ships, _polls)
     public
   {
+    //  register supported interfaces for ERC165
+    //
     supportedInterfaces[0x6466353c] = true; // ERC721
     supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
     supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
@@ -48,7 +83,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     function balanceOf(address _owner)
       external
       view
-      returns (uint256)
+      returns (uint256 balance)
     {
       return ships.getOwnedShipCount(_owner);
     }
@@ -64,7 +99,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       return ships.getOwner(id);
     }
 
-    //  safeTransferFrom(): transfer ship _tokenId from _from to _to.
+    //  safeTransferFrom(): transfer ship _tokenId from _from to _to
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId)
       external
@@ -75,7 +110,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     }
 
     //  safeTransferFrom(): transfer ship _tokenId from _from to _to,
-    //                      and call recipient if it's a contract.
+    //                      and call recipient if it's a contract
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId,
                               bytes data)
@@ -141,7 +176,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       external
       view
       shipId(_tokenId)
-      returns (address)
+      returns (address approved)
     {
       return ships.getTransferProxy(uint32(_tokenId));
     }
@@ -149,7 +184,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     function isApprovedForAll(address _owner, address _operator)
       external
       view
-      returns (bool)
+      returns (bool result)
     {
       return ships.isOperator(_owner, _operator);
     }
@@ -187,25 +222,25 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
     //  tokenURI(): produce a URL to a standard JSON file
     //
-      function tokenURI(uint256 _tokenId)
-        external
-        pure
-        shipId(_tokenId)
-        returns (string _tokenURI)
-      {
-        _tokenURI = "https://eth.urbit.org/erc721/0000000000.json";
-        bytes memory _tokenURIBytes = bytes(_tokenURI);
-        _tokenURIBytes[29] = byte(48+(_tokenId / 1000000000) % 10);
-        _tokenURIBytes[30] = byte(48+(_tokenId / 100000000) % 10);
-        _tokenURIBytes[31] = byte(48+(_tokenId / 10000000) % 10);
-        _tokenURIBytes[32] = byte(48+(_tokenId / 1000000) % 10);
-        _tokenURIBytes[33] = byte(48+(_tokenId / 100000) % 10);
-        _tokenURIBytes[34] = byte(48+(_tokenId / 10000) % 10);
-        _tokenURIBytes[35] = byte(48+(_tokenId / 1000) % 10);
-        _tokenURIBytes[36] = byte(48+(_tokenId / 100) % 10);
-        _tokenURIBytes[37] = byte(48+(_tokenId / 10) % 10);
-        _tokenURIBytes[38] = byte(48+(_tokenId / 1) % 10);
-      }
+    function tokenURI(uint256 _tokenId)
+      external
+      pure
+      shipId(_tokenId)
+      returns (string _tokenURI)
+    {
+      _tokenURI = "https://eth.urbit.org/erc721/0000000000.json";
+      bytes memory _tokenURIBytes = bytes(_tokenURI);
+      _tokenURIBytes[29] = byte(48+(_tokenId / 1000000000) % 10);
+      _tokenURIBytes[30] = byte(48+(_tokenId / 100000000) % 10);
+      _tokenURIBytes[31] = byte(48+(_tokenId / 10000000) % 10);
+      _tokenURIBytes[32] = byte(48+(_tokenId / 1000000) % 10);
+      _tokenURIBytes[33] = byte(48+(_tokenId / 100000) % 10);
+      _tokenURIBytes[34] = byte(48+(_tokenId / 10000) % 10);
+      _tokenURIBytes[35] = byte(48+(_tokenId / 1000) % 10);
+      _tokenURIBytes[36] = byte(48+(_tokenId / 100) % 10);
+      _tokenURIBytes[37] = byte(48+(_tokenId / 10) % 10);
+      _tokenURIBytes[38] = byte(48+(_tokenId / 1) % 10);
+    }
 
   //
   //  Urbit functions for all ships
@@ -224,6 +259,13 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     }
 
     //  spawn(): spawn _ship, giving ownership to _target
+    //
+    //    Requirements:
+    //    - _ship must not be active,
+    //    - _ship must not be a planet with a galaxy prefix,
+    //    - _ship's prefix must be active and under its spawn limit,
+    //    - :msg.sender must be either the owner of _ship's prefix,
+    //      or an authorized spawn proxy for it.
     //
     function spawn(uint32 _ship,
                    address _target)
@@ -319,11 +361,16 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       ships.setSpawnProxy(_ship, _spawnProxy);
     }
 
-    // transferShip(): transfer _ship to _target, clearing all sensitive data
-    //                 if _reset is true
+    //  transferShip(): transfer _ship to _target, clearing all permissions
+    //                  data and keys if _reset is true
     //
-    //  Note: the _reset flag is useful when transferring the ship to
-    //  a recipient who doesn't trust the previous owner.
+    //    Note: the _reset flag is useful when transferring the ship to
+    //    a recipient who doesn't trust the previous owner.
+    //
+    //    Requirements:
+    //    - :msg.sender must be either _ship's current owner, authorized
+    //      to transfer _ship, or authorized to transfer the current
+    //      owner's ships.
     //
     function transferShip(uint32 _ship, address _target, bool _reset)
       public
@@ -365,9 +412,12 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
     //  setTransferProxy(): give _transferProxy the right to transfer _ship
     //
+    //    Requirements:
+    //    - :msg.sender must be either _ship's current owner, or be
+    //      allowed to manage the current owner's ships.
+    //
     function setTransferProxy(uint32 _ship, address _transferProxy)
       public
-      active(_ship)
     {
       //  owner: owner of _ship
       //
@@ -432,6 +482,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
     //  escape(): request escape from _ship to _sponsor.
     //
+    //    Requirements:
+    //    - :msg.sender must be the owner of _ship,
+    //    - _ship must be able to escape to _sponsor according to canEscapeTo().
+    //
     function escape(uint32 _ship, uint32 _sponsor)
       external
       shipOwner(_ship)
@@ -440,7 +494,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       ships.setEscape(_ship, _sponsor);
     }
 
-    // cancel an escape.
+    //  cancelEscape(): cancel the currently set escape for _ship
+    //
     function cancelEscape(uint32 _ship)
       external
       shipOwner(_ship)
@@ -448,24 +503,39 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       ships.cancelEscape(_ship);
     }
 
-    // accept an escaping ship.
-    function adopt(uint32 _sponsor, uint32 _child)
+    //  adopt(): as the _sponsor, accept the _escapee
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner of _sponsor,
+    //    - _escapee must currently be trying to escape to _sponsor.
+    //
+    function adopt(uint32 _sponsor, uint32 _escapee)
       external
       shipOwner(_sponsor)
     {
-      require(ships.isEscape(_child, _sponsor));
-      // _child's sponsor becomes _sponsor, its escape is reset to "no escape".
-      ships.doEscape(_child);
+      require(ships.isEscape(_escapee, _sponsor));
+
+      //  _sponsor becomes _escapee's sponsor
+      //  its escape request is reset to "not escaping"
+      //
+      ships.doEscape(_escapee);
     }
 
-    // reject an escaping ship.
-    function reject(uint32 _sponsor, uint32 _child)
+    //  reject(): as the _sponsor, deny the _escapee's request
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner of _sponsor,
+    //    - _escapee must currently be trying to escape to _sponsor.
+    //
+    function reject(uint32 _sponsor, uint32 _escapee)
       external
       shipOwner(_sponsor)
     {
-      require(ships.isEscape(_child, _sponsor));
-      // cancels the escape, making it inactive.
-      ships.cancelEscape(_child);
+      require(ships.isEscape(_escapee, _sponsor));
+
+      // reset the _escapee's escape request to "not escaping"
+      //
+      ships.cancelEscape(_escapee);
     }
 
   //
@@ -474,6 +544,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
     //  startConcretePoll(): as _galaxy, start a poll for the constitution
     //                       upgrade _proposal
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner of _galaxy,
+    //    - the _proposal must expect to be upgraded from this specific
+    //      contract, as indicated by its previousConstitution attribute.
     //
     function startConcretePoll(uint8 _galaxy, ConstitutionBase _proposal)
       external
@@ -498,6 +573,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     //                      upgrade _proposal
     //
     //    _vote is true when in favor of the proposal, false otherwise
+    //
+    //    If this vote results in a majority for the _proposal, it will
+    //    be upgraded to immediately.
     //
     function castConcreteVote(uint8 _galaxy,
                               ConstitutionBase _proposal,
@@ -550,7 +628,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
     //  updateAbstractPoll(): check whether the _proposal has achieved majority
     //
-    //    the polls contract publicly exposes the function this calls,
+    //    Note: the polls contract publicly exposes the function this calls,
     //    but we offer it in the constitution interface as a convenience
     //
     function updateAbstractPoll(bytes32 _proposal)

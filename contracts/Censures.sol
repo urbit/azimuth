@@ -4,6 +4,17 @@ pragma solidity 0.4.18;
 
 import './Ships.sol';
 
+//  Censures: simple reputation management
+//
+//    This contract allows stars and galaxies to assign a negative
+//    reputation (censure) to other ships of the same or lower rank.
+//
+//    Since the Urbit network provides incentives for good behavior,
+//    making bad behavior is the exception rather than the rule, this
+//    only provides registration of negative reputation.
+//    To avoid casual use of this, a single ship may only register
+//    up to 16 censures.
+//
 contract Censures
 {
   //  Censured: :who got censures by :by
