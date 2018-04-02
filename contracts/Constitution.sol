@@ -1,6 +1,6 @@
 //  the urbit ethereum constitution
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import './ConstitutionBase.sol';
 import './ERC165Mapping.sol';
@@ -169,7 +169,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       external
     {
       ships.setOperator(msg.sender, _operator, _approved);
-      ApprovalForAll(msg.sender, _operator, _approved);
+      emit ApprovalForAll(msg.sender, _operator, _approved);
     }
 
     function getApproved(uint256 _tokenId)
@@ -405,9 +405,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       }
       ships.setOwner(_ship, _target);
 
-      //  post Transfer event
+      //  emit Transfer event
       //
-      Transfer(old, _target, uint256(_ship));
+      emit Transfer(old, _target, uint256(_ship));
     }
 
     //  setTransferProxy(): give _transferProxy the right to transfer _ship
@@ -431,9 +431,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       //
       ships.setTransferProxy(_ship, _transferProxy);
 
-      //  send Approval event
+      //  emit Approval event
       //
-      Approval(owner, _transferProxy, uint256(_ship));
+      emit Approval(owner, _transferProxy, uint256(_ship));
     }
 
     //  canEscapeTo(): true if _ship could try to escape to _sponsor

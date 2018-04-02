@@ -1,6 +1,6 @@
 //  simple planet invitation management contract
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import './Constitution.sol';
 
@@ -76,7 +76,7 @@ contract DelegatedSending
     //
     Constitution(ships.owner()).spawn(_ship, _to);
 
-    Sent(_as, _ship);
+    emit Sent(_as, _ship);
   }
 
   //  canSend(): check whether current conditions allow _as to send _ship

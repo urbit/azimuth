@@ -1,6 +1,6 @@
 //  the urbit ship data store
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -165,13 +165,14 @@ contract Ships is Ownable
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getOwnedShips()
+    //TODO  overloading seems bugged for functions without arguments.
+    /* function getOwnedShips()
       view
       public
       returns (uint32[] ownedShips)
     {
       return owners[msg.sender];
-    }
+    } */
 
     //  getOwnedShips(): return array of ships that _whose owns
     //
@@ -285,7 +286,7 @@ contract Ships is Ownable
         shipOwnerIndexes[_owner][_ship] = owners[_owner].length;
       }
       ships[_ship].owner = _owner;
-      Transferred(_ship, _owner);
+      emit Transferred(_ship, _owner);
     }
 
     //  isActive(): return true if ship is active
@@ -313,6 +314,7 @@ contract Ships is Ownable
       {
         ships[getPrefix(_ship)].spawnCount++;
       }
+      emit Activated(_ship);
     }
 
     //  getSpawnCount(): return the number of children spawned by _ship
@@ -368,7 +370,7 @@ contract Ships is Ownable
       ship.authenticationKey = _authenticationKey;
       ship.keyRevisionNumber++;
 
-      ChangedKeys(_ship, _encryptionKey, _authenticationKey);
+      emit ChangedKeys(_ship, _encryptionKey, _authenticationKey);
     }
 
     function getSponsor(uint32 _ship)
@@ -411,7 +413,7 @@ contract Ships is Ownable
       Hull storage ship = ships[_ship];
       ship.escapeRequestedTo = _sponsor;
       ship.escapeRequested = true;
-      EscapeRequested(_ship, _sponsor);
+      emit EscapeRequested(_ship, _sponsor);
     }
 
     function cancelEscape(uint32 _ship)
@@ -431,7 +433,7 @@ contract Ships is Ownable
       require(ship.escapeRequested);
       ship.sponsor = ship.escapeRequestedTo;
       ship.escapeRequested = false;
-      EscapeAccepted(_ship, ship.escapeRequestedTo);
+      emit EscapeAccepted(_ship, ship.escapeRequestedTo);
     }
 
     function isSpawnProxy(uint32 _ship, address _spawner)

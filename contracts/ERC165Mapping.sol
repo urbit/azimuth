@@ -1,6 +1,6 @@
 // from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-165.md
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import "./interfaces/ERC165.sol";
 

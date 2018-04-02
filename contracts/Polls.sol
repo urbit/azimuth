@@ -1,6 +1,6 @@
 //  the urbit polls data store
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import './SafeMath8.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
@@ -189,7 +189,7 @@ contract Polls is Ownable
     //
     Poll storage poll = concretePolls[_proposal];
     startPoll(poll);
-    ConcretePollStarted(_proposal);
+    emit ConcretePollStarted(_proposal);
   }
 
   //  startAbstractPoll(): open a poll on accepting the document
@@ -207,7 +207,7 @@ contract Polls is Ownable
     //
     Poll storage poll = abstractPolls[_proposal];
     startPoll(poll);
-    AbstractPollStarted(_proposal);
+    emit AbstractPollStarted(_proposal);
   }
 
   //  startPoll(): open a new poll, or re-open an old one
@@ -307,7 +307,7 @@ contract Polls is Ownable
     if (majority)
     {
       concreteMajorityMap[_proposal] = true;
-      ConcreteMajority(_proposal);
+      emit ConcreteMajority(_proposal);
     }
   }
 
@@ -335,7 +335,7 @@ contract Polls is Ownable
     {
       abstractMajorityMap[_proposal] = true;
       abstractMajorities.push(_proposal);
-      AbstractMajority(_proposal);
+      emit AbstractMajority(_proposal);
     }
   }
 

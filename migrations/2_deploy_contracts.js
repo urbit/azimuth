@@ -26,7 +26,7 @@ module.exports = async function(deployer) {
   }).then(function(instance) {
     ships = instance;
     //TODO test data, maybe in separate migration.
-    return deployer.deploy(Polls);
+    return deployer.deploy(Polls, 1209600, 604800);
   }).then(function() {
     return Polls.deployed();
   }).then(function(instance) {

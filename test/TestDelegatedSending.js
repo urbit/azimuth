@@ -12,7 +12,7 @@ contract('Delegated Sending', function([owner, user]) {
 
   before('setting up for tests', async function() {
     ships = await Ships.new();
-    polls = await Polls.new();
+    polls = await Polls.new(0, 0);
     constit = await Constitution.new(0, ships.address, polls.address);
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);

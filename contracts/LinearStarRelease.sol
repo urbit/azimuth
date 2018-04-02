@@ -1,6 +1,6 @@
 //  linear star release
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import './Constitution.sol';
 
@@ -196,7 +196,7 @@ contract LinearStarRelease is Ownable
 
     //  withdraw(): withdraw one star to the sender's address
     //
-    //TODO  why does this overshadow withdraw(address)?
+    //TODO  overloading seems bugged for functions without arguments.
     /* function withdraw()
       external
     {
