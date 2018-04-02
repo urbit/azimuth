@@ -136,7 +136,7 @@ contract Ships is Ownable
     //
     function getOwnedShips()
       view
-      public
+      external
       returns (uint32[] ownedShips)
     {
       return owners[msg.sender];
@@ -149,7 +149,7 @@ contract Ships is Ownable
     //
     function getOwnedShips(address _whose)
       view
-      public
+      external
       returns (uint32[] ownedShips)
     {
       return owners[_whose];
@@ -159,7 +159,7 @@ contract Ships is Ownable
     //
     function getOwnedShipCount(address _whose)
       view
-      public
+      external
       returns (uint256 count)
     {
       return owners[_whose].length;
@@ -170,7 +170,7 @@ contract Ships is Ownable
     //
     function getOwnedShipAtIndex(address _whose, uint256 _index)
       view
-      public
+      external
       returns (uint32 ship)
     {
       uint32[] storage owned = owners[_whose];
@@ -182,7 +182,7 @@ contract Ships is Ownable
     //
     function isOwner(uint32 _ship, address _address)
       view
-      public
+      external
       returns (bool result)
     {
       return (ships[_ship].owner == _address);
@@ -192,7 +192,7 @@ contract Ships is Ownable
     //
     function getOwner(uint32 _ship)
       view
-      public
+      external
       returns (address owner)
     {
       return ships[_ship].owner;
@@ -208,7 +208,7 @@ contract Ships is Ownable
     //
     function setOwner(uint32 _ship, address _owner)
       onlyOwner
-      public
+      external
     {
       //  prev: previous owner, if any
       //
@@ -261,7 +261,7 @@ contract Ships is Ownable
     //
     function isActive(uint32 _ship)
       view
-      public
+      external
       returns (bool equals)
     {
       return ships[_ship].active;
@@ -271,7 +271,7 @@ contract Ships is Ownable
     //
     function setActive(uint32 _ship)
       onlyOwner
-      public
+      external
     {
       //  make a ship active, increasing the spawn count of its prefix
       //
@@ -289,7 +289,7 @@ contract Ships is Ownable
     //
     function getSpawnCount(uint32 _ship)
       view
-      public
+      external
       returns (uint16 spawnCount)
     {
       return ships[_ship].spawnCount;
@@ -297,7 +297,7 @@ contract Ships is Ownable
 
     function getKeys(uint32 _ship)
       view
-      public
+      external
       returns (bytes32 crypt, bytes32 auth)
     {
       Hull storage ship = ships[_ship];
@@ -307,7 +307,7 @@ contract Ships is Ownable
 
     function getKeyRevisionNumber(uint32 _ship)
       view
-      public
+      external
       returns (uint32 revision)
     {
       return ships[_ship].keyRevisionNumber;
@@ -317,7 +317,7 @@ contract Ships is Ownable
     //
     function hasBeenBooted(uint32 _ship)
       view
-      public
+      external
       returns (bool result)
     {
       return ( ships[_ship].keyRevisionNumber > 0 );
@@ -330,7 +330,7 @@ contract Ships is Ownable
                      bytes32 _encryptionKey,
                      bytes32 _authenticationKey)
       onlyOwner
-      public
+      external
     {
       Hull storage ship = ships[_ship];
 
@@ -343,7 +343,7 @@ contract Ships is Ownable
 
     function getSponsor(uint32 _ship)
       view
-      public
+      external
       returns (uint32 sponsor)
     {
       return ships[_ship].sponsor;
@@ -351,7 +351,7 @@ contract Ships is Ownable
 
     function isEscaping(uint32 _ship)
       view
-      public
+      external
       returns (bool escaping)
     {
       return ships[_ship].escapeRequested;
@@ -359,7 +359,7 @@ contract Ships is Ownable
 
     function getEscape(uint32 _ship)
       view
-      public
+      external
       returns (uint32 escape)
     {
       return ships[_ship].escapeRequestedTo;
@@ -367,7 +367,7 @@ contract Ships is Ownable
 
     function isEscape(uint32 _ship, uint32 _sponsor)
       view
-      public
+      external
       returns (bool equals)
     {
       Hull storage ship = ships[_ship];
@@ -376,7 +376,7 @@ contract Ships is Ownable
 
     function setEscape(uint32 _ship, uint32 _sponsor)
       onlyOwner
-      public
+      external
     {
       Hull storage ship = ships[_ship];
       ship.escapeRequestedTo = _sponsor;
@@ -386,7 +386,7 @@ contract Ships is Ownable
 
     function cancelEscape(uint32 _ship)
       onlyOwner
-      public
+      external
     {
       ships[_ship].escapeRequested = false;
     }
@@ -395,7 +395,7 @@ contract Ships is Ownable
     //
     function doEscape(uint32 _ship)
       onlyOwner
-      public
+      external
     {
       Hull storage ship = ships[_ship];
       require(ship.escapeRequested);
@@ -406,7 +406,7 @@ contract Ships is Ownable
 
     function isSpawnProxy(uint32 _ship, address _spawner)
       view
-      public
+      external
       returns (bool result)
     {
       return (ships[_ship].spawnProxy == _spawner);
@@ -414,7 +414,7 @@ contract Ships is Ownable
 
     function getSpawnProxy(uint32 _ship)
       view
-      public
+      external
       returns (address spawnProxy)
     {
       return ships[_ship].spawnProxy;
@@ -422,14 +422,14 @@ contract Ships is Ownable
 
     function setSpawnProxy(uint32 _ship, address _spawner)
       onlyOwner
-      public
+      external
     {
       ships[_ship].spawnProxy = _spawner;
     }
 
     function isTransferProxy(uint32 _ship, address _transferrer)
       view
-      public
+      external
       returns (bool result)
     {
       return (ships[_ship].transferProxy == _transferrer);
@@ -437,7 +437,7 @@ contract Ships is Ownable
 
     function getTransferProxy(uint32 _ship)
       view
-      public
+      external
       returns (address transferProxy)
     {
       return ships[_ship].transferProxy;
@@ -445,14 +445,14 @@ contract Ships is Ownable
 
     function setTransferProxy(uint32 _ship, address _transferrer)
       onlyOwner
-      public
+      external
     {
       ships[_ship].transferProxy = _transferrer;
     }
 
     function isOperator(address _owner, address _operator)
       view
-      public
+      external
       returns (bool result)
     {
       return operators[_owner][_operator];
@@ -460,7 +460,7 @@ contract Ships is Ownable
 
     function setOperator(address _owner, address _operator, bool _approved)
       onlyOwner
-      public
+      external
     {
       operators[_owner][_operator] = _approved;
     }
@@ -486,7 +486,7 @@ contract Ships is Ownable
     //  getShipClass(): return the class of _ship
     //
     function getShipClass(uint32 _ship)
-      public
+      external
       pure
       returns (Class _class)
     {
