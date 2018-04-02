@@ -165,14 +165,13 @@ contract Ships is Ownable
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    //TODO  overloading seems bugged for functions without arguments.
-    /* function getOwnedShips()
+    function getOwnedShips()
       view
       public
       returns (uint32[] ownedShips)
     {
       return owners[msg.sender];
-    } */
+    }
 
     //  getOwnedShips(): return array of ships that _whose owns
     //

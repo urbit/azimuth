@@ -60,13 +60,13 @@ contract('Ships', function([owner, user]) {
   it('getting owned ships', async function() {
     await ships.setOwner(1, user);
     await ships.setOwner(2, user);
-    let owned = await ships.getOwnedShips(user);
+    let owned = await ships.getOwnedShips({from:user});
     assert.equal(owned[0].toNumber(), 0);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned[2].toNumber(), 2);
     assert.equal(owned.length, 3);
     await ships.setOwner(0, 0);
-    owned = await ships.getOwnedShips(user);
+    owned = await ships.getOwnedShips({from:user});
     assert.equal(owned[0].toNumber(), 2);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned.length, 2);

@@ -101,25 +101,25 @@ contract('Linear Star Release', function([owner, user1, user2]) {
     assert.equal(await lsr.withdrawLimit(user1), 4);
     // only commitment participant can do this
     try {
-      await lsr.withdraw(user1);
+      await lsr.withdraw({from:owner});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await lsr.withdraw(user1, {from:user1});
+    await lsr.withdraw({from:user1});
     assert.isTrue(await ships.isOwner(2048, user1));
     assert.equal((await lsr.batches(user1))[4], 1);
+    await lsr.withdraw({from:user1});
+    await lsr.withdraw({from:user1});
+    await lsr.withdraw({from:user1});
+    assert.equal((await lsr.batches(user1))[4], 4);
+    assert.equal(await lsr.withdrawLimit(user1), 4);
     // can't withdraw over limit
     try {
-      await lsr.withdraw(user1);
+      await lsr.withdraw({from:user1});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    assert.equal(await lsr.withdrawLimit(user1), 4);
-    await lsr.withdraw(user1, {from:user1});
-    await lsr.withdraw(user1, {from:user1});
-    await lsr.withdraw(user1, {from:user1});
-    assert.equal((await lsr.batches(user1))[4], 4);
   });
 });

@@ -122,24 +122,24 @@ contract('Conditional Star Release', function([owner, user1, user2]) {
     assert.equal(await csr.withdrawLimit(user1), 3);
     // only commitment participant can do this
     try {
-      await csr.withdraw(user1);
+      await csr.withdraw({from:owner});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await csr.withdraw(user1, {from:user1});
+    await csr.withdraw({from:user1});
     assert.isTrue(await ships.isOwner(2048, user1));
     assert.equal((await csr.commitments(user1))[3], 1);
     // can't withdraw over limit
     try {
-      await csr.withdraw(user1);
+      await csr.withdraw();
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
     assert.equal(await csr.withdrawLimit(user1), 3);
-    await csr.withdraw(user1, {from:user1});
-    await csr.withdraw(user1, {from:user1});
+    await csr.withdraw({from:user1});
+    await csr.withdraw({from:user1});
     assert.equal((await csr.commitments(user1))[3], 3);
   });
 
@@ -152,7 +152,7 @@ contract('Conditional Star Release', function([owner, user1, user2]) {
     busywait(rateUnit);
     // can't withdraw because of forfeit
     try {
-      await csr.withdraw(user1, {from:user1});
+      await csr.withdraw({from:user1});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
