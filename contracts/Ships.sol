@@ -4,6 +4,18 @@ pragma solidity 0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
+//  Ships: ship state data contract
+//
+//    This contract is used for storing all data related to Urbit addresses
+//    and their ownership. Consider this contract the Urbit ledger.
+//
+//    Since data stores are difficult to upgrade, this contract contains
+//    as little actual business logic as possible. Instead, the data stored
+//    herein can only be modified by this contract's owner, which can be
+//    changed and is thus upgradable/replacable.
+//
+//    Initially, this contract will be owned by the Constitution contract.
+//
 contract Ships is Ownable
 {
   //  Transferred: :ship is now owned by :owner

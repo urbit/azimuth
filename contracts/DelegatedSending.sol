@@ -4,6 +4,16 @@ pragma solidity 0.4.18;
 
 import './Constitution.sol';
 
+//  DelegatedSending: invite-like ship sending
+//
+//    This contract allows planet owners to gift planets to their friends,
+//    if their prefix has allowed it.
+//
+//    Star owners can set a limit, the amount of "invite planets" each of
+//    their planets is allowed to send. Enabling this by setting the limit
+//    to a value higher than zero can help the network grow by providing
+//    regular users with a way to get their friends and family onto it.
+//
 contract DelegatedSending
 {
   //  Sent: :by sent :ship.
@@ -42,6 +52,11 @@ contract DelegatedSending
   }
 
   //  sendShip(): as the ship _as, spawn the ship _ship to _to.
+  //
+  //    Requirements:
+  //    - :msg.sender must be the owner of _as,
+  //    - _to must not be the :msg.sender,
+  //    - _as must be able to send the _ship according to canSend()
   //
   function sendShip(uint32 _as, uint32 _ship, address _to)
     external

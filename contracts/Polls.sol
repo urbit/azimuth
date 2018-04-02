@@ -5,6 +5,19 @@ pragma solidity 0.4.18;
 import './SafeMath8.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
+//  Polls: proposals & votes data contract
+//
+//    This contract is used for storing all data related to the proposals
+//    of the senate (galaxy owners) and their votes on those proposals.
+//    It keeps track of votes and uses them to calculate whether a majority
+//    is in favor of a proposal.
+//
+//    Since data stores are difficult to upgrade, all of the logic unrelated
+//    to the voting itself (that is, determining who is eligible to vote)
+//    is expected to be implemented by this contract's owner.
+//
+//    Initially, this contract will be owned by the Constitution contract.
+//
 contract Polls is Ownable
 {
   //  ConcretePollStarted: a poll on :proposal has opened

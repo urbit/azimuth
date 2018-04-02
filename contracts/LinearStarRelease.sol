@@ -4,8 +4,16 @@ pragma solidity 0.4.18;
 
 import './Constitution.sol';
 
-//  LinearStarRelease: this contract allows stars to be released to
-//                     participants linearly at an arbitrary rate.
+//  LinearStarRelease: batch transfer over time
+//
+//    This contract allows its owner to transfer a batch of stars to a
+//    recipient (also "participant") gradually, at a set rate of an
+//    amount of stars per a period of time, after an optional waiting
+//    period measured from the launch of this contract.
+//
+//    The owner of the contract can register batches and deposit stars
+//    into them. Participants can withdraw stars as they get released
+//    and transfer ownership of their batch to another address.
 //
 contract LinearStarRelease is Ownable
 {
