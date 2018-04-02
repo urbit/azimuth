@@ -312,12 +312,11 @@ contract ConditionalStarRelease is Ownable
 
     //  withdraw(): withdraw one star to the sender's address
     //
-    //TODO  overloading seems bugged for functions without arguments.
-    /* function withdraw()
+    function withdraw()
       external
     {
       withdraw(msg.sender);
-    } */
+    }
 
     //  withdraw(): withdraw one star from the sender's commitment to _to
     //
