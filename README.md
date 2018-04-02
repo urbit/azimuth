@@ -2,17 +2,30 @@
 
 The Urbit PKI on the Ethereum blockchain.  
 
-This is currently a work in progress.  Feel free to poke around and open issues or ask questions.  The [Urbit fora](https://urbit.org/fora) is also a good place for open-ended discussion related to this repo.
+This is a work in progress nearing completion. Feel free to poke around and open issues or ask questions. The [Urbit fora](https://urbit.org/fora) is also a good place for open-ended discussion related to this repo.
 
-## Dependencies
+## Overview
 
-Depends on [Zeppelin-Solidity](https://openzeppelin.org/).
+This is just a quick summary of the different contracts and their purposes. For more detailed descriptions, check out the contracts themselves.
 
-```
-npm install --save zeppelin-solidity
-```
+The following contracts will be deployed on-chain:
+
+* **Ships**: contains all on-chain state for Urbit ships. Most notably, ownership and public keys. Can't be modified directly, you must use the Constitution.
+* **Constitution**: is used as an interface for interacting with your ships on-chain. Allows you to configure keys, transfer ownership, etc.
+* **Polls**: registers votes by the senate on proposals. These can be either static documents or Constitution upgrades.
+* **Delegated Sending**: allows stars to let their planets send brand new planets to their friends and family.
+* **Linear Star Release**: facilitates the release of blocks of stars to their owners over a period of time.
+* **Conditional Star Release**: facilitates the release of blocks of stars to their owners based on milestones.
+* **Planet Sale**: gives an example of a way in which stars could sell planets on-chain.
+* **Pool**: gives an example of a way in which stars could be temporarily tokenized.
 
 ## Running
+
+Install dependencies. Most notable inclusion is [Zeppelin-Solidity](https://openzeppelin.org/).
+
+```
+npm install
+```
 
 Build, deploy and test using [Truffle](http://truffleframework.com/).
 
@@ -28,12 +41,8 @@ truffle deploy
 truffle test
 ```
 
-To successfully run the tests, make sure [testrpc](https://github.com/ethereumjs/testrpc) is running locally.
+## Tests
 
-Since `TestConstitution.sol` instantiates three (secretly four) contracts in its `beforeAll()` (which is required due to ownership permissions), it is liable to run out of gas when using sane limits. The gas limit in `truffle.js` has been increased for this reason. Make sure to run `testrpc` with `--gasLimit 9000000` to match this.
+To successfully run the tests, make sure [Ganache](https://github.com/trufflesuite/ganache-cli) (or any other RPC enabled node) is running locally.
 
-Even with those changes, `TestConstitution.sol` can't run in its entirety without hitting the gas limit for some reason. Comment out the `Assert` calls of the tests you don't currently care about to ensure the others can run.
-
-(Yes, this is awful. A fix is being investigated. Rest assured that normal operation of the Constitution won't hit any gas limits on the live network.)
-
-It should also be noted that, using Truffle's deployment and testing tools, PlanetSale.sol's `launch()` function breaks. Deploying and testing manually works fine. Running in the Remix IDE works fine.
+Some tests, most notably those for Polls and Star Releases, make heavy use of timing, and thus might be performance-dependent in some cases. Fixing this is nice, but not a priority. If they fail on you, try running them again. If they still fail, try tweaking the numbers in the test's setup.
