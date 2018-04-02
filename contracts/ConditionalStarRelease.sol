@@ -1,6 +1,6 @@
 //  conditional star release
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import './Constitution.sol';
 
@@ -312,7 +312,7 @@ contract ConditionalStarRelease is Ownable
 
     //  withdraw(): withdraw one star to the sender's address
     //
-    //TODO  why does this overshadow withdraw(address)?
+    //TODO  overloading seems bugged for functions without arguments.
     /* function withdraw()
       external
     {
@@ -379,9 +379,9 @@ contract ConditionalStarRelease is Ownable
       com.forfeited = forfeited;
       com.forfeit = true;
 
-      //  propagate event
+      //  emit event
       //
-      Forfeit(msg.sender, forfeited);
+      emit Forfeit(msg.sender, forfeited);
     }
 
   //
@@ -407,7 +407,7 @@ contract ConditionalStarRelease is Ownable
       if (block.timestamp > deadline)
       {
         timestamps[_tranche] = deadline;
-        TrancheCompleted(_tranche, deadline);
+        emit TrancheCompleted(_tranche, deadline);
         return;
       }
 
@@ -426,7 +426,7 @@ contract ConditionalStarRelease is Ownable
         //  timestamp of the current eth block
         //
         timestamps[_tranche] = block.timestamp;
-        TrancheCompleted(_tranche, block.timestamp);
+        emit TrancheCompleted(_tranche, block.timestamp);
       }
     }
 

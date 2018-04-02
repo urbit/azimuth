@@ -1,6 +1,6 @@
 //  simple reputations store
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import './Ships.sol';
 
@@ -103,7 +103,7 @@ contract Censures
     //
     censures[_as].push(_who);
     indexes[_as][_who] = censures[_as].length;
-    Censured(_as, _who);
+    emit Censured(_as, _who);
   }
 
   //  forgive(): unregister a censure of _who as _as
@@ -133,7 +133,7 @@ contract Censures
     delete(cens[last]);
     cens.length = last;
     indexes[_as][_who] = 0;
-    Forgiven(_as, _who);
+    emit Forgiven(_as, _who);
   }
 
   //  shipOwner(): require that :msg.sender is the owner of _ship

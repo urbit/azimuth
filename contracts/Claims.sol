@@ -1,6 +1,6 @@
 //  simple claims store
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import './Ships.sol';
 
@@ -117,7 +117,6 @@ contract Claims
     {
       claims[_as].push(Claim(_protocol, _claim, _dossier));
       indexes[_as][id] = claims[_as].length;
-      Claimed(_as, _protocol, _claim, _dossier);
     }
     //
     //  if the claim has been made before, update the version in state
@@ -125,8 +124,8 @@ contract Claims
     else
     {
       claims[_as][cur-1] = Claim(_protocol, _claim, _dossier);
-      Claimed(_as, _protocol, _claim, _dossier);
     }
+    emit Claimed(_as, _protocol, _claim, _dossier);
   }
 
   //  disclaim(): unregister a claim as _as
@@ -160,7 +159,7 @@ contract Claims
     delete(clams[last]);
     clams.length = last;
     indexes[_as][id] = 0;
-    Disclaimed(_as, _protocol, _claim);
+    emit Disclaimed(_as, _protocol, _claim);
   }
 
   //  claimId(): generate a unique identifier for a claim

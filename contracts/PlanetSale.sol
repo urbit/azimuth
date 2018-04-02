@@ -1,6 +1,6 @@
 //  bare-bones sample planet sale contract
 
-pragma solidity 0.4.18;
+pragma solidity 0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -38,6 +38,7 @@ contract PlanetSale is Ownable
   //  PlanetSale(): configure the ships data store and initial sale price
   //
   function PlanetSale(Ships _ships, uint256 _price)
+    public
   {
     ships = _ships;
     price = _price;
@@ -88,7 +89,7 @@ contract PlanetSale is Ownable
       //  spawn the planet to its new owner
       //
       Constitution(ships.owner()).spawn(_planet, msg.sender);
-      PlanetSold(_planet);
+      emit PlanetSold(_planet);
     }
 
   //
@@ -110,7 +111,7 @@ contract PlanetSale is Ownable
       external
       onlyOwner
     {
-      _target.transfer(this.balance);
+      _target.transfer(address(this).balance);
     }
 
     //  close(): end the sale by destroying this contract and transfering
