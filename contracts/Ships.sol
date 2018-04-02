@@ -101,7 +101,7 @@ contract Ships is Ownable
 
   //  ships: all Urbit ship state
   //
-  mapping(uint32 => Hull) internal ships;
+  mapping(uint32 => Hull) public ships;
 
   //  owners: per eth address, list of ships owned
   //
@@ -128,37 +128,6 @@ contract Ships is Ownable
   //
   //  Getters, setters and checks
   //
-
-    //  getShipData: retrieve data from Hull
-    //
-    function getShipData(uint32 _ship)
-      view
-      public
-      returns (address owner,
-               bool active,
-               uint16 spawnCount,
-               bytes32 encryptionKey,
-               bytes32 authenticationKey,
-               uint256 keyRevisionNumber,
-               uint32 sponsor,
-               bool escapeRequested,
-               uint32 escapeRequestedTo,
-               address spawnProxy,
-               address transferProxy)
-    {
-      Hull storage ship = ships[_ship];
-      return (ship.owner,
-              ship.active,
-              ship.spawnCount,
-              ship.encryptionKey,
-              ship.authenticationKey,
-              ship.keyRevisionNumber,
-              ship.sponsor,
-              ship.escapeRequested,
-              ship.escapeRequestedTo,
-              ship.spawnProxy,
-              ship.transferProxy);
-    }
 
     //  getOwnedShips(): return array of ships that :msg.sender owns
     //
