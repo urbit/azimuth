@@ -14,6 +14,9 @@ import './Constitution.sol';
 //    The owner of the contract can register batches and deposit stars
 //    into them. Participants can withdraw stars as they get released
 //    and transfer ownership of their batch to another address.
+//    If, ten years after the contract launch, any stars remain, the
+//    owner is able to withdraw them. This saves address space from
+//    being lost forever in case of key loss by participants.
 //
 contract LinearStarRelease is Ownable
 {
@@ -157,6 +160,29 @@ contract LinearStarRelease is Ownable
       batch.stars.push(_star);
     }
 
+    //  withdrawOverdue(): withdraw arbitrary star from the contract
+    //
+    //    this functions as an escape hatch in the case of key loss,
+    //    to prevent blocks of address space from being lost permanently.
+    //
+    function withdrawOverdue(address _participant, address _to)
+      external
+      onlyOwner
+    {
+      //  this can only be done ten years after the contract launch
+      //
+      require(block.timestamp > (start + 10 years));
+
+      //  update contract state
+      //
+      Batch storage batch = batches[msg.sender];
+      batch.withdrawn = batch.withdrawn + 1;
+
+      //  star: star being withdrawn
+      //
+      performWithdraw(batch, _to, false);
+    }
+
   //
   //  Functions for participants
   //
@@ -207,27 +233,44 @@ contract LinearStarRelease is Ownable
     function withdraw(address _to)
       public
     {
-      Batch storage com = batches[msg.sender];
+      Batch storage batch = batches[msg.sender];
 
       //  to withdraw, the participant must have a star balance,
       //  be under their current withdrawal limit, and cannot
       //  withdraw forfeited stars
       //
-      require( (com.stars.length > 0) &&
-               (com.withdrawn < withdrawLimit(msg.sender)) );
-
-      //  star: star being withdrawn
-      //
-      uint16 star = com.stars[com.stars.length - 1];
+      require( (batch.stars.length > 0) &&
+               (batch.withdrawn < withdrawLimit(msg.sender)) );
 
       //  update contract state
       //
-      com.stars.length = com.stars.length - 1;
-      com.withdrawn = com.withdrawn + 1;
+      batch.withdrawn = batch.withdrawn + 1;
+
+      //  withdraw a star from the batch
+      //
+      performWithdraw(batch, _to, true);
+    }
+
+  //
+  //  Internal functions
+  //
+
+    //  performWithdraw(): withdraw a star from _commit to _to
+    //
+    function performWithdraw(Batch storage _batch, address _to, bool _reset)
+      internal
+    {
+      //  star: star being withdrawn
+      //
+      uint16 star = _batch.stars[_batch.stars.length - 1];
+
+      //  remove the star from the batch
+      //
+      _batch.stars.length = _batch.stars.length - 1;
 
       //  transfer :star
       //
-      Constitution(ships.owner()).transferShip(star, _to, true);
+      Constitution(ships.owner()).transferShip(star, _to, _reset);
     }
 
   //

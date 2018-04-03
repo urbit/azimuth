@@ -41,6 +41,9 @@ import './Constitution.sol';
 //    Participants can withdraw stars as they get released, and forfeit
 //    the remainder of their commitment if a deadline is missed.
 //    Anyone can check unsatisfied conditions for completion.
+//    If, ten years after the contract launch, any stars remain, the
+//    owner is able to withdraw them. This saves address space from
+//    being lost forever in case of key loss by participants.
 //
 contract ConditionalStarRelease is Ownable
 {
@@ -254,22 +257,36 @@ contract ConditionalStarRelease is Ownable
       //  the participant still has stars left to withdraw
       //
       require( com.forfeit &&
-               (com.forfeited > 0) &&
-               (com.stars.length > 0) );
-
-      //  star: star to forfeit (from end of array)
-      //
-      uint16 star = com.stars[com.stars.length-1];
+               (com.forfeited > 0) );
 
       //  update contract state
       //
-      com.stars.length = com.stars.length - 1;
       com.forfeited = com.forfeited - 1;
 
-      //  then transfer the star (don't reset it because no one whom we don't
-      //  trust has ever had control of it)
+      //  withdraw a star from the commitment (don't reset it because
+      //  no one whom we don't trust has ever had control of it)
       //
-      Constitution(ships.owner()).transferShip(star, _to, false);
+      performWithdraw(com, _to, false);
+    }
+
+    function withdrawOverdue(address _participant, address _to)
+      external
+      onlyOwner
+    {
+      //  this can only be done ten years after the first tranche unlocked
+      //
+      require( ( 0 != timestamps[0] ) &&
+               ( block.timestamp > (timestamps[0] + 10 years) ) );
+
+      //  update contract state
+      //
+      Commitment storage com = commitments[_participant];
+      com.withdrawn = com.withdrawn + 1;
+
+      //  withdraw a star from the commitment (don't reset it because
+      //  no one whom we don't trust has ever had control of it)
+      //
+      performWithdraw(com, _to, false);
     }
 
   //
@@ -333,18 +350,13 @@ contract ConditionalStarRelease is Ownable
                (com.withdrawn < withdrawLimit(msg.sender)) &&
                (!com.forfeit || (com.stars.length > com.forfeited)) );
 
-      //  star: star being withdrawn
-      //
-      uint16 star = com.stars[com.stars.length - 1];
-
       //  update contract state
       //
-      com.stars.length = com.stars.length - 1;
       com.withdrawn = com.withdrawn + 1;
 
-      //  transfer :star
+      //  withdraw a star from the commitment
       //
-      Constitution(ships.owner()).transferShip(star, _to, true);
+      performWithdraw(com, _to, true);
     }
 
     //  forfeit(): forfeit all remaining stars from tranche number _tranche
@@ -381,6 +393,28 @@ contract ConditionalStarRelease is Ownable
       //  emit event
       //
       emit Forfeit(msg.sender, forfeited);
+    }
+
+  //
+  //  Internal functions
+  //
+
+    //  performWithdraw(): withdraw a star from _commit to _to
+    //
+    function performWithdraw(Commitment storage _com, address _to, bool _reset)
+      internal
+    {
+      //  star: star to forfeit (from end of array)
+      //
+      uint16 star = _com.stars[_com.stars.length-1];
+
+      //  remove the star from the batch
+      //
+      _com.stars.length = _com.stars.length - 1;
+
+      //  then transfer the star
+      //
+      Constitution(ships.owner()).transferShip(star, _to, _reset);
     }
 
   //
