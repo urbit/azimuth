@@ -36,7 +36,7 @@ contract Ships is Ownable
 
   //  ChangedKeys: :ship has new Urbit public keys, :crypt and :auth
   //
-  event ChangedKeys(uint32 ship, bytes32 crypt, bytes32 auth);
+  event ChangedKeys(uint32 ship, bytes32 crypt, bytes32 auth, uint32 rev);
 
   //  Class: classes of ship registered on eth
   //
@@ -338,7 +338,10 @@ contract Ships is Ownable
       ship.authenticationKey = _authenticationKey;
       ship.keyRevisionNumber++;
 
-      emit ChangedKeys(_ship, _encryptionKey, _authenticationKey);
+      emit ChangedKeys(_ship,
+                       _encryptionKey,
+                       _authenticationKey,
+                       ship.keyRevisionNumber);
     }
 
     function getSponsor(uint32 _ship)
