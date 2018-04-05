@@ -175,7 +175,7 @@ contract LinearStarRelease is Ownable
 
       //  update contract state
       //
-      Batch storage batch = batches[msg.sender];
+      Batch storage batch = batches[_participant];
       batch.withdrawn = batch.withdrawn + 1;
 
       //  star: star being withdrawn
