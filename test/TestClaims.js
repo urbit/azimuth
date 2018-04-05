@@ -56,4 +56,21 @@ contract('Claims', function([owner, user]) {
     assert.equal(clam3[1], "claim4");
     assert.equal(clam3[2], "0x04");
   });
+
+  it('clearing claims', async function() {
+    // fill up with claims to ensure we can run the most expensive case
+    for (var i = 0; i < 16-3; i++) {
+      await claims.claim(0, "some protocol", "some claim "+i, "0x0");
+    }
+    // can't go over the limit
+    try {
+      await claims.claim(0, "some protocol", "some claim", "0x0");
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    assert.equal(await claims.getClaimCount(0), 16);
+    await claims.clearClaims(0);
+    assert.equal(await claims.getClaimCount(0), 0);
+  });
 });
