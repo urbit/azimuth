@@ -63,7 +63,7 @@ contract Ships is Ownable
 
     //  spawnCount: for stars and galaxies, number of :active children
     //
-    uint16 spawnCount;
+    uint32 spawnCount;
 
     //  encryptionKey: Urbit curve25519 encryption key, or 0 for none
     //
@@ -290,7 +290,7 @@ contract Ships is Ownable
     function getSpawnCount(uint32 _ship)
       view
       external
-      returns (uint16 spawnCount)
+      returns (uint32 spawnCount)
     {
       return ships[_ship].spawnCount;
     }
