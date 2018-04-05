@@ -29,9 +29,14 @@ contract DelegatedSending
   //
   mapping(uint16 => uint16) public limits;
 
-  //  sent: per planet, the amount of planets they have sent
+  //  pools: per planet, the amount of planets that have been given away by
+  //         the planet itself or the ones it invited
   //
-  mapping(uint32 => uint16) public sent;
+  mapping(uint32 => uint16) public pools;
+
+  //  fromPool: per planet, the pool from which they were sent
+  //
+  mapping(uint32 => uint32) public fromPool;
 
   //  DelegatedSending(): register the ships contract
   //
@@ -51,6 +56,17 @@ contract DelegatedSending
     limits[_prefix] = _limit;
   }
 
+  //  resetPool(): grant _for their own invite pool in case they still
+  //               share one and reset its counter to zero
+  //
+  function resetPool(uint32 _for)
+    external
+    shipOwner(ships.getPrefix(_for))
+  {
+    fromPool[_for] = 0;
+    pools[_for] = 0;
+  }
+
   //  sendShip(): as the ship _as, spawn the ship _ship to _to.
   //
   //    Requirements:
@@ -68,9 +84,15 @@ contract DelegatedSending
     //
     require(msg.sender != _to);
 
+
     //  increment the sent counter for _as.
     //
-    sent[_as] = sent[_as] + 1;
+    uint32 pool = getPool(_as);
+    pools[pool] = pools[pool] + 1;
+
+    //  associate the _ship with this pool
+    //
+    fromPool[_ship] = pool;
 
     //  grant _to ownership of _ship.
     //
@@ -87,13 +109,14 @@ contract DelegatedSending
     returns (bool result)
   {
     uint16 prefix = ships.getPrefix(_as);
+    uint32 pool = getPool(_as);
     return ( //  can only send ships with the same prefix
              //
              (prefix == ships.getPrefix(_ship)) &&
              //
              //  _as must not have hit the allowed limit yet
              //
-             (sent[_as] < limits[prefix]) &&
+             (pools[pool] < limits[prefix]) &&
              //
              //  _ship needs to be inactive
              //
@@ -112,6 +135,23 @@ contract DelegatedSending
              //  the prefix must be live
              //
              ships.hasBeenBooted(prefix) );
+  }
+
+  //  getPool(): get the invite pool _ship belongs to
+  //
+  function getPool(uint32 _ship)
+    internal
+    view
+    returns (uint32 pool)
+  {
+    pool = fromPool[_ship];
+
+    //  no pool explicitly registered means they have their own pool
+    //
+    if (0 == pool)
+    {
+      return _ship;
+    }
   }
 
   //  shipOwner(): require that :msg.sender is the owner of _ship
