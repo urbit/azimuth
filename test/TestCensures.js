@@ -18,13 +18,6 @@ contract('Censures', function([owner, user]) {
 
   it('censuring', async function() {
     assert.equal(await cens.getCensureCount(0), 0);
-    // planets may do nothing.
-    try {
-      await cens.censure(65792, 131328);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
     // stars can't censor galaxies.
     try {
       await cens.censure(256, 0);

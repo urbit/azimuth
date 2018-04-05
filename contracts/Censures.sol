@@ -19,11 +19,11 @@ contract Censures
 {
   //  Censured: :who got censures by :by
   //
-  event Censured(uint32 by, uint32 who);
+  event Censured(uint16 by, uint32 who);
 
   //  Forgiven: :who is no longer censured by :by
   //
-  event Forgiven(uint32 by, uint32 who);
+  event Forgiven(uint16 by, uint32 who);
 
   //  ships: ships data storage
   //
@@ -31,7 +31,7 @@ contract Censures
 
   //  censures: per ship, their registered censures
   //
-  mapping(uint32 => uint32[]) public censures;
+  mapping(uint16 => uint32[]) public censures;
 
   //  indexes: per ship per censure, (index + 1) in censures array
   //
@@ -39,7 +39,7 @@ contract Censures
   //    newly emptied slot, which is (n - 1) where n is the value of
   //    indexes[ship][censure].
   //
-  mapping(uint32 => mapping(uint32 => uint256)) public indexes;
+  mapping(uint16 => mapping(uint32 => uint256)) public indexes;
 
   //  Censures(): register the ships contract
   //
@@ -51,7 +51,7 @@ contract Censures
 
   //  getCensureCount(): return length of array of censures made by _whose
   //
-  function getCensureCount(uint32 _whose)
+  function getCensureCount(uint16 _whose)
     view
     public
     returns (uint256 count)
@@ -64,7 +64,7 @@ contract Censures
   //    Note: only useful for clients, as Solidity does not currently
   //    support returning dynamic arrays.
   //
-  function getCensures(uint32 _whose)
+  function getCensures(uint16 _whose)
     view
     public
     returns (uint32[] cens)
@@ -74,7 +74,7 @@ contract Censures
 
   //  censure(): register a censure of _who as _as
   //
-  function censure(uint32 _as, uint32 _who)
+  function censure(uint16 _as, uint32 _who)
     external
     shipOwner(_as)
   {
@@ -95,9 +95,7 @@ contract Censures
     //
     Ships.Class asClass = ships.getShipClass(_as);
     Ships.Class whoClass = ships.getShipClass(_who);
-    require( (asClass < Ships.Class.Planet) &&
-             (whoClass < Ships.Class.Planet) &&
-             (whoClass >= asClass) );
+    require( whoClass >= asClass );
 
     //  update contract state with the new censure
     //
@@ -108,7 +106,7 @@ contract Censures
 
   //  forgive(): unregister a censure of _who as _as
   //
-  function forgive(uint32 _as, uint32 _who)
+  function forgive(uint16 _as, uint32 _who)
     external
     shipOwner(_as)
   {
