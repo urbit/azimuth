@@ -11,7 +11,7 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 //
 //    This contract is the point of entry for all operations on the Urbit
 //    ledger as stored in the Ships contract. The functions herein are
-//    responsbile for performing all necessary business logic.
+//    responsible for performing all necessary business logic.
 //    Examples of such logic include verifying permissions of the caller
 //    and ensuring a requested change is actually valid.
 //
@@ -33,7 +33,7 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 //    operate on the date they contain. This contract will selfdestruct at
 //    the end of the upgrade process.
 //
-//    This contracts implements the ERC721 interface for non-fungible tokens,
+//    This contract implements the ERC721 interface for non-fungible tokens,
 //    allowing ships to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
@@ -284,7 +284,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       require( (uint8(ships.getShipClass(prefix)) + 1) ==
                uint8(ships.getShipClass(_ship)) );
 
-      //  prefix ship must be active and able to spawn
+      //  prefix ship must be live and able to spawn
       //
       require( (ships.hasBeenBooted(prefix)) &&
                (ships.getSpawnCount(prefix) <
@@ -460,9 +460,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       //  your own active, but never booted, ship, to yourself,
       //  then transferring it to your friend.
       //
-      //  These planet sponsorship chains can grow to arbitrary length,
-      //  but can only be extended at the ends.  Most users will want
-      //  improve to their performance by switching to direct star sponsors.
+      //  These planets can, in turn, sponsor other unbooted planets,
+      //  so the "planet sponsorship chain" can grow to arbitrary
+      //  length. Most users, especially deep down the chain, will
+      //  want to improve their performance by switching to direct
+      //  star sponsors eventually.
       //
       Ships.Class shipClass = ships.getShipClass(_ship);
       Ships.Class sponsorClass = ships.getShipClass(_sponsor);
@@ -480,7 +482,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
                  !ships.hasBeenBooted(_ship) ) );
     }
 
-    //  escape(): request escape from _ship to _sponsor.
+    //  escape(): request escape from _ship to _sponsor
+    //
+    //    if an escape request is already active, this overwrites
+    //    the existing request
     //
     //    Requirements:
     //    - :msg.sender must be the owner of _ship,
@@ -533,7 +538,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     {
       require(ships.isEscape(_escapee, _sponsor));
 
-      // reset the _escapee's escape request to "not escaping"
+      //  reset the _escapee's escape request to "not escaping"
       //
       ships.cancelEscape(_escapee);
     }
