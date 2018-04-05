@@ -84,11 +84,7 @@ contract Censures
              //
              //  must not haven censured _who already
              //
-             (indexes[_as][_who] == 0) &&
-             //
-             //  may only censure up to 16 ships
-             //
-             (censures[_as].length < 16) );
+             (indexes[_as][_who] == 0) );
 
     //  only stars and galaxies may censure, and only galaxies may censure
     //  other galaxies
