@@ -78,7 +78,7 @@ contract('Polls', function([owner, user]) {
     await polls.castConcreteVote(2, concrProp, true);
     assert.isTrue(await polls.concreteMajorityMap(concrProp));
     cPoll = await polls.concretePolls(concrProp);
-    assert.equal(cPoll[1], 3);
+    assert.equal(cPoll[1], 2);
     assert.equal(cPoll[2], 1);
     // can't vote on finished poll
     try {
@@ -162,7 +162,7 @@ contract('Polls', function([owner, user]) {
     assert.equal(mas.length, 1);
     assert.equal(mas[0], abstrProp);
     aPoll = await polls.abstractPolls(abstrProp);
-    assert.equal(aPoll[1], 3);
+    assert.equal(aPoll[1], 2);
     assert.equal(aPoll[2], 1);
     // can't vote on finished poll
     try {
