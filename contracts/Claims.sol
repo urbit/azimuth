@@ -77,22 +77,6 @@ contract Claims
     return claims[_whose].length;
   }
 
-  //  getClaimAtIndex(): return the details of the claim at index _index
-  //                     in the array of claims made by _whose
-  //
-  //    Note: we provide this getter explicitly because Solidity
-  //    can't return structures from external function calls.
-  //
-  function getClaimAtIndex(uint32 _whose, uint256 _index)
-    view
-    public
-    returns (string protocol, string claim, bytes dossier)
-  {
-    require(_index < claims[_whose].length);
-    Claim storage clam = claims[_whose][_index];
-    return (clam.protocol, clam.claim, clam.dossier);
-  }
-
   //  claim(): register a claim as _as
   //
   function claim(uint32 _as, string _protocol, string _claim, bytes _dossier)
