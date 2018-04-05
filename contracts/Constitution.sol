@@ -299,8 +299,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
       //  set the new owner of the ship and make it active
       //
-      ships.setOwner(_ship, _target);
       ships.setActive(_ship);
+      ships.setOwner(_ship, _target);
     }
 
     //  getSpawnLimit(): returns the total number of children the ship _ship
