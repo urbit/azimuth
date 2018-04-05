@@ -146,6 +146,35 @@ contract Claims
     emit Disclaimed(_as, _protocol, _claim);
   }
 
+  //  clearClaims(): unregister all of _as's claims
+  //
+  //    can also be called by the constitution during ship transfer
+  //
+  function clearClaims(uint32 _as)
+    external
+  {
+    //  both ship owner and constitution may do this
+    //
+    require( ships.isOwner(_as, msg.sender) ||
+             ( msg.sender == ships.owner() ) );
+
+    Claim[] storage clams = claims[_as];
+
+    //  clear out the indexes mapping
+    //
+    //    this has an upper bound of 16 iterations due to the claims limit
+    //
+    for (uint8 i = 0; i < clams.length; i++)
+    {
+      Claim storage clam = clams[i];
+      indexes[_as][claimId(clam.protocol, clam.claim)] = 0;
+    }
+
+    //  lastly, remove all claims from storage
+    //
+    clams.length = 0;
+  }
+
   //  claimId(): generate a unique identifier for a claim
   //
   function claimId(string _protocol, string _claim)

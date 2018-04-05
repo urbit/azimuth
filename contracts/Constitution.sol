@@ -3,6 +3,7 @@
 pragma solidity 0.4.21;
 
 import './ConstitutionBase.sol';
+import './Claims.sol';
 import './ERC165Mapping.sol';
 import './interfaces/ERC721.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
@@ -53,6 +54,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
   event ApprovalForAll(address indexed _owner, address indexed _operator,
                        bool _approved);
 
+  Claims public claims;
+
   //  ERC721 metadata
   //
   string constant public name = "Urbit Ship";
@@ -65,10 +68,15 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
   //    manually transferred to this contract after it's on the chain and
   //    its address is known.
   //
-  function Constitution(address _previous, Ships _ships, Polls _polls)
+  function Constitution(address _previous,
+                        Ships _ships,
+                        Polls _polls,
+                        Claims _claims)
     ConstitutionBase(_previous, _ships, _polls)
     public
   {
+    claims = _claims;
+
     //  register supported interfaces for ERC165
     //
     supportedInterfaces[0x6466353c] = true; // ERC721
@@ -402,6 +410,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
         //  clear spawning proxy
         //
         ships.setSpawnProxy(_ship, 0);
+
+        //  clear claims
+        //
+        claims.clearClaims(0);
       }
       ships.setOwner(_ship, _target);
 

@@ -1,5 +1,6 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 const Polls = artifacts.require('../contracts/Polls.sol');
+const Claims = artifacts.require('../contracts/Claims.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 
 contract('Constitution', function([owner, user1, user2]) {
@@ -22,7 +23,9 @@ contract('Constitution', function([owner, user1, user2]) {
     pollTime = 3;
     ships = await Ships.new();
     polls = await Polls.new(pollTime, pollTime);
-    constit = await Constitution.new(0, ships.address, polls.address);
+    claims = await Claims.new(ships.address);
+    constit = await Constitution.new(0, ships.address, polls.address,
+                                     claims.address);
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
   });
@@ -115,6 +118,7 @@ contract('Constitution', function([owner, user1, user2]) {
     // set values that should be cleared on-transfer.
     await constit.setSpawnProxy(0, owner, {from:user1});
     await constit.setTransferProxy(0, owner, {from:user1});
+    await claims.claim(0, "protocol", "claim", "proof", {from:user1});
     // can't do if not owner.
     try {
       await constit.transferShip(0, user2, true, {from:user2});
@@ -122,7 +126,7 @@ contract('Constitution', function([owner, user1, user2]) {
     } catch(err) {
       assertJump(err);
     }
-    // transfer as owner.
+    // transfer as owner, resetting the ship.
     await constit.transferShip(0, user2, true, {from:user1});
     assert.isTrue(await ships.isOwner(0, user2));
     let [crypt, auth] = await ships.getKeys(0);
@@ -133,6 +137,7 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getKeyRevisionNumber(0), 2);
     assert.isFalse(await ships.isSpawnProxy(0, user2));
     assert.isFalse(await ships.isTransferProxy(0, user2));
+    assert.equal(await claims.getClaimCount(0), 0);
   });
 
   it('allowing transfer of ownership', async function() {
@@ -286,7 +291,8 @@ contract('Constitution', function([owner, user1, user2]) {
   it('voting on concrete poll', async function() {
     consti2 = await Constitution.new(constit.address,
                                      ships.address,
-                                     polls.address);
+                                     polls.address,
+                                     claims.address);
     // can't if not galaxy owner.
     try {
       await constit.castConcreteVote(0, consti2.address, true, {from:user2});
@@ -310,7 +316,8 @@ contract('Constitution', function([owner, user1, user2]) {
   it('updating concrete poll', async function() {
     let consti3 = await Constitution.new(consti2.address,
                                          ships.address,
-                                         polls.address);
+                                         polls.address,
+                                         claims.address);
     await consti2.startConcretePoll(0, consti3.address, {from:user1});
     await consti2.castConcreteVote(0, consti3.address, true, {from:user1});
     busywait(pollTime * 1.3); // make timing less tight
