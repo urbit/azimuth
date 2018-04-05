@@ -48,13 +48,13 @@ contract Polls is Ownable
     //
     bool[256] voted;
 
-    //  votes: total amount of votes cast on this poll
+    //  yesVotes: amount of votes in favor of the proposal
     //
-    uint8 votes;
+    uint8 yesVotes;
 
-    //  score: yes-votes minus no-votes
+    //  noVotes: amount of votes against the proposal
     //
-    int16 score;
+    uint8 noVotes;
   }
 
   //  pollDuration: amount of time during which a poll can be voted on
@@ -226,8 +226,8 @@ contract Polls is Ownable
     //
     _poll.start = block.timestamp;
     delete _poll.voted;
-    _poll.votes = 0;
-    _poll.score = 0;
+    _poll.yesVotes = 0;
+    _poll.noVotes = 0;
   }
 
   //  castConcreteVote(): as galaxy _as, cast a vote on the _proposal
@@ -273,14 +273,13 @@ contract Polls is Ownable
     //  update poll state to account for the new vote
     //
     _poll.voted[_as] = true;
-    _poll.votes = _poll.votes + 1;
     if (_vote)
     {
-      _poll.score = _poll.score + 1;
+      _poll.yesVotes = _poll.yesVotes + 1;
     }
     else
     {
-      _poll.score = _poll.score - 1;
+      _poll.noVotes = _poll.noVotes + 1;
     }
   }
 
@@ -347,17 +346,24 @@ contract Polls is Ownable
     view
     returns (bool majority)
   {
-    return ( //  poll must have at least the minimum required votes
+    return ( //  poll must have at least the minimum required yes-votes
              //
-             (_poll.votes >= (totalVoters / 2)) &&
-             ( //
-               //  and either have an indisputable majority
+             (_poll.yesVotes >= (totalVoters / 4)) &&
+             //
+             //  and have a majority...
+             //
+             (_poll.yesVotes > _poll.noVotes) &&
+             //
+             //  ...that is indisputable
+             //
+             ( //  either because the poll has ended
                //
-               (_poll.score > (totalVoters - _poll.votes)) ||
+               (block.timestamp > (_poll.start + pollDuration)) ||
                //
-               //  or have completed with a majority
+               //  or because there aren't enough remaining voters to
+               //  tip the scale
                //
-               ( (block.timestamp > (_poll.start + pollDuration)) &&
-                 _poll.score > 0) ) );
+               ( (_poll.yesVotes - _poll.noVotes) >
+                 (totalVoters - (_poll.yesVotes + _poll.noVotes)) ) ) );
   }
 }
