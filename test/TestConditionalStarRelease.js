@@ -1,5 +1,6 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 const Polls = artifacts.require('../contracts/Polls.sol');
+const Claims = artifacts.require('../contracts/Claims.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 const CSR = artifacts.require('../contracts/ConditionalStarRelease.sol');
 
@@ -35,7 +36,9 @@ contract('Conditional Star Release', function([owner, user1, user2]) {
     rateUnit = 6;
     ships = await Ships.new();
     polls = await Polls.new(60, 0);
-    constit = await Constitution.new(0, ships.address, polls.address);
+    claims = await Claims.new(ships.address);
+    constit = await Constitution.new(0, ships.address, polls.address,
+                                     claims.address);
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
     await constit.createGalaxy(0, owner);

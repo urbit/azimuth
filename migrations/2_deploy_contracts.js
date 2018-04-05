@@ -26,6 +26,7 @@ module.exports = async function(deployer) {
   }).then(function(instance) {
     ships = instance;
     //TODO test data, maybe in separate migration.
+    //
     return deployer.deploy(Polls, 1209600, 604800);
   }).then(function() {
     return Polls.deployed();
@@ -41,13 +42,25 @@ module.exports = async function(deployer) {
     return Censures.deployed();
   }).then(function(instance) {
     censures = instance;
-    return deployer.deploy(Constitution, 0, ships.address, polls.address);
+    return deployer.deploy(Constitution, 0, ships.address, polls.address,
+                                         claims.address);
   }).then(function() {
     return Constitution.deployed();
-  }).then(function(instance) {
+  }).then(async function(instance) {
     constitution = instance;
     ships.transferOwnership(constitution.address);
     polls.transferOwnership(constitution.address);
+    //
+    var own = await constitution.owner();
+    await constitution.createGalaxy(0, own);
+    await constitution.configureKeys(0, 123, 456);
+    await constitution.spawn(256, own);
+    await constitution.configureKeys(256, 456, 789);
+    await constitution.spawn(65792, own);
+    await constitution.spawn(131328, own);
+    await constitution.spawn(512, own);
+    await constitution.createGalaxy(1, own);
+    //
   }).then(function() {
     return deployer.deploy(Pool, ships.address);
   }).then(function() {
