@@ -87,6 +87,9 @@ contract('Ships', function([owner, user]) {
     await ships.setActive(256);
     assert.isTrue(await ships.isActive(0));
     assert.equal(await ships.getSpawnCount(0), 1);
+    let spawned = await ships.getSpawned(0);
+    assert.equal(spawned.length, 1);
+    assert.equal(spawned[0], 256);
     assert.isTrue(await ships.isActive(256));
   });
 

@@ -77,6 +77,10 @@ contract Ships is Ownable
     //
     uint32 spawnCount;
 
+    //  spawned: for stars and galaxies, all :active children
+    //
+    uint32[] spawned;
+
     //  sponsor: ship that supports this one on the network
     //           (by default, the ship's half-width prefix)
     //
@@ -280,7 +284,9 @@ contract Ships is Ownable
       ship.active = true;
       if (_ship > 255)
       {
-        ships[getPrefix(_ship)].spawnCount++;
+        uint32 prefix = getPrefix(_ship);
+        ships[prefix].spawnCount++;
+        ships[prefix].spawned.push(_ship);
       }
       emit Activated(_ship);
     }
@@ -342,6 +348,14 @@ contract Ships is Ownable
       returns (uint32 spawnCount)
     {
       return ships[_ship].spawnCount;
+    }
+
+    function getSpawned(uint32 _ship)
+      view
+      external
+      returns (uint32[] spawned)
+    {
+      return ships[_ship].spawned;
     }
 
     function getSponsor(uint32 _ship)
