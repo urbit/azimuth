@@ -61,10 +61,6 @@ contract Ships is Ownable
     //
     bool active;
 
-    //  spawnCount: for stars and galaxies, number of :active children
-    //
-    uint32 spawnCount;
-
     //  encryptionKey: Urbit curve25519 encryption key, or 0 for none
     //
     bytes32 encryptionKey;
@@ -76,6 +72,10 @@ contract Ships is Ownable
     //  keyRevisionNumber: incremented every time we change the keys
     //
     uint32 keyRevisionNumber;
+
+    //  spawnCount: for stars and galaxies, number of :active children
+    //
+    uint32 spawnCount;
 
     //  sponsor: ship that supports this one on the network
     //           (by default, the ship's half-width prefix)
@@ -285,16 +285,6 @@ contract Ships is Ownable
       emit Activated(_ship);
     }
 
-    //  getSpawnCount(): return the number of children spawned by _ship
-    //
-    function getSpawnCount(uint32 _ship)
-      view
-      external
-      returns (uint32 spawnCount)
-    {
-      return ships[_ship].spawnCount;
-    }
-
     function getKeys(uint32 _ship)
       view
       external
@@ -342,6 +332,16 @@ contract Ships is Ownable
                        _encryptionKey,
                        _authenticationKey,
                        ship.keyRevisionNumber);
+    }
+
+    //  getSpawnCount(): return the number of children spawned by _ship
+    //
+    function getSpawnCount(uint32 _ship)
+      view
+      external
+      returns (uint32 spawnCount)
+    {
+      return ships[_ship].spawnCount;
     }
 
     function getSponsor(uint32 _ship)
