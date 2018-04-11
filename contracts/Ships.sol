@@ -123,15 +123,28 @@ contract Ships is Ownable
   //
   mapping(address => mapping(address => bool)) public operators;
 
+  //  dnsDomain: base domain for contacting galaxies in urbit
+  //
+  string public dnsDomain;
+
   function Ships()
     public
   {
-    //
+    dnsDomain = "urbit.org";
   }
 
   //
   //  Getters, setters and checks
   //
+
+    //  setDnsDomain(): set the base domain used for contacting galaxies
+    //
+    function setDnsDomain(string _dnsDomain)
+      onlyOwner
+      external
+    {
+      dnsDomain = _dnsDomain;
+    }
 
     //  getOwnedShips(): return array of ships that :msg.sender owns
     //
