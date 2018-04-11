@@ -37,16 +37,20 @@ contract('Ships', function([owner, user]) {
   });
 
   it('setting dns domain', async function() {
-    assert.equal(await ships.dnsDomain(), "urbit.org");
+    assert.equal(await ships.dnsDomains(0), "urbit.org");
+    assert.equal(await ships.dnsDomains(1), "urbit.org");
+    assert.equal(await ships.dnsDomains(2), "urbit.org");
     // only owner can do this.
     try {
-      await ships.setDnsDomain("new.domain", {from:user});
+      await ships.setDnsDomains("new1", "new2", "new3", {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setDnsDomain("new.domain");
-    assert.equal(await ships.dnsDomain(), "new.domain");
+    await ships.setDnsDomains("new1", "new2", "new3");
+    assert.equal(await ships.dnsDomains(0), "new1");
+    assert.equal(await ships.dnsDomains(1), "new2");
+    assert.equal(await ships.dnsDomains(2), "new3");
   });
 
   it('getting and setting the ship owner', async function() {

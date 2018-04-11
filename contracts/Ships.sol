@@ -38,6 +38,10 @@ contract Ships is Ownable
   //
   event ChangedKeys(uint32 ship, bytes32 crypt, bytes32 auth, uint32 rev);
 
+  //  ChangedDns: dnsDomains has been updated
+  //
+  event ChangedDns(string primary, string secondary, string tertiary);
+
   //  Class: classes of ship registered on eth
   //
   enum Class
@@ -123,27 +127,36 @@ contract Ships is Ownable
   //
   mapping(address => mapping(address => bool)) public operators;
 
-  //  dnsDomain: base domain for contacting galaxies in urbit
+  //  dnsDomains: base domains for contacting galaxies in urbit
   //
-  string public dnsDomain;
+  //    dnsDomains[0] is primary, the others are used as fallbacks
+  //
+  string[3] public dnsDomains;
 
   function Ships()
     public
   {
-    dnsDomain = "urbit.org";
+    dnsDomains = ["urbit.org", "urbit.org", "urbit.org"];
   }
 
   //
   //  Getters, setters and checks
   //
 
-    //  setDnsDomain(): set the base domain used for contacting galaxies
+    //  setDnsDomains(): set the base domains used for contacting galaxies
     //
-    function setDnsDomain(string _dnsDomain)
+    //    Note: since a string is really just a byte[], and Solidity can't
+    //    work with two-dimensional arrays yet, we pass in the three
+    //    domains as individual strings.
+    //
+    function setDnsDomains(string _primary, string _secondary, string _tertiary)
       onlyOwner
       external
     {
-      dnsDomain = _dnsDomain;
+      dnsDomains[0] = _primary;
+      dnsDomains[1] = _secondary;
+      dnsDomains[2] = _tertiary;
+      emit ChangedDns(_primary, _secondary, _tertiary);
     }
 
     //  getOwnedShips(): return array of ships that :msg.sender owns
