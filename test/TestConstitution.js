@@ -30,6 +30,18 @@ contract('Constitution', function([owner, user1, user2]) {
     await polls.transferOwnership(constit.address);
   });
 
+  it('setting dns domains', async function() {
+    // can only be done by owner
+    try {
+      await constit.setDnsDomains("1", "2", "3", {from:user1});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await constit.setDnsDomains("1", "2", "3");
+    assert.equal(await ships.dnsDomains(2), "3");
+  });
+
   it('creating galaxies', async function() {
     // create.
     await constit.createGalaxy(0, user1);
