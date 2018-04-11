@@ -36,6 +36,19 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getShipClass(1245952), 2);
   });
 
+  it('setting dns domain', async function() {
+    assert.equal(await ships.dnsDomain(), "urbit.org");
+    // only owner can do this.
+    try {
+      await ships.setDnsDomain("new.domain", {from:user});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await ships.setDnsDomain("new.domain");
+    assert.equal(await ships.dnsDomain(), "new.domain");
+  });
+
   it('getting and setting the ship owner', async function() {
     assert.equal(await ships.getOwner(0), 0);
     // only owner can do this.
@@ -60,13 +73,13 @@ contract('Ships', function([owner, user]) {
   it('getting owned ships', async function() {
     await ships.setOwner(1, user);
     await ships.setOwner(2, user);
-    let owned = await ships.getOwnedShips({from:user});
+    let owned = await ships.getOwnedShips(user, {from:user});
     assert.equal(owned[0].toNumber(), 0);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned[2].toNumber(), 2);
     assert.equal(owned.length, 3);
     await ships.setOwner(0, 0);
-    owned = await ships.getOwnedShips({from:user});
+    owned = await ships.getOwnedShips(user, {from:user});
     assert.equal(owned[0].toNumber(), 2);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned.length, 2);
