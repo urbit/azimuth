@@ -71,8 +71,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
   function Constitution(address _previous,
                         Ships _ships,
                         Polls _polls,
+                        ENS _ensRegistry,
+                        string _baseEns,
+                        string _subEns,
                         Claims _claims)
-    ConstitutionBase(_previous, _ships, _polls)
+    ConstitutionBase(_previous, _ships, _polls, _ensRegistry, _baseEns, _subEns)
     public
   {
     claims = _claims;

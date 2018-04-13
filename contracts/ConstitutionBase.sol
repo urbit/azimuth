@@ -8,6 +8,9 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import './Ships.sol';
 import './Polls.sol';
 
+import './interfaces/ENS.sol';
+import './interfaces/ResolverInterface.sol';
+
 //  ConstitutionBase: upgradable constitution
 //
 //    This contract implements the upgrade logic for the Constitution.
@@ -30,18 +33,40 @@ contract ConstitutionBase is Ownable
   Ships public ships;
   Polls public polls;
 
+  //  ens: ENS registry where ownership of the urbit domain is registered
+  //
+  ENS public ens;
+
   //  previousConstitution: address of the previous constitution this
   //                        instance expects to upgrade from, stored and
   //                        checked for to prevent unexpected upgrade paths
   //
   address public previousConstitution;
 
-  function ConstitutionBase(address _previous, Ships _ships, Polls _polls)
+  //  baseNode: namehash of the urbit ens node
+  //  subLabel: hash of the constitution's subdomain (without base domain)
+  //  subNode:  namehash of the constitution's subnode
+  //
+  bytes32 public baseNode;
+  bytes32 public subLabel;
+  bytes32 public subNode;
+
+  function ConstitutionBase(address _previous,
+                            Ships _ships,
+                            Polls _polls,
+                            ENS _ensRegistry,
+                            string _baseEns,
+                            string _subEns)
     internal
   {
     previousConstitution = _previous;
     ships = _ships;
     polls = _polls;
+    ens = _ensRegistry;
+    subLabel = keccak256(_subEns);
+    baseNode = keccak256( keccak256( bytes32(0), keccak256('eth') ),
+                          keccak256(_baseEns) );
+    subNode = keccak256( baseNode, keccak256(_subEns) );
   }
 
   //  upgraded(): called by previous constitution when upgrading
@@ -49,7 +74,12 @@ contract ConstitutionBase is Ownable
   function upgraded()
     external
   {
-    require(msg.sender == previousConstitution);
+    //  make sure this is the expected upgrade path,
+    //  and that we have gotten ownership of the ENS nodes
+    //
+    require( msg.sender == previousConstitution &&
+             this == ens.owner(baseNode) &&
+             this == ens.owner(subNode) );
   }
 
   //  upgrade(): transfer ownership of the constitution data to the new
@@ -61,9 +91,28 @@ contract ConstitutionBase is Ownable
   function upgrade(ConstitutionBase _new)
     internal
   {
+    //  transfer ownership of the data contracts
+    //
     ships.transferOwnership(_new);
     polls.transferOwnership(_new);
+
+    //  make the ens resolver point to the new address, then transfer
+    //  ownership of the urbit & constitution nodes to the new constitution.
+    //
+    //    Note: we're assuming we only register a resolver for the base node
+    //          and don't have one registered for subnodes.
+    //
+    ResolverInterface resolver = ResolverInterface(ens.resolver(baseNode));
+    resolver.setAddr(subNode, _new);
+    ens.setSubnodeOwner(baseNode, subLabel, _new);
+    ens.setOwner(baseNode, _new);
+
+    //  trigger upgrade logic on the target contract
+    //
     _new.upgraded();
+
+    //  emit event and destroy this contract
+    //
     emit Upgraded(_new);
     selfdestruct(_new);
   }

@@ -42,8 +42,10 @@ module.exports = async function(deployer) {
     return Censures.deployed();
   }).then(function(instance) {
     censures = instance;
+    //NOTE  for real deployment, we'll want to use a real ENS registry
+    //      and node names
     return deployer.deploy(Constitution, 0, ships.address, polls.address,
-                                         claims.address);
+                                         0, '', '', claims.address);
   }).then(function() {
     return Constitution.deployed();
   }).then(async function(instance) {

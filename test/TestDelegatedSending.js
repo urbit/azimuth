@@ -23,7 +23,7 @@ contract('Delegated Sending', function([owner, user]) {
     polls = await Polls.new(0, 0);
     claims = await Claims.new(ships.address);
     constit = await Constitution.new(0, ships.address, polls.address,
-                                     claims.address);
+                                     0, '', '', claims.address);
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
     dese = await DelegatedSending.new(ships.address);
