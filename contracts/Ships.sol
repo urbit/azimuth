@@ -140,7 +140,7 @@ contract Ships is Ownable
   function Ships()
     public
   {
-    dnsDomains = ["urbit.org", "urbit.org", "urbit.org"];
+    setDnsDomains("urbit.org", "urbit.org", "urbit.org");
   }
 
   //
@@ -155,7 +155,7 @@ contract Ships is Ownable
     //
     function setDnsDomains(string _primary, string _secondary, string _tertiary)
       onlyOwner
-      external
+      public
     {
       dnsDomains[0] = _primary;
       dnsDomains[1] = _secondary;
