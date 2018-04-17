@@ -30,6 +30,10 @@ contract Ships is Ownable
   //
   event EscapeRequested(uint32 ship, uint32 sponsor);
 
+  //  EscapeCanceled: :ship's sponsor request was canceled or rejected
+  //
+  event EscapeCanceled(uint32 ship);
+
   //  EscapeAccepted: :ship confirmed with a new sponsor, :sponsor
   //
   event EscapeAccepted(uint32 ship, uint32 sponsor);
@@ -432,6 +436,7 @@ contract Ships is Ownable
       external
     {
       ships[_ship].escapeRequested = false;
+      emit EscapeCanceled(_ship);
     }
 
     //  doEscape(): perform the requested escape
