@@ -22,9 +22,9 @@ contract Ships is Ownable
   //
   event Transferred(uint32 ship, address owner);
 
-  //  Activated: :ship is now activated
+  //  Activated: :ship is now activated and owned by :owner
   //
-  event Activated(uint32 ship);
+  event Activated(uint32 ship, address owner);
 
   //  EscapeRequested: :ship has requested a new sponsor, :sponsor
   //
@@ -284,8 +284,7 @@ contract Ships is Ownable
       //
       if (_owner != 0)
       {
-        owners[_owner].push(_ship);
-        shipOwnerIndexes[_owner][_ship] = owners[_owner].length;
+        registerOwnership(_ship, _owner);
       }
       ships[_ship].owner = _owner;
       emit Transferred(_ship, _owner);
@@ -301,9 +300,9 @@ contract Ships is Ownable
       return ships[_ship].active;
     }
 
-    //  setActive(): activate ship
+    //  setActive(): activate a ship, give it an initial owner
     //
-    function setActive(uint32 _ship)
+    function setActive(uint32 _ship, address _owner)
       onlyOwner
       external
     {
@@ -318,7 +317,12 @@ contract Ships is Ownable
         ships[prefix].spawnCount++;
         ships[prefix].spawned.push(_ship);
       }
-      emit Activated(_ship);
+
+      //  give the ship to its initial owner
+      //
+      registerOwnership(_ship, _owner);
+      ships[_ship].owner = _owner;
+      emit Activated(_ship, _owner);
     }
 
     function getKeys(uint32 _ship)
@@ -516,6 +520,15 @@ contract Ships is Ownable
   //
   //  Utility functions
   //
+
+    //  registerOwnership(): give _owner ownership of _ship
+    //
+    function registerOwnership(uint32 _ship, address _owner)
+      internal
+    {
+      owners[_owner].push(_ship);
+      shipOwnerIndexes[_owner][_ship] = owners[_owner].length;
+    }
 
     //  getPrefix(): compute prefix parent of _ship
     //

@@ -310,8 +310,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
       //  set the new owner of the ship and make it active
       //
-      ships.setActive(_ship);
-      ships.setOwner(_ship, _target);
+      ships.setActive(_ship, _target);
     }
 
     //  getSpawnLimit(): returns the total number of children the ship _ship
@@ -670,8 +669,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     {
       require(!ships.isActive(_galaxy));
       polls.incrementTotalVoters();
-      ships.setActive(_galaxy);
-      ships.setOwner(_galaxy, _target);
+      ships.setActive(_galaxy, _target);
     }
 
     function setDnsDomains(string _primary, string _secondary, string _tertiary)

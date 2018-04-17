@@ -95,14 +95,15 @@ contract('Ships', function([owner, user]) {
     assert.isFalse(await ships.isActive(256));
     // only owner can do this.
     try {
-      await ships.setActive(0, {from:user});
+      await ships.setActive(0, owner, {from:user});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
-    await ships.setActive(0);
-    await ships.setActive(256);
+    await ships.setActive(0, owner);
+    await ships.setActive(256, owner);
     assert.isTrue(await ships.isActive(0));
+    assert.isTrue(await ships.isOwner(0, owner));
     assert.equal(await ships.getSpawnCount(0), 1);
     let spawned = await ships.getSpawned(0);
     assert.equal(spawned.length, 1);
