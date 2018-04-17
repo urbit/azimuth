@@ -42,6 +42,14 @@ contract Ships is Ownable
   //
   event ChangedKeys(uint32 ship, bytes32 crypt, bytes32 auth, uint32 rev);
 
+  //  ChangedSpawnProxy: :ship has a new spawn proxy
+  //
+  event ChangedSpawnProxy(uint32 ship, address spawnProxy);
+
+  //  ChangedTransferProxy: :ship has a new transfer proxy
+  //
+  event ChangedTransferProxy(uint32 ship, address transferProxy);
+
   //  ChangedDns: dnsDomains has been updated
   //
   event ChangedDns(string primary, string secondary, string tertiary);
@@ -477,6 +485,7 @@ contract Ships is Ownable
       external
     {
       ships[_ship].spawnProxy = _spawner;
+      emit ChangedSpawnProxy(_ship, _spawner);
     }
 
     function isTransferProxy(uint32 _ship, address _transferrer)
@@ -500,6 +509,7 @@ contract Ships is Ownable
       external
     {
       ships[_ship].transferProxy = _transferrer;
+      emit ChangedTransferProxy(_ship, _transferrer);
     }
 
     function isOperator(address _owner, address _operator)
