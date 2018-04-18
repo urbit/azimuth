@@ -91,8 +91,8 @@ contract('Ships', function([owner, user]) {
 
   it('activating and spawn count', async function() {
     assert.isFalse(await ships.isActive(0));
-    assert.equal(await ships.getSpawnCount(0), 0);
-    assert.isFalse(await ships.isActive(256));
+    assert.equal(await ships.getSpawnCount(1), 0);
+    assert.isFalse(await ships.isActive(257));
     // only owner can do this.
     try {
       await ships.setActive(0, owner, {from:user});
@@ -101,14 +101,15 @@ contract('Ships', function([owner, user]) {
       assertJump(err);
     }
     await ships.setActive(0, owner);
-    await ships.setActive(256, owner);
+    await ships.setActive(257, owner);
     assert.isTrue(await ships.isActive(0));
     assert.isTrue(await ships.isOwner(0, owner));
-    assert.equal(await ships.getSpawnCount(0), 1);
-    let spawned = await ships.getSpawned(0);
+    assert.equal(await ships.getSpawnCount(1), 1);
+    let spawned = await ships.getSpawned(1);
     assert.equal(spawned.length, 1);
-    assert.equal(spawned[0], 256);
-    assert.isTrue(await ships.isActive(256));
+    assert.equal(spawned[0], 257);
+    assert.isTrue(await ships.isActive(257));
+    assert.equal(await ships.getSponsor(257), 1);
   });
 
   it('setting, canceling, and doing escape', async function() {
