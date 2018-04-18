@@ -32,7 +32,7 @@ contract LinearStarRelease is Ownable
   //
   struct Batch
   {
-    //  windup: amount of time it takes for stars to stars becoming
+    //  windup: amount of time it takes for stars to start becoming
     //          available for withdrawal
     //
     uint256 windup;
