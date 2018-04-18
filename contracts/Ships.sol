@@ -314,14 +314,18 @@ contract Ships is Ownable
       onlyOwner
       external
     {
-      //  make a ship active, increasing the spawn count of its prefix
+      //  make a ship active, setting its sponsor to its prefix
       //
       Hull storage ship = ships[_ship];
       require(!ship.active);
       ship.active = true;
+      uint32 prefix = getPrefix(_ship);
+      ship.sponsor = prefix;
+
+      //  for non-galaxies, increase the spawn count of the prefix
+      //
       if (_ship > 255)
       {
-        uint32 prefix = getPrefix(_ship);
         ships[prefix].spawnCount++;
         ships[prefix].spawned.push(_ship);
       }
