@@ -111,7 +111,7 @@ contract('Constitution', function([owner, user1, user2]) {
     } catch(err) {
       assertJump(err);
     }
-    await constit.configureKeys(0, 1, 2, {from:user1});
+    await constit.configureKeys(0, 1, 2, false, {from:user1});
     // spawn child.
     await constit.spawn(256, user1, {from:user1});
     assert.isTrue(await ships.isOwner(256, user1));
@@ -201,26 +201,29 @@ contract('Constitution', function([owner, user1, user2]) {
   it('rekeying a ship', async function() {
     // can't do if not owner.
     try {
-      await constit.configureKeys(0, 9, 8, {from:user2});
+      await constit.configureKeys(0, 9, 8, false, {from:user2});
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
     // can't do if ship not active.
     try {
-      await constit.configureKeys(100, 9, 8);
+      await constit.configureKeys(100, 9, 8, false);
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
     }
     // rekey as owner.
-    await constit.configureKeys(0, 9, 8, {from:user1});
+    await constit.configureKeys(0, 9, 8, false, {from:user1});
     let [crypt, auth] = await ships.getKeys(0);
     assert.equal(crypt,
       '0x9000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(auth,
       '0x8000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(await ships.getKeyRevisionNumber(0), 3);
+    assert.equal(await ships.getContinuityNumber(0), 0);
+    await constit.configureKeys(0, 9, 8, true, {from:user1});
+    assert.equal(await ships.getContinuityNumber(0), 1);
   });
 
   it('setting and canceling an escape', async function() {
@@ -231,7 +234,7 @@ contract('Constitution', function([owner, user1, user2]) {
     } catch(err) {
       assertJump(err);
     }
-    await constit.configureKeys(1, 8, 9, {from:user1});
+    await constit.configureKeys(1, 8, 9, false, {from:user1});
     // can't if not owner of ship.
     try {
       await constit.escape(256, 1, {from:user2});
@@ -260,13 +263,13 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.escape(256, 1, {from:user1});
     await constit.escape(512, 1, {from:user1});
     // try out peer sponsorship.
-    await constit.configureKeys(256, 1, 2, {from:user1});
+    await constit.configureKeys(256, 1, 2, false, {from:user1});
     await constit.spawn(65792, owner, {from:user1});
     await constit.spawn(131328, owner, {from:user1});
     assert.isFalse(await constit.canEscapeTo(131328, 65792));
-    await constit.configureKeys(65792, 1, 2);
+    await constit.configureKeys(65792, 1, 2, false);
     assert.isTrue(await constit.canEscapeTo(131328, 65792));
-    await constit.configureKeys(131328, 3, 4);
+    await constit.configureKeys(131328, 3, 4, false);
     assert.isFalse(await constit.canEscapeTo(131328, 65792));
   });
 

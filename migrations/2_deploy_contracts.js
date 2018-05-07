@@ -55,9 +55,9 @@ module.exports = async function(deployer) {
     //
     var own = await constitution.owner();
     await constitution.createGalaxy(0, own);
-    await constitution.configureKeys(0, 123, 456);
+    await constitution.configureKeys(0, 123, 456, false);
     await constitution.spawn(256, own);
-    await constitution.configureKeys(256, 456, 789);
+    await constitution.configureKeys(256, 456, 789, false);
     await constitution.spawn(65792, own);
     await constitution.spawn(131328, own);
     await constitution.spawn(512, own);

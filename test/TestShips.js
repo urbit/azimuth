@@ -172,6 +172,16 @@ contract('Ships', function([owner, user]) {
     assert.equal(auth,
       '0xb000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(await ships.getKeyRevisionNumber(0), 1);
+    assert.equal(await ships.getContinuityNumber(0), 0);
+    // only owner can do this
+    try {
+      await ships.incrementContinuityNumber(0, {from:user});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await ships.incrementContinuityNumber(0);
+    assert.equal(await ships.getContinuityNumber(0), 1);
   });
 
   it('setting spawn proxy', async function() {

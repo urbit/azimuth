@@ -258,15 +258,21 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
   //
 
     //  configureKeys(): configure _ship with Urbit public keys _encryptionKey
-    //                   and _authenticationKey
+    //                   and _authenticationKey, incrementing the ship's
+    //                   continuity number if needed
     //
     function configureKeys(uint32 _ship,
                            bytes32 _encryptionKey,
-                           bytes32 _authenticationKey)
+                           bytes32 _authenticationKey,
+                           bool _discontinuous)
       external
       shipOwner(_ship)
     {
       ships.setKeys(_ship, _encryptionKey, _authenticationKey);
+      if (_discontinuous)
+      {
+        ships.incrementContinuityNumber(_ship);
+      }
     }
 
     //  spawn(): spawn _ship, giving ownership to _target

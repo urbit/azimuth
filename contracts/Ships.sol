@@ -42,6 +42,10 @@ contract Ships is Ownable
   //
   event ChangedKeys(uint32 ship, bytes32 crypt, bytes32 auth, uint32 rev);
 
+  //  BrokeContinuity: :ship has a new continuity number, :number.
+  //
+  event BrokeContinuity(uint32 ship, uint32 number);
+
   //  ChangedSpawnProxy: :ship has a new spawn proxy
   //
   event ChangedSpawnProxy(uint32 ship, address spawnProxy);
@@ -88,6 +92,10 @@ contract Ships is Ownable
     //  keyRevisionNumber: incremented every time we change the keys
     //
     uint32 keyRevisionNumber;
+
+    //  continuityNumber: incremented to indicate Urbit-side state loss
+    //
+    uint32 continuityNumber;
 
     //  spawnCount: for stars and galaxies, number of :active children
     //
@@ -384,6 +392,23 @@ contract Ships is Ownable
                        _encryptionKey,
                        _authenticationKey,
                        ship.keyRevisionNumber);
+    }
+
+    function getContinuityNumber(uint32 _ship)
+      view
+      external
+      returns (uint32 continuityNumber)
+    {
+      return ships[_ship].continuityNumber;
+    }
+
+    function incrementContinuityNumber(uint32 _ship)
+      onlyOwner
+      external
+    {
+      Hull storage ship = ships[_ship];
+      ship.continuityNumber++;
+      emit BrokeContinuity(_ship, ship.continuityNumber);
     }
 
     //  getSpawnCount(): return the number of children spawned by _ship
