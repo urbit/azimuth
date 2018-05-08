@@ -268,11 +268,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       external
       shipOwner(_ship)
     {
-      ships.setKeys(_ship, _encryptionKey, _authenticationKey);
       if (_discontinuous)
       {
         ships.incrementContinuityNumber(_ship);
       }
+      ships.setKeys(_ship, _encryptionKey, _authenticationKey);
     }
 
     //  spawn(): spawn _ship, giving ownership to _target
