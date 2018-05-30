@@ -11,6 +11,10 @@ contract('Planet Sale', function([owner, user]) {
     assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
   }
 
+  function assertNoContract(error) {
+    assert.isAbove(error.message.search('not a contract'), -1, 'Not a contract must be returned, but got ' + error);
+  }
+
   before('setting up for tests', async function() {
     price = 100000000;
     ships = await Ships.new();
@@ -86,6 +90,28 @@ contract('Planet Sale', function([owner, user]) {
     let userBal = web3.eth.getBalance(user).toNumber();
     let saleBal = web3.eth.getBalance(sale.address).toNumber();
     await sale.withdraw(user);
-    assert.equal(web3.fromWei(web3.eth.getBalance(user), "ether"), web3.fromWei(userBal + saleBal, "ether"));
+    assert.equal(web3.eth.getBalance(user).toNumber(), userBal + saleBal);
+  });
+
+  it('ending', async function() {
+    // only owner can do this.
+    try {
+      await sale.close(user, {from:user});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    await sale.purchase(131328, {from:user,value:price});
+    let userBal = web3.eth.getBalance(user).toNumber();
+    let saleBal = web3.eth.getBalance(sale.address).toNumber();
+    await sale.close(user);
+    assert.equal(web3.eth.getBalance(user).toNumber(), userBal + saleBal);
+    // should no longer exist
+    try {
+      await sale.price();
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertNoContract(err);
+    }
   });
 });

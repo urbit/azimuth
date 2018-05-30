@@ -12,6 +12,7 @@
     "babel-register": "^6.26.0",
     "solidity-coverage": "^0.5.4",
     "truffle": "^4.1.11",
+    "web3-eth-abi": "^1.0.0-beta.34",
     "zeppelin-solidity": "1.8.0"
   },
   "devDependencies": {},

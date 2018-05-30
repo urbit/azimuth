@@ -70,6 +70,13 @@ contract('Claims', function([owner, user]) {
       assertJump(err);
     }
     assert.equal(await claims.getClaimCount(0), 16);
+    // only ship owner (and constitution) can clear
+    try {
+      await claims.clearClaims(0, {from:user});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
     await claims.clearClaims(0);
     assert.equal(await claims.getClaimCount(0), 0);
   });

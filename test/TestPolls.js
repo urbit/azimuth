@@ -122,6 +122,13 @@ contract('Polls', function([owner, user]) {
     assert.isTrue(await polls.updateConcretePoll.call(concrProp2));
     await polls.updateConcretePoll(concrProp2);
     assert.isTrue(await polls.concreteMajorityMap(concrProp2));
+    // can't recreate once majority happened
+    try {
+      await polls.startConcretePoll(concrProp2);
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
   });
 
   it('abstract poll start & majority', async function() {
@@ -167,6 +174,13 @@ contract('Polls', function([owner, user]) {
     // can't vote on finished poll
     try {
       await polls.castAbstractVote(3, abstrProp, true);
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
+    // can't recreate once majority happened.
+    try {
+      await polls.startAbstractPoll(abstrProp);
       assert.fail('should have thrown before');
     } catch(err) {
       assertJump(err);
