@@ -82,7 +82,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
 
     //  register supported interfaces for ERC165
     //
-    supportedInterfaces[0x6466353c] = true; // ERC721
+    supportedInterfaces[0x80ac58cd] = true; // ERC721
     supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
     supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
   }
@@ -673,7 +673,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       external
       onlyOwner
     {
-      require(!ships.isActive(_galaxy));
+      require( !ships.isActive(_galaxy) &&
+               0x0 != _target );
       polls.incrementTotalVoters();
       ships.setActive(_galaxy, _target);
     }
