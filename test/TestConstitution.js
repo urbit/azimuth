@@ -368,6 +368,13 @@ contract('Constitution', function([owner, user1, user2]) {
                                          polls.address,
                                          ens.address, 'foo', 'sub',
                                          claims.address);
+    // upgraded can only be called by previous constitution
+    try {
+      await consti3.upgraded({from:user2});
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
     await consti2.startConcretePoll(0, consti3.address, {from:user1});
     await consti2.castConcreteVote(0, consti3.address, true, {from:user1});
     busywait(pollTime * 1.3); // make timing less tight

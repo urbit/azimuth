@@ -1,5 +1,27 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 
+// the below hacks around the fact that truffle doesn't play well with overloads
+
+const web3abi = require('web3-eth-abi');
+const web3 = Ships.web3;
+
+const overloadedGetOwnedShipsAbi = {
+  "constant": true,
+  "inputs": [],
+  "name": "getOwnedShips",
+  "outputs": [
+    {
+      "name": "ownedShips",
+      "type": "uint32[]"
+    }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+};
+
+const getOwnedShipsData = web3abi.encodeFunctionCall(overloadedGetOwnedShipsAbi, []);
+
 contract('Ships', function([owner, user]) {
   let ships;
   const LATENT = 0;
@@ -77,10 +99,16 @@ contract('Ships', function([owner, user]) {
   it('getting owned ships', async function() {
     await ships.setOwner(1, user);
     await ships.setOwner(2, user);
-    let owned = await ships.getOwnedShips(user, {from:user});
-    assert.equal(owned[0].toNumber(), 0);
-    assert.equal(owned[1].toNumber(), 1);
-    assert.equal(owned[2].toNumber(), 2);
+    let ownedEncoded = await web3.eth.call({
+      from: user,
+      to: ships.address,
+      data: getOwnedShipsData,
+      value: 0
+    });
+    let owned = web3abi.decodeParameters(['uint32[]'], ownedEncoded)[0];
+    assert.equal(owned[0], 0);
+    assert.equal(owned[1], 1);
+    assert.equal(owned[2], 2);
     assert.equal(owned.length, 3);
     await ships.setOwner(0, 0);
     owned = await ships.getOwnedShips(user, {from:user});
@@ -110,9 +138,17 @@ contract('Ships', function([owner, user]) {
     assert.equal(spawned[0], 257);
     assert.isTrue(await ships.isActive(257));
     assert.equal(await ships.getSponsor(257), 1);
+    // can't do it twice.
+    try {
+      await ships.setActive(0, owner);
+      assert.fail('should have thrown before');
+    } catch(err) {
+      assertJump(err);
+    }
   });
 
   it('setting, canceling, and doing escape', async function() {
+    assert.isFalse(await ships.isEscaping(257));
     // only owner can do this.
     try {
       await ships.setEscape(257, 2, {from:user});
@@ -129,8 +165,11 @@ contract('Ships', function([owner, user]) {
     }
     await ships.setEscape(257, 2);
     assert.isTrue(await ships.isEscape(257, 2));
+    assert.isTrue(await ships.isEscaping(257));
+    assert.equal(await ships.getEscape(257), 2);
     await ships.cancelEscape(257);
     assert.isFalse(await ships.isEscape(257, 2));
+    assert.isFalse(await ships.isEscaping(257));
     // only owner can do this.
     try {
       await ships.doEscape(257, {from:user});
@@ -187,6 +226,7 @@ contract('Ships', function([owner, user]) {
   it('setting spawn proxy', async function() {
     // only owner can do this.
     assert.isFalse(await ships.isSpawnProxy(0, owner));
+    assert.equal(await ships.getSpawnProxy(0), 0);
     try {
       await ships.setSpawnProxy(0, owner, {from:user});
       assert.fail('should have thrown before');
@@ -195,6 +235,7 @@ contract('Ships', function([owner, user]) {
     }
     await ships.setSpawnProxy(0, owner);
     assert.isTrue(await ships.isSpawnProxy(0, owner));
+    assert.equal(await ships.getSpawnProxy(0), owner);
     await ships.setSpawnProxy(0, 0);
     assert.isFalse(await ships.isSpawnProxy(0, owner));
   });
