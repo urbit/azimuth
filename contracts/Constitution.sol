@@ -214,6 +214,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     function tokenByIndex(uint256 _index)
       external
       pure
+      shipId(_index)
       returns (uint256)
     {
       return _index;
