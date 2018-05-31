@@ -6,15 +6,7 @@ const Polls = artifacts.require('../contracts/Polls.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
 const Constitution = artifacts.require('Constitution');
 
-async function assertRevert(promise) {
-  try {
-    await promise;
-    assert.fail('Expected revert not received');
-  } catch (error) {
-    var revertFound = error.message.search('revert') >= 0;
-    assert(revertFound, `Expected "revert", got ${error} instead`);
-  }
-};
+const assertRevert = require('./helpers/assertRevert');
 
 contract('NFTokenMetadataEnumerableMock', (accounts) => {
   let ships, polls, claims, nftoken;

@@ -1,5 +1,7 @@
 const Polls = artifacts.require('../contracts/Polls.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Polls', function([owner, user]) {
   let polls, duration, cooldown;
   const concrProp = '0x11ce09f4ebe9d12f6e3864d21a1e7dde126f34eb';
@@ -8,10 +10,6 @@ contract('Polls', function([owner, user]) {
     '0xabcde00000000000000000000000000000000000000000000000000000000000';
   const abstrProp2 =
     '0xcdef100000000000000000000000000000000000000000000000000000000000';
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
 
   // because setTimeout doesn't work.
   function busywait(s) {
@@ -44,34 +42,19 @@ contract('Polls', function([owner, user]) {
   it('concrete poll start & majority', async function() {
     assert.isFalse(await polls.concreteMajorityMap(concrProp));
     // non-owner can't do this.
-    try {
-      await polls.startConcretePoll(concrProp, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.startConcretePoll(concrProp, {from:user}));
     await polls.startConcretePoll(concrProp);
     let cPoll = await polls.concretePolls(concrProp);
     assert.notEqual(cPoll[0], 0);
     // non-owner can't do this.
-    try {
-      await polls.castConcreteVote(0, concrProp, true, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castConcreteVote(0, concrProp, true, {from:user}));
     // cast votes.
     // we use .call to check the result first, then actually transact.
     assert.isFalse(await polls.castConcreteVote.call(0, concrProp, true));
     await polls.castConcreteVote(0, concrProp, true);
     assert.isTrue(await polls.hasVotedOnConcretePoll(0, concrProp));
     // can't vote twice.
-    try {
-      await polls.castConcreteVote(0, concrProp, true);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castConcreteVote(0, concrProp, true));
     assert.isFalse(await polls.castConcreteVote.call(1, concrProp, false));
     await polls.castConcreteVote(1, concrProp, false);
     assert.isTrue(await polls.castConcreteVote.call(2, concrProp, true));
@@ -81,12 +64,7 @@ contract('Polls', function([owner, user]) {
     assert.equal(cPoll[1], 2);
     assert.equal(cPoll[2], 1);
     // can't vote on finished poll
-    try {
-      await polls.castConcreteVote(3, concrProp, true);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castConcreteVote(3, concrProp, true));
   });
 
   it('concrete poll minority & restart', async function() {
@@ -95,19 +73,9 @@ contract('Polls', function([owner, user]) {
     await polls.castConcreteVote(0, concrProp2, false);
     busywait(duration);
     // can't vote on finished poll
-    try {
-      await polls.castConcreteVote(1, concrProp2, true);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castConcreteVote(1, concrProp2, true));
     // can't recreate right away.
-    try {
-      await polls.startConcretePoll(concrProp2);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.startConcretePoll(concrProp2));
     busywait(cooldown * 1.3); // make timing less tight
     // recreate poll.
     await polls.startConcretePoll(concrProp2);
@@ -123,12 +91,7 @@ contract('Polls', function([owner, user]) {
     await polls.updateConcretePoll(concrProp2);
     assert.isTrue(await polls.concreteMajorityMap(concrProp2));
     // can't recreate once majority happened
-    try {
-      await polls.startConcretePoll(concrProp2);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.startConcretePoll(concrProp2));
   });
 
   it('abstract poll start & majority', async function() {
@@ -136,32 +99,17 @@ contract('Polls', function([owner, user]) {
     let mas = await polls.getAbstractMajorities();
     assert.equal(mas.length, 0);
     // non-owner can't do this.
-    try {
-      await polls.startAbstractPoll(abstrProp, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.startAbstractPoll(abstrProp, {from:user}));
     await polls.startAbstractPoll(abstrProp);
     let aPoll = await polls.abstractPolls(abstrProp);
     assert.notEqual(aPoll[0], 0);
     // non-owner can't do this.
-    try {
-      await polls.castAbstractVote(0, abstrProp, true, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castAbstractVote(0, abstrProp, true, {from:user}));
     // cast votes.
     await polls.castAbstractVote(0, abstrProp, true);
     assert.isTrue(await polls.hasVotedOnAbstractPoll(0, abstrProp));
     // can't vote twice.
-    try {
-      await polls.castAbstractVote(0, abstrProp, true);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castAbstractVote(0, abstrProp, true));
     await polls.castAbstractVote(1, abstrProp, false);
     await polls.castAbstractVote(2, abstrProp, true);
     assert.isTrue(await polls.abstractMajorityMap(abstrProp));
@@ -172,19 +120,9 @@ contract('Polls', function([owner, user]) {
     assert.equal(aPoll[1], 2);
     assert.equal(aPoll[2], 1);
     // can't vote on finished poll
-    try {
-      await polls.castAbstractVote(3, abstrProp, true);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castAbstractVote(3, abstrProp, true));
     // can't recreate once majority happened.
-    try {
-      await polls.startAbstractPoll(abstrProp);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.startAbstractPoll(abstrProp));
   });
 
   it('abstract poll minority & restart', async function() {
@@ -193,19 +131,9 @@ contract('Polls', function([owner, user]) {
     await polls.castAbstractVote(0, abstrProp2, false);
     busywait(duration);
     // can't vote on finished poll
-    try {
-      await polls.castAbstractVote(1, abstrProp2, true);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.castAbstractVote(1, abstrProp2, true));
     // can't recreate right away.
-    try {
-      await polls.startAbstractPoll(abstrProp2);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(polls.startAbstractPoll(abstrProp2));
     busywait(cooldown * 1.3); // make timing less tight
     // recreate poll.
     await polls.startAbstractPoll(abstrProp2);

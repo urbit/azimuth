@@ -35,15 +35,7 @@ const overloadedSafeTransferFrom = {
   "type": "function"
 };
 
-async function assertRevert(promise) {
-  try {
-    await promise;
-    assert.fail('Expected revert not received');
-  } catch (error) {
-    const revertFound = error.message.search('revert') >= 0;
-    assert(revertFound, `Expected "revert", got ${error} instead`);
-  }
-};
+const assertRevert = require('./helpers/assertRevert');
 
 contract('NFTokenMock', (accounts) => {
   let ships, polls, claims, nftoken;

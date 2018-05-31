@@ -4,13 +4,11 @@ const Claims = artifacts.require('../contracts/Claims.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 const DelegatedSending = artifacts.require('../contracts/DelegatedSending.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Delegated Sending', function([owner, user]) {
   let ships, constit, dese;
   let p1, p2, p3, p4, p5;
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
 
   before('setting up for tests', async function() {
     p1 = 65792;
@@ -40,12 +38,7 @@ contract('Delegated Sending', function([owner, user]) {
     assert.equal(await dese.limits(256), 0);
     assert.isFalse(await dese.canSend(p1, p2));
     // can only be done by star owner.
-    try {
-      await dese.configureLimit(256, 1, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(dese.configureLimit(256, 1, {from:user}));
     await dese.configureLimit(256, 3);
     assert.equal(await dese.limits(256), 3);
     assert.isTrue(await dese.canSend(p1, p2));
@@ -53,19 +46,9 @@ contract('Delegated Sending', function([owner, user]) {
 
   it('sending', async function() {
     // can only be done by ship owner
-    try {
-      await dese.sendShip(p1, p2, user, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(dese.sendShip(p1, p2, user, {from:user}));
     // can't send to self
-    try {
-      await dese.sendShip(p1, p2, owner);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(dese.sendShip(p1, p2, owner));
     // send as regular planet
     await dese.sendShip(p1, p2, user);
     assert.isTrue(await ships.isOwner(p2, user));
@@ -76,22 +59,12 @@ contract('Delegated Sending', function([owner, user]) {
     // can't send more than the limit
     assert.isFalse(await dese.canSend(p1, p5));
     assert.isFalse(await dese.canSend(p3, p5));
-    try {
-      await dese.sendShip(p3, p5, user);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(dese.sendShip(p3, p5, user));
   });
 
   it('resetting a pool', async function() {
     // can only be done by owner of the target's prefix
-    try {
-      await dese.resetPool(p3, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(dese.resetPool(p3, {from:user}));
     await dese.resetPool(p3);
     assert.isTrue(await dese.canSend(p3, p5));
     // shouldn't affect the pool it came from
