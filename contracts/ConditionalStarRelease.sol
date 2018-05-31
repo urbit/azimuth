@@ -314,6 +314,10 @@ contract ConditionalStarRelease is Ownable
       //
       require(transfers[_from] == msg.sender);
 
+      //  make sure the target isn't also a participant
+      //
+      require(0 == commitments[msg.sender].total);
+
       //  copy the commitment to the :msg.sender and clear _from's
       //
       Commitment storage com = commitments[_from];
