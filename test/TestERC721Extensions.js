@@ -12,7 +12,6 @@ async function assertRevert(promise) {
     assert.fail('Expected revert not received');
   } catch (error) {
     var revertFound = error.message.search('revert') >= 0;
-    revertFound = revertFound || error.message.search('fail') >= 0;
     assert(revertFound, `Expected "revert", got ${error} instead`);
   }
 };
@@ -22,7 +21,7 @@ contract('NFTokenMetadataEnumerableMock', (accounts) => {
   const id1 = 1;
   const id2 = 2;
   const id3 = 3;
-  const id4 = 40;
+  const id4 = 4294967297;
 
   beforeEach(async () => {
     ships = await Ships.new();
@@ -77,8 +76,7 @@ contract('NFTokenMetadataEnumerableMock', (accounts) => {
   });
 
   it('throws when trying to get token by unexistant index', async () => {
-    await nftoken.createGalaxy(id1, accounts[1]);
-    await assertRevert(nftoken.tokenByIndex(1));
+    await assertRevert(nftoken.tokenByIndex(id4));
   });
 
   it('returns the correct token of owner by index', async () => {
