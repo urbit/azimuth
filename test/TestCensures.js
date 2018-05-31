@@ -1,12 +1,10 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 const Censures = artifacts.require('../contracts/Censures.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Censures', function([owner, user]) {
   let ships, cens;
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
 
   before('setting up for tests', async function() {
     ships = await Ships.new();
@@ -19,35 +17,15 @@ contract('Censures', function([owner, user]) {
   it('censuring', async function() {
     assert.equal(await cens.getCensureCount(0), 0);
     // stars can't censor galaxies.
-    try {
-      await cens.censure(256, 0);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(cens.censure(256, 0));
     // can't self-censor.
-    try {
-      await cens.censure(256, 256);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(cens.censure(256, 256));
     // only ship owner can do this.
-    try {
-      await cens.censure(0, 1, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(cens.censure(0, 1, {from:user}));
     await cens.censure(0, 1);
     assert.equal(await cens.getCensureCount(0), 1);
     // can't censure twice.
-    try {
-      await cens.censure(0, 1);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(cens.censure(0, 1));
     await cens.censure(0, 2);
     await cens.censure(0, 3);
     await cens.censure(0, 4);
@@ -60,19 +38,9 @@ contract('Censures', function([owner, user]) {
 
   it('forgiving', async function() {
     // can't forgive the uncensured.
-    try {
-      await cens.forgive(0, 5);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(cens.forgive(0, 5));
     // only ship owner can do this.
-    try {
-      await cens.forgive(0, 2, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(cens.forgive(0, 2, {from:user}));
     await cens.forgive(0, 2);
     let censures = await cens.getCensures(0);
     assert.equal(censures[0].toNumber(), 1);

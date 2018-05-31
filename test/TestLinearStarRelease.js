@@ -4,16 +4,10 @@ const Claims = artifacts.require('../contracts/Claims.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 const LSR = artifacts.require('../contracts/LinearStarRelease.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Linear Star Release', function([owner, user1, user2, user3]) {
   let ships, polls, constit, lsr, windup, rateUnit;
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
-
-  function assertInvalid(error) {
-    assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode must be returned, but got ' + error);
-  }
 
   // because setTimeout doesn't work.
   function busywait(s) {
@@ -24,16 +18,9 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     }
   }
 
-  function busywaitUntil(timestamp) {
-    var ms = timestamp * 1000;
-    while (true) {
-      if (Date.now() > ms) break;
-    }
-  }
-
   before('setting up for tests', async function() {
     windup = 2;
-    rateUnit = 4;
+    rateUnit = 5;
     ships = await Ships.new();
     polls = await Polls.new(60, 0);
     claims = await Claims.new(ships.address);
@@ -53,19 +40,9 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
 
   it('registering batches', async function() {
     // only owner can do this
-    try {
-      await lsr.register(user1, windup, 5, 2, rateUnit, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.register(user1, windup, 5, 2, rateUnit, {from:user1}));
     // need a sane rate
-    try {
-      await lsr.register(user1, windup, 8, 0, rateUnit);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.register(user1, windup, 8, 0, rateUnit));
     assert.isTrue(await lsr.verifyBalance(user1));
     await lsr.register(user1, windup, 8, 2, rateUnit);
     await lsr.register(user3, windup, 8, 2, rateUnit);
@@ -95,25 +72,15 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
       await lsr.withdrawLimit(user2);
       assert.fail('should have thrown before');
     } catch(err) {
-      assertInvalid(err);
+      assert.isAbove(err.message.search('invalid opcode'), -1, 'Invalid opcode must be returned, but got ' + err);
     }
   });
 
   it('depositing stars', async function() {
     // only owner can do this
-    try {
-      await lsr.deposit(user1, 256, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.deposit(user1, 256, {from:user1}));
     // can't deposit a live star
-    try {
-      await lsr.deposit(user1, 2560);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.deposit(user1, 2560));
     // deposit spawned star, as star owner
     await lsr.deposit(user1, 256);
     // deposit unspawned stars, as galaxy owner
@@ -125,12 +92,7 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     assert.isTrue(await ships.isOwner(256, lsr.address));
     assert.isTrue(await lsr.verifyBalance(user1));
     // can't deposit too many
-    try {
-      await lsr.deposit(user1, 2304);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.deposit(user1, 2304));
   });
 
   it('transferring batch', async function() {
@@ -138,19 +100,9 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     assert.notEqual(await lsr.getRemainingStars(user1), 0);
     assert.equal(await lsr.getRemainingStars(user2), 0);
     // can't transfer to other participant
-    try {
-      await lsr.approveBatchTransfer(user3, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.approveBatchTransfer(user3, {from:user1}));
     // can't transfer without permission
-    try {
-      await lsr.transferBatch(user1, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.transferBatch(user1, {from:user2}));
     await lsr.approveBatchTransfer(user2, {from:user1});
     assert.equal(await lsr.transfers(user1), user2);
     await lsr.transferBatch(user1, {from:user2});
@@ -162,12 +114,7 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
   it('withdrawing', async function() {
     assert.equal(await lsr.withdrawLimit(user2), 4);
     // only commitment participant can do this
-    try {
-      await lsr.withdraw({from:owner});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.withdraw({from:owner}));
     await lsr.withdraw({from:user2});
     assert.isTrue(await ships.isOwner(2048, user2));
     assert.equal((await lsr.batches(user2))[4], 1);
@@ -177,11 +124,6 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     assert.equal((await lsr.batches(user2))[4], 4);
     assert.equal(await lsr.withdrawLimit(user2), 4);
     // can't withdraw over limit
-    try {
-      await lsr.withdraw({from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(lsr.withdraw({from:user2}));
   });
 });

@@ -4,13 +4,11 @@ const Claims = artifacts.require('../contracts/Claims.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 const CSR = artifacts.require('../contracts/ConditionalStarRelease.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   let ships, polls, constit, csr,
       deadline1, deadline2, deadline3, condit2, rateUnit;
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
 
   function assertInvalid(error) {
     assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode must be returned, but got ' + error);
@@ -58,12 +56,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('creation sanity check', async function() {
     // need as many deadlines as conditions
-    try {
-      await await CSR.new(ships.address, [0, condit2], [deadline1]);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(CSR.new(ships.address, [0, condit2], [deadline1]));
   });
 
   it('analyzing tranches', async function() {
@@ -80,12 +73,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await csr.analyzeTranche(1, {from:user1});
     assert.notEqual(await csr.timestamps(1), 0);
     // can't analyzn twice
-    try {
-      await csr.analyzeTranche(1, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.analyzeTranche(1, {from:user1}));
     // miss deadline for tranche 3
     busywaitUntil(deadline3+1);
     await csr.analyzeTranche(2);
@@ -94,26 +82,11 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('registering commitments', async function() {
     // only owner can do this
-    try {
-      await csr.register(user1, [1, 1, 5, 1], 1, rateUnit, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.register(user1, [1, 1, 5, 1], 1, rateUnit, {from:user1}));
     // need right amount of tranches
-    try {
-      await csr.register(user1, [1, 1, 5], 1, rateUnit);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.register(user1, [1, 1, 5], 1, rateUnit));
     // need a sane rate
-    try {
-      await csr.register(user1, [1, 1, 5, 1], 0, rateUnit);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.register(user1, [1, 1, 5, 1], 0, rateUnit));
     assert.isTrue(await csr.verifyBalance(user1));
     await csr.register(user1, [1, 1, 5, 1], 1, rateUnit);
     await csr.register(user3, [1, 1, 5, 1], 1, rateUnit);
@@ -131,12 +104,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('forfeiting early', async function() {
     // can't forfeit when deadline hasn't been missed
-    try {
-      await csr.forfeit(3, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.forfeit(3, {from:user1}));
   });
 
   it('withdraw limit', async function() {
@@ -155,19 +123,9 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('depositing stars', async function() {
     // only owner can do this
-    try {
-      await csr.deposit(user1, 256, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.deposit(user1, 256, {from:user1}));
     // can't deposit a live star
-    try {
-      await csr.deposit(user1, 2560);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.deposit(user1, 2560));
     // deposit spawned star, as star owner
     await csr.deposit(user1, 256);
     // deposit unspawned stars, as galaxy owner
@@ -179,33 +137,18 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     assert.isTrue(await ships.isOwner(256, csr.address));
     assert.isTrue(await csr.verifyBalance(user1));
     // can't deposit too many
-    try {
-      await csr.deposit(user1, 2304);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.deposit(user1, 2304));
   });
 
   it('withdrawing', async function() {
     assert.equal(await csr.withdrawLimit(user1), 3);
     // only commitment participant can do this
-    try {
-      await csr.withdraw({from:owner});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.withdraw({from:owner}));
     await csr.withdraw({from:user1});
     assert.isTrue(await ships.isOwner(2048, user1));
     assert.equal((await csr.commitments(user1))[3], 1);
     // can't withdraw over limit
-    try {
-      await csr.withdraw();
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.withdraw());
     assert.equal(await csr.withdrawLimit(user1), 3);
     await csr.withdraw({from:user1});
     await csr.withdraw({from:user1});
@@ -215,19 +158,9 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   it('transferring commitment', async function() {
     assert.equal(await csr.transfers(user1), 0);
     // can't transfer to other participant
-    try {
-      await csr.approveCommitmentTransfer(user3, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.approveCommitmentTransfer(user3, {from:user1}));
     // can't transfer without permission
-    try {
-      await csr.transferCommitment(user1, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.transferCommitment(user1, {from:user2}));
     await csr.approveCommitmentTransfer(user2, {from:user1});
     assert.equal(await csr.transfers(user1), user2);
     await csr.transferCommitment(user1, {from:user2});
@@ -240,31 +173,16 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   it('forfeiting and withdrawing', async function() {
     await csr.forfeit(2, {from:user2});
     // can't forfeit twice
-    try {
-      await csr.forfeit(2, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.forfeit(2, {from:user2}));
     let com = await csr.commitments(user2);
     assert.isTrue(com[4]);
     assert.equal(com[5], com[0] - com[3]);
     assert.equal(com[5], 5);
     busywait(rateUnit);
     // can't withdraw because of forfeit
-    try {
-      await csr.withdraw({from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.withdraw({from:user2}));
     // only owner can still withdraw
-    try {
-      await csr.withdrawForfeited(user2, owner, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(csr.withdrawForfeited(user2, owner, {from:user2}));
     for (var i = 0; i < 5; i++) {
       await csr.withdrawForfeited(user2, owner);
     }

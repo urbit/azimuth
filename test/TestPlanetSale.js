@@ -4,16 +4,10 @@ const Claims = artifacts.require('../contracts/Claims.sol');
 const Constitution = artifacts.require('../contracts/Constitution.sol');
 const PlanetSale = artifacts.require('../contracts/PlanetSale.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Planet Sale', function([owner, user]) {
   let ships, polls, constit, sale, price;
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
-
-  function assertNoContract(error) {
-    assert.isAbove(error.message.search('not a contract'), -1, 'Not a contract must be returned, but got ' + error);
-  }
 
   before('setting up for tests', async function() {
     price = 100000000;
@@ -34,12 +28,7 @@ contract('Planet Sale', function([owner, user]) {
   it('configuring price', async function() {
     assert.equal(await sale.price(), price / 10);
     // only owner can do this.
-    try {
-      await sale.setPrice(price, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(sale.setPrice(price, {from:user}));
     await sale.setPrice(price);
     assert.equal(await sale.price(), price);
   });
@@ -53,40 +42,20 @@ contract('Planet Sale', function([owner, user]) {
 
   it('purchasing', async function() {
     // can only purchase available planets.
-    try {
-      await sale.purchase(65793, {from:user,value:price});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(sale.purchase(65793, {from:user,value:price}));
     // must pay the price
-    try {
-      await sale.purchase(65792, {from:user,value:price-1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(sale.purchase(65792, {from:user,value:price-1}));
     await sale.purchase(65792, {from:user,value:price});
     assert.isTrue(await ships.isOwner(65792, user));
     assert.isFalse(await sale.available(65792));
     assert.equal(await web3.eth.getBalance(sale.address), price);
     // can only purchase available planets.
-    try {
-      await sale.purchase(65792, {from:user,value:price});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(sale.purchase(65792, {from:user,value:price}));
   });
 
   it('withdrawing', async function() {
     // only owner can do this.
-    try {
-      await sale.withdraw(user, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(sale.withdraw(user, {from:user}));
     let userBal = web3.eth.getBalance(user).toNumber();
     let saleBal = web3.eth.getBalance(sale.address).toNumber();
     await sale.withdraw(user);
@@ -95,12 +64,7 @@ contract('Planet Sale', function([owner, user]) {
 
   it('ending', async function() {
     // only owner can do this.
-    try {
-      await sale.close(user, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(sale.close(user, {from:user}));
     await sale.purchase(131328, {from:user,value:price});
     let userBal = web3.eth.getBalance(user).toNumber();
     let saleBal = web3.eth.getBalance(sale.address).toNumber();
@@ -111,7 +75,7 @@ contract('Planet Sale', function([owner, user]) {
       await sale.price();
       assert.fail('should have thrown before');
     } catch(err) {
-      assertNoContract(err);
+      assert.isAbove(err.message.search('not a contract'), -1, 'Not a contract must be returned, but got ' + err);
     }
   });
 });

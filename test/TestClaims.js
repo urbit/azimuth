@@ -1,12 +1,10 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Claims', function([owner, user]) {
   let ships, claims;
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
 
   before('setting up for tests', async function() {
     ships = await Ships.new();
@@ -17,12 +15,7 @@ contract('Claims', function([owner, user]) {
   it('claiming', async function() {
     assert.equal(await claims.getClaimCount(0), 0);
     // only ship owner can do this.
-    try {
-      await claims.claim(0, "prot1", "claim", "0x0", {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(claims.claim(0, "prot1", "claim", "0x0", {from:user}));
     await claims.claim(0, "prot1", "claim", "0x0");
     assert.equal(await claims.getClaimCount(0), 1);
     // can update the proof.
@@ -43,12 +36,7 @@ contract('Claims', function([owner, user]) {
 
   it('disclaiming', async function() {
     // only ship owner can do this.
-    try {
-      await claims.disclaim(0, "prot2", "claim", {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(claims.disclaim(0, "prot2", "claim", {from:user}));
     await claims.disclaim(0, "prot2", "claim");
     assert.equal(await claims.getClaimCount(0), 3);
     let clam3 = await claims.claims(0, 1);
@@ -63,20 +51,10 @@ contract('Claims', function([owner, user]) {
       await claims.claim(0, "some protocol", "some claim "+i, "0x0");
     }
     // can't go over the limit
-    try {
-      await claims.claim(0, "some protocol", "some claim", "0x0");
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(claims.claim(0, "some protocol", "some claim", "0x0"));
     assert.equal(await claims.getClaimCount(0), 16);
     // only ship owner (and constitution) can clear
-    try {
-      await claims.clearClaims(0, {from:user});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(claims.clearClaims(0, {from:user}));
     await claims.clearClaims(0);
     assert.equal(await claims.getClaimCount(0), 0);
   });

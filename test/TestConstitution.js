@@ -5,12 +5,10 @@ const Constitution = artifacts.require('../contracts/Constitution.sol');
 const ENSRegistry = artifacts.require('../contracts/ENSRegistry.sol');
 const PublicResolver = artifacts.require('../contracts/PublicResolver.sol');
 
+const assertRevert = require('./helpers/assertRevert');
+
 contract('Constitution', function([owner, user1, user2]) {
   let ships, polls, claims, ens, resolver, constit, consti2, pollTime;
-
-  function assertJump(error) {
-    assert.isAbove(error.message.search('revert'), -1, 'Revert must be returned, but got ' + error);
-  }
 
   // https://github.com/ethereum/ens/blob/master/ensutils.js
   function namehash(name) {
@@ -61,12 +59,7 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('setting dns domains', async function() {
     // can only be done by owner
-    try {
-      await constit.setDnsDomains("1", "2", "3", {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.setDnsDomains("1", "2", "3", {from:user1}));
     await constit.setDnsDomains("1", "2", "3");
     assert.equal(await ships.dnsDomains(2), "3");
   });
@@ -77,19 +70,9 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.isTrue(await ships.isActive(0));
     assert.isTrue(await ships.isOwner(0, user1));
     // can't create twice.
-    try {
-      await constit.createGalaxy(0, owner);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.createGalaxy(0, owner));
     // non-owner can't create.
-    try {
-      await constit.createGalaxy(1, user1, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.createGalaxy(1, user1, {from:user1}));
     // prep for next tests.
     await constit.createGalaxy(1, user1);
     await constit.createGalaxy(2, user1);
@@ -98,31 +81,16 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('spawning ships', async function() {
     // can't spawn if not parent owner.
-    try {
-      await constit.spawn(256, user1, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.spawn(256, user1, {from:user2}));
     // can't spawn if parent not live.
-    try {
-      await constit.spawn(256, user1, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.spawn(256, user1, {from:user1}));
     await constit.configureKeys(0, 1, 2, false, {from:user1});
     // spawn child.
     await constit.spawn(256, user1, {from:user1});
     assert.isTrue(await ships.isOwner(256, user1));
     assert.isTrue(await ships.isActive(256));
     // can't launch same ship twice.
-    try {
-      await constit.spawn(256, user1, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.spawn(256, user1, {from:user1}));
     await constit.spawn(512, user1, {from:user1});
     // check the spawn limits.
     assert.equal(await constit.getSpawnLimit(0, 0), 255);
@@ -140,12 +108,7 @@ contract('Constitution', function([owner, user1, user2]) {
     // should not be launcher by default.
     assert.isFalse(await ships.isSpawnProxy(0, user2));
     // can't do if not owner.
-    try {
-      await constit.setSpawnProxy(0, user2, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.setSpawnProxy(0, user2, {from:user2}));
     // set up for working launch.
     await constit.setSpawnProxy(0, user2, {from:user1});
     assert.isTrue(await ships.isSpawnProxy(0, user2));
@@ -161,12 +124,7 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.setTransferProxy(0, owner, {from:user1});
     await claims.claim(0, "protocol", "claim", "proof", {from:user1});
     // can't do if not owner.
-    try {
-      await constit.transferShip(0, user2, true, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.transferShip(0, user2, true, {from:user2}));
     // transfer as owner, resetting the ship.
     await constit.transferShip(0, user2, true, {from:user1});
     assert.isTrue(await ships.isOwner(0, user2));
@@ -183,12 +141,7 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('allowing transfer of ownership', async function() {
     // can't do if not owner.
-    try {
-      await constit.setTransferProxy(0, user1, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.setTransferProxy(0, user1, {from:user1}));
     // allow as owner.
     await constit.setTransferProxy(0, user1, {from:user2});
     assert.isTrue(await ships.isTransferProxy(0, user1));
@@ -200,19 +153,9 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('rekeying a ship', async function() {
     // can't do if not owner.
-    try {
-      await constit.configureKeys(0, 9, 8, false, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.configureKeys(0, 9, 8, false, {from:user2}));
     // can't do if ship not active.
-    try {
-      await constit.configureKeys(100, 9, 8, false);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.configureKeys(100, 9, 8, false));
     // rekey as owner.
     await constit.configureKeys(0, 9, 8, false, {from:user1});
     let [crypt, auth] = await ships.getKeys(0);
@@ -228,33 +171,13 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('setting and canceling an escape', async function() {
     // can't if chosen parent not active.
-    try {
-      await constit.escape(257, 1, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.escape(257, 1, {from:user1}));
     await constit.configureKeys(1, 8, 9, false, {from:user1});
     // can't if not owner of ship.
-    try {
-      await constit.escape(256, 1, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    try {
-      await constit.cancelEscape(256, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.escape(256, 1, {from:user2}));
+    await assertRevert(constit.cancelEscape(256, {from:user2}));
     // galaxies can't escape.
-    try {
-      await constit.escape(0, 1, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.escape(0, 1, {from:user1}));
     // set escape as owner.
     await constit.escape(256, 1, {from:user1});
     assert.isTrue(await ships.isEscape(256, 1));
@@ -275,31 +198,11 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('adopting or reject an escaping ship', async function() {
     // can't if not owner of parent.
-    try {
-      await constit.adopt(1, 256, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    try {
-      await constit.reject(1, 512, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.adopt(1, 256, {from:user2}));
+    await assertRevert(constit.reject(1, 512, {from:user2}));
     // can't if target is not escaping to parent.
-    try {
-      await constit.adopt(1, 258, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    try {
-      await constit.reject(1, 258, {from:user1});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.adopt(1, 258, {from:user1}));
+    await assertRevert(constit.reject(1, 258, {from:user1}));
     // adopt as parent owner.
     await constit.adopt(1, 256, {from:user1});
     assert.isFalse(await ships.isEscape(256, 1));
@@ -312,18 +215,8 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('voting on and updating abstract poll', async function() {
     // can't if not galaxy owner.
-    try {
-      await constit.startAbstractPoll(0, 10, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    try {
-      await constit.castAbstractVote(0, 10, true, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.startAbstractPoll(0, 10, {from:user2}));
+    await assertRevert(constit.castAbstractVote(0, 10, true, {from:user2}));
     await constit.startAbstractPoll(0, 10, {from:user1});
     await constit.castAbstractVote(0, 10, true, {from:user1});
     assert.isTrue(await polls.hasVotedOnAbstractPoll(0, 10));
@@ -339,18 +232,8 @@ contract('Constitution', function([owner, user1, user2]) {
                                      ens.address, 'foo', 'sub',
                                      claims.address);
     // can't if not galaxy owner.
-    try {
-      await constit.castConcreteVote(0, consti2.address, true, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
-    try {
-      await constit.startConcretePoll(0, consti2.address, {from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(constit.castConcreteVote(0, consti2.address, true, {from:user2}));
+    await assertRevert(constit.startConcretePoll(0, consti2.address, {from:user2}));
     await constit.startConcretePoll(0, consti2.address, {from:user1});
     await constit.castConcreteVote(0, consti2.address, true, {from:user1});
     await constit.castConcreteVote(1, consti2.address, true, {from:user1});
@@ -369,12 +252,7 @@ contract('Constitution', function([owner, user1, user2]) {
                                          ens.address, 'foo', 'sub',
                                          claims.address);
     // upgraded can only be called by previous constitution
-    try {
-      await consti3.upgraded({from:user2});
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertJump(err);
-    }
+    await assertRevert(consti3.upgraded({from:user2}));
     await consti2.startConcretePoll(0, consti3.address, {from:user1});
     await consti2.castConcreteVote(0, consti3.address, true, {from:user1});
     busywait(pollTime * 1.3); // make timing less tight
