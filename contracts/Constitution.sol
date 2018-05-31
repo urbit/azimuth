@@ -96,6 +96,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       view
       returns (uint256 balance)
     {
+      require(0x0 != _owner);
       return ships.getOwnedShipCount(_owner);
     }
 
@@ -107,7 +108,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     {
       uint32 id = uint32(_tokenId);
       require(ships.isActive(id));
-      return ships.getOwner(id);
+      owner = ships.getOwner(id);
+      require(0x0 != owner);
     }
 
     //  safeTransferFrom(): transfer ship _tokenId from _from to _to
@@ -159,6 +161,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       public
       shipId(_tokenId)
     {
+      require(0x0 != _to); //TODO move this into transferShip maybe?
       uint32 id = uint32(_tokenId);
       require(ships.isOwner(id, _from));
       transferShip(id, _to, true);
@@ -179,6 +182,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     function setApprovalForAll(address _operator, bool _approved)
       external
     {
+      require(0x0 != _operator);
       ships.setOperator(msg.sender, _operator, _approved);
       emit ApprovalForAll(msg.sender, _operator, _approved);
     }
@@ -189,6 +193,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       shipId(_tokenId)
       returns (address approved)
     {
+      require(ships.isActive(uint32(_tokenId)));
       return ships.getTransferProxy(uint32(_tokenId));
     }
 
