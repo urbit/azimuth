@@ -26,6 +26,10 @@ contract Ships is Ownable
   //
   event Activated(uint32 ship, address owner);
 
+  //  Spawned: :parent has spawned :child.
+  //
+  event Spawned(uint32 parent, uint32 child);
+
   //  EscapeRequested: :ship has requested a new sponsor, :sponsor
   //
   event EscapeRequested(uint32 ship, uint32 sponsor);
@@ -336,6 +340,7 @@ contract Ships is Ownable
       {
         ships[prefix].spawnCount++;
         ships[prefix].spawned.push(_ship);
+        emit Spawned(prefix, _ship);
       }
 
       //  give the ship to its initial owner
