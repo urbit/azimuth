@@ -259,7 +259,6 @@ contract('NFTokenMock', (accounts) => {
     await nftoken.createGalaxy(id2, sender);
     const safeTransferFromData = web3abi.encodeFunctionCall(
       overloadedSafeTransferFrom, [sender, recipient, id2]);
-    console.log('gonna try for it');
     try {
       web3.eth.call({
         from: sender,
