@@ -161,7 +161,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
       public
       shipId(_tokenId)
     {
-      require(0x0 != _to); //TODO move this into transferShip maybe?
       uint32 id = uint32(_tokenId);
       require(ships.isOwner(id, _from));
       transferShip(id, _to, true);
@@ -397,6 +396,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     function transferShip(uint32 _ship, address _target, bool _reset)
       public
     {
+      //  forbid transfer to the zero address
+      //
+      require(0x0 != _target);
+
       //  old: current ship owner
       //
       address old = ships.getOwner(_ship);
