@@ -408,11 +408,15 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
               || ships.isOperator(old, msg.sender)
               || ships.isTransferProxy(_ship, msg.sender));
 
-      //  reset sensitive data --  are transferring the
+      //  reset sensitive data -- are transferring the
       //  ship to a new owner
       //
       if ( _reset )
       {
+        //  break continuity
+        //
+        ships.incrementContinuityNumber(_ship);
+
         //  clear Urbit public keys
         //
         ships.setKeys(_ship, 0, 0);

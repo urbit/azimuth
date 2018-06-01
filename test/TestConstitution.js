@@ -119,6 +119,7 @@ contract('Constitution', function([owner, user1, user2]) {
   });
 
   it('transfering ownership', async function() {
+    assert.equal(await ships.getContinuityNumber(0), 0);
     // set values that should be cleared on-transfer.
     await constit.setSpawnProxy(0, owner, {from:user1});
     await constit.setTransferProxy(0, owner, {from:user1});
@@ -134,6 +135,7 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(auth,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(await ships.getKeyRevisionNumber(0), 2);
+    assert.equal(await ships.getContinuityNumber(0), 1);
     assert.isFalse(await ships.isSpawnProxy(0, user2));
     assert.isFalse(await ships.isTransferProxy(0, user2));
     assert.equal(await claims.getClaimCount(0), 0);
@@ -164,9 +166,8 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(auth,
       '0x8000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(await ships.getKeyRevisionNumber(0), 3);
-    assert.equal(await ships.getContinuityNumber(0), 0);
     await constit.configureKeys(0, 9, 8, true, {from:user1});
-    assert.equal(await ships.getContinuityNumber(0), 1);
+    assert.equal(await ships.getContinuityNumber(0), 2);
   });
 
   it('setting and canceling an escape', async function() {
