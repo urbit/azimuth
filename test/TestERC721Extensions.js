@@ -8,7 +8,7 @@ const Constitution = artifacts.require('Constitution');
 
 const assertRevert = require('./helpers/assertRevert');
 
-contract('NFTokenMetadataEnumerableMock', (accounts) => {
+contract('NFTokenMetadataMock', (accounts) => {
   let ships, polls, claims, nftoken;
   const id1 = 1;
   const id2 = 2;
@@ -27,10 +27,8 @@ contract('NFTokenMetadataEnumerableMock', (accounts) => {
   it('correctly checks all the supported interfaces', async () => {
     const nftokenInterface = await nftoken.supportsInterface('0x80ac58cd');
     const nftokenMetadataInterface = await nftoken.supportsInterface('0x5b5e139f');
-    const nftokenEnumerableInterface = await nftoken.supportsInterface('0x780e9d63');
     assert.equal(nftokenInterface, true);
     assert.equal(nftokenMetadataInterface, true);
-    assert.equal(nftokenEnumerableInterface, true);
   });
 
   it('returns the correct issuer name', async () => {
@@ -51,39 +49,5 @@ contract('NFTokenMetadataEnumerableMock', (accounts) => {
 
   it('throws when trying to get uri of none existant NFT id', async () => {
     await assertRevert(nftoken.tokenURI(id4));
-  });
-
-  it('returns the correct total supply', async () => {
-    const totalSupply0 = await nftoken.totalSupply();
-    assert.equal(totalSupply0, 4294967296);
-  });
-
-  it('returns the correct token by index', async () => {
-    await nftoken.createGalaxy(id1, accounts[1]);
-    await nftoken.createGalaxy(id2, accounts[1]);
-    await nftoken.createGalaxy(id3, accounts[2]);
-
-    const tokenId = await nftoken.tokenByIndex(1);
-    assert.equal(tokenId.toNumber(), 1);
-  });
-
-  it('throws when trying to get token by unexistant index', async () => {
-    await assertRevert(nftoken.tokenByIndex(id4));
-  });
-
-  it('returns the correct token of owner by index', async () => {
-    await nftoken.createGalaxy(id1, accounts[1]);
-    await nftoken.createGalaxy(id2, accounts[1]);
-    await nftoken.createGalaxy(id3, accounts[2]);
-
-    const tokenId = await nftoken.tokenOfOwnerByIndex(accounts[1], 1);
-    assert.equal(tokenId.toNumber(), id2);
-  });
-
-  it('throws when trying to get token of owner by unexistant index', async () => {
-    await nftoken.createGalaxy(id1, accounts[1]);
-    await nftoken.createGalaxy(id3, accounts[2]);
-
-    await assertRevert(nftoken.tokenOfOwnerByIndex(accounts[1], 1));
   });
 });
