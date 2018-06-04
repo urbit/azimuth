@@ -5,7 +5,8 @@ pragma solidity 0.4.24;
 import './ConstitutionBase.sol';
 import './Claims.sol';
 import './ERC165Mapping.sol';
-import './interfaces/ERC721.sol';
+import 'zeppelin-solidity/contracts/token/ERC721/ERC721.sol';
+import 'zeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 //  Constitution: logic for interacting with the Urbit ledger
@@ -38,13 +39,11 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 //    allowing ships to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
-contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
+contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
                          //TODO: fix this :-)
-                         //
                          // including more interfaces causes the contract to
                          // not deploy properly, so we only temporarily
-                         // enable these during compilation
-                         //, ERC721Metadata, ERC721Enumerable
+                         // enable it during compilation
 {
   using SafeMath for uint256;
 
@@ -55,12 +54,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
                        bool _approved);
 
   Claims public claims;
-
-  //  ERC721 metadata
-  //
-  string constant public name = "Urbit Ship";
-  string constant public symbol = "URS";
-  uint256 constant public totalSupply = 4294967296;
 
   //  constructor(): set Urbit data addresses and signal interface support
   //
@@ -84,7 +77,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     //
     supportedInterfaces[0x80ac58cd] = true; // ERC721
     supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
-    supportedInterfaces[0x780e9d63] = true; // ERC721Enumerable
   }
 
   //
@@ -92,7 +84,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
   //
 
     function balanceOf(address _owner)
-      external
+      public
       view
       returns (uint256 balance)
     {
@@ -101,7 +93,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     }
 
     function ownerOf(uint256 _tokenId)
-      external
+      public
       view
       shipId(_tokenId)
       returns (address owner)
@@ -115,7 +107,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     //  safeTransferFrom(): transfer ship _tokenId from _from to _to
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId)
-      external
+      public
     {
       //  transfer with empty data
       //
@@ -143,7 +135,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
         assembly { codeSize := extcodesize(_to) }
         if (codeSize > 0)
         {
-          bytes4 retval = ERC721TokenReceiver(_to)
+          bytes4 retval = ERC721Receiver(_to)
                           .onERC721Received(_from, _tokenId, data);
           //
           //  standard return idiom to confirm contract semantics
@@ -169,7 +161,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     //  approve(): allow _approved to transfer ownership of ship _tokenId
     //
     function approve(address _approved, uint256 _tokenId)
-      external
+      public
       shipId(_tokenId)
     {
       setTransferProxy(uint32(_tokenId), _approved);
@@ -179,7 +171,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     //                       of ALL ships owned by :msg.sender
     //
     function setApprovalForAll(address _operator, bool _approved)
-      external
+      public
     {
       require(0x0 != _operator);
       ships.setOperator(msg.sender, _operator, _approved);
@@ -187,7 +179,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     }
 
     function getApproved(uint256 _tokenId)
-      external
+      public
       view
       shipId(_tokenId)
       returns (address approved)
@@ -197,7 +189,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     }
 
     function isApprovedForAll(address _owner, address _operator)
-      external
+      public
       view
       returns (bool result)
     {
@@ -205,42 +197,30 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
     }
 
   //
-  //  ERC721Enumerable interface
-  //
-
-    //  tokenByIndex(): translate _index (token identity) into ship number
-    //
-    function tokenByIndex(uint256 _index)
-      external
-      pure
-      shipId(_index)
-      returns (uint256)
-    {
-      return _index;
-    }
-
-    //  tokenOfOwnerByIndex(): return the _indexth ship owned by _owner
-    //
-    //    Note: these indexes are not stable across time, as ownership
-    //    lists can change.
-    //
-    function tokenOfOwnerByIndex(address _owner, uint256 _index)
-      external
-      view
-      returns (uint256 _tokenId)
-    {
-      return ships.getOwnedShipAtIndex(_owner, _index);
-    }
-
-  //
   //  ERC721Metadata interface
   //
+
+    function name()
+      public
+      view
+      returns (string)
+    {
+      return "Urbit Ship";
+    }
+
+    function symbol()
+      public
+      view
+      returns (string)
+    {
+      return "URS";
+    }
 
     //  tokenURI(): produce a URL to a standard JSON file
     //
     function tokenURI(uint256 _tokenId)
-      external
-      pure
+      public
+      view
       shipId(_tokenId)
       returns (string _tokenURI)
     {
