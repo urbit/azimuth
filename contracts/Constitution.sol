@@ -7,6 +7,7 @@ import './Claims.sol';
 import './ERC165Mapping.sol';
 import 'zeppelin-solidity/contracts/token/ERC721/ERC721.sol';
 import 'zeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
+import 'zeppelin-solidity/contracts/AddressUtils.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 //  Constitution: logic for interacting with the Urbit ledger
@@ -46,6 +47,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
                          // enable it during compilation
 {
   using SafeMath for uint256;
+  using AddressUtils for address;
 
   event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
   event Approval(address indexed _owner, address indexed _approved,
@@ -127,22 +129,15 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
 
       //  do the callback last to avoid re-entrancy
       //
+      if (_to.isContract())
       {
-        uint256 codeSize;
-
-        //  eth idiom to check if _to is a contract
+        bytes4 retval = ERC721Receiver(_to)
+                        .onERC721Received(_from, _tokenId, data);
         //
-        assembly { codeSize := extcodesize(_to) }
-        if (codeSize > 0)
-        {
-          bytes4 retval = ERC721Receiver(_to)
-                          .onERC721Received(_from, _tokenId, data);
-          //
-          //  standard return idiom to confirm contract semantics
-          //
-          require(retval ==
-                  bytes4(keccak256("onERC721Received(address,uint256,bytes)")));
-        }
+        //  standard return idiom to confirm contract semantics
+        //
+        require(retval ==
+                bytes4(keccak256("onERC721Received(address,uint256,bytes)")));
       }
     }
 
