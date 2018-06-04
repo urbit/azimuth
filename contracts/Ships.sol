@@ -1,6 +1,6 @@
 //  the urbit ship data store
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -157,7 +157,7 @@ contract Ships is Ownable
   //
   string[3] public dnsDomains;
 
-  function Ships()
+  constructor()
     public
   {
     setDnsDomains("urbit.org", "urbit.org", "urbit.org");

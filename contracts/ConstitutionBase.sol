@@ -1,7 +1,7 @@
 //  base contract for the urbit constitution
 //  encapsulates dependencies all constitutions need.
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -51,22 +51,23 @@ contract ConstitutionBase is Ownable
   bytes32 public subLabel;
   bytes32 public subNode;
 
-  function ConstitutionBase(address _previous,
-                            Ships _ships,
-                            Polls _polls,
-                            ENS _ensRegistry,
-                            string _baseEns,
-                            string _subEns)
+  constructor(address _previous,
+              Ships _ships,
+              Polls _polls,
+              ENS _ensRegistry,
+              string _baseEns,
+              string _subEns)
     internal
   {
     previousConstitution = _previous;
     ships = _ships;
     polls = _polls;
     ens = _ensRegistry;
-    subLabel = keccak256(_subEns);
-    baseNode = keccak256( keccak256( bytes32(0), keccak256('eth') ),
-                          keccak256(_baseEns) );
-    subNode = keccak256( baseNode, keccak256(_subEns) );
+    subLabel = keccak256(abi.encodePacked(_subEns));
+    baseNode = keccak256(abi.encodePacked(
+                 keccak256(abi.encodePacked( bytes32(0), keccak256('eth') )),
+                 keccak256(abi.encodePacked( _baseEns )) ));
+    subNode = keccak256(abi.encodePacked( baseNode, subLabel ));
   }
 
   //  upgraded(): called by previous constitution when upgrading

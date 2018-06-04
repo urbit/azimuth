@@ -1,6 +1,6 @@
 //  simple planet invitation management contract
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import './Constitution.sol';
 
@@ -38,9 +38,9 @@ contract DelegatedSending
   //
   mapping(uint32 => uint32) public fromPool;
 
-  //  DelegatedSending(): register the ships contract
+  //  constructor(): register the ships contract
   //
-  function DelegatedSending(Ships _ships)
+  constructor(Ships _ships)
     public
   {
     ships = _ships;
