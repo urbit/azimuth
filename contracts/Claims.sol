@@ -1,6 +1,6 @@
 //  simple claims store
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import './Ships.sol';
 
@@ -59,9 +59,9 @@ contract Claims
   //
   mapping(uint32 => mapping(bytes32 => uint256)) public indexes;
 
-  //  Claims(): register the ships contract.
+  //  constructor(): register the ships contract.
   //
-  function Claims(Ships _ships)
+  constructor(Ships _ships)
     public
   {
     ships = _ships;
@@ -182,7 +182,9 @@ contract Claims
     public
     returns (bytes32 id)
   {
-    return keccak256(keccak256(_protocol), _claim);
+    return keccak256(abi.encodePacked(
+             keccak256(abi.encodePacked(_protocol)),
+             _claim ));
   }
 
   //  shipOwner(): require that :msg.sender is the owner of _ship

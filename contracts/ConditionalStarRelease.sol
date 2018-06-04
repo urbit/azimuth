@@ -1,6 +1,6 @@
 //  conditional star release
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import './Constitution.sol';
 
@@ -129,11 +129,9 @@ contract ConditionalStarRelease is Ownable
   //
   mapping(address => address) public transfers;
 
-  //  ConditionalStarRelease(): configure conditions and deadlines
+  //  constructor(): configure conditions and deadlines
   //
-  function ConditionalStarRelease(Ships _ships,
-                                  bytes32[] _conditions,
-                                  uint256[] _deadlines)
+  constructor(Ships _ships, bytes32[] _conditions, uint256[] _deadlines)
     public
   {
     //  sanity check: condition per deadline
@@ -276,7 +274,7 @@ contract ConditionalStarRelease is Ownable
       //  this can only be done ten years after the first tranche unlocked
       //
       require( ( 0 != timestamps[0] ) &&
-               ( block.timestamp > (timestamps[0] + 10 years) ) );
+               ( block.timestamp > (timestamps[0] + 10*365 days) ) );
 
       //  update contract state
       //

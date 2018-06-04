@@ -1,6 +1,6 @@
 //  simple reputations store
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import './Ships.sol';
 
@@ -41,9 +41,9 @@ contract Censures
   //
   mapping(uint16 => mapping(uint32 => uint256)) public indexes;
 
-  //  Censures(): register the ships contract
+  //  constructor(): register the ships contract
   //
-  function Censures(Ships _ships)
+  constructor(Ships _ships)
     public
   {
     ships = _ships;

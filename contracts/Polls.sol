@@ -1,6 +1,6 @@
 //  the urbit polls data store
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import './SafeMath8.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
@@ -102,9 +102,9 @@ contract Polls is Ownable
   //
   bytes32[] public abstractMajorities;
 
-  //  Polls(): initial contract configuration
+  //  constructor(): initial contract configuration
   //
-  function Polls(uint256 _pollDuration, uint256 _pollCooldown)
+  constructor(uint256 _pollDuration, uint256 _pollCooldown)
     public
   {
     reconfigure(_pollDuration, _pollCooldown);

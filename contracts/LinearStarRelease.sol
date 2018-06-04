@@ -1,6 +1,6 @@
 //  linear star release
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import './Constitution.sol';
 
@@ -68,9 +68,9 @@ contract LinearStarRelease is Ownable
   //
   mapping(address => address) public transfers;
 
-  //  LinearStarRelease: configure ships contract and set starting date
+  //  constructor(): configure ships contract and set starting date
   //
-  function LinearStarRelease(Ships _ships)
+  constructor(Ships _ships)
     public
   {
     ships = _ships;
@@ -171,7 +171,7 @@ contract LinearStarRelease is Ownable
     {
       //  this can only be done ten years after the contract launch
       //
-      require(block.timestamp > (start + 10 years));
+      require(block.timestamp > (start + 10*365 days));
 
       //  update contract state
       //

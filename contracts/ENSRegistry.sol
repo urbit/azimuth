@@ -25,7 +25,7 @@ contract ENSRegistry is ENS {
     /**
      * @dev Constructs a new ENS registrar.
      */
-    function ENSRegistry() public {
+    constructor() public {
         records[0x0].owner = msg.sender;
     }
 
@@ -35,7 +35,7 @@ contract ENSRegistry is ENS {
      * @param owner The address of the new owner.
      */
     function setOwner(bytes32 node, address owner) public only_owner(node) {
-        Transfer(node, owner);
+        emit Transfer(node, owner);
         records[node].owner = owner;
     }
 
@@ -46,8 +46,8 @@ contract ENSRegistry is ENS {
      * @param owner The address of the new owner.
      */
     function setSubnodeOwner(bytes32 node, bytes32 label, address owner) public only_owner(node) {
-        var subnode = keccak256(node, label);
-        NewOwner(node, label, owner);
+        var subnode = keccak256(abi.encodePacked(node, label));
+        emit NewOwner(node, label, owner);
         records[subnode].owner = owner;
     }
 
@@ -57,7 +57,7 @@ contract ENSRegistry is ENS {
      * @param resolver The address of the resolver.
      */
     function setResolver(bytes32 node, address resolver) public only_owner(node) {
-        NewResolver(node, resolver);
+        emit NewResolver(node, resolver);
         records[node].resolver = resolver;
     }
 
@@ -67,7 +67,7 @@ contract ENSRegistry is ENS {
      * @param ttl The TTL in seconds.
      */
     function setTTL(bytes32 node, uint64 ttl) public only_owner(node) {
-        NewTTL(node, ttl);
+        emit NewTTL(node, ttl);
         records[node].ttl = ttl;
     }
 

@@ -1,6 +1,6 @@
 //  the urbit ethereum constitution
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import './ConstitutionBase.sol';
 import './Claims.sol';
@@ -62,19 +62,19 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
   string constant public symbol = "URS";
   uint256 constant public totalSupply = 4294967296;
 
-  //  Constitution(): set Urbit data addresses and signal interface support
+  //  constructor(): set Urbit data addresses and signal interface support
   //
   //    Note: during first deploy, ownership of these contracts must be
   //    manually transferred to this contract after it's on the chain and
   //    its address is known.
   //
-  function Constitution(address _previous,
-                        Ships _ships,
-                        Polls _polls,
-                        ENS _ensRegistry,
-                        string _baseEns,
-                        string _subEns,
-                        Claims _claims)
+  constructor(address _previous,
+              Ships _ships,
+              Polls _polls,
+              ENS _ensRegistry,
+              string _baseEns,
+              string _subEns,
+              Claims _claims)
     ConstitutionBase(_previous, _ships, _polls, _ensRegistry, _baseEns, _subEns)
     public
   {
@@ -352,7 +352,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721
         //
         //    Note: 1514764800 corresponds to 2018-01-01
         //
-        uint256 yearsSince2018 = (_time - 1514764800) / 1 years;
+        uint256 yearsSince2018 = (_time - 1514764800) / 365 days;
         if (yearsSince2018 > 6)
         {
           yearsSince2018 = 6;

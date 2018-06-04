@@ -1,6 +1,6 @@
 //  bare-bones sample planet sale contract
 
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -35,9 +35,9 @@ contract PlanetSale is Ownable
   //
   uint256 public price;
 
-  //  PlanetSale(): configure the ships data store and initial sale price
+  //  constructor(): configure the ships data store and initial sale price
   //
-  function PlanetSale(Ships _ships, uint256 _price)
+  constructor(Ships _ships, uint256 _price)
     public
   {
     ships = _ships;
