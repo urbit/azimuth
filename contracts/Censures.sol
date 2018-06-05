@@ -2,7 +2,7 @@
 
 pragma solidity 0.4.24;
 
-import './Ships.sol';
+import './ReadsShips.sol';
 
 //  Censures: simple reputation management
 //
@@ -13,7 +13,7 @@ import './Ships.sol';
 //    making bad behavior is the exception rather than the rule, this
 //    only provides registration of negative reputation.
 //
-contract Censures
+contract Censures is ReadsShips
 {
   //  Censured: :who got censures by :by
   //
@@ -22,10 +22,6 @@ contract Censures
   //  Forgiven: :who is no longer censured by :by
   //
   event Forgiven(uint16 by, uint32 who);
-
-  //  ships: ships data storage
-  //
-  Ships public ships;
 
   //  censures: per ship, their registered censures
   //
@@ -42,9 +38,10 @@ contract Censures
   //  constructor(): register the ships contract
   //
   constructor(Ships _ships)
+    ReadsShips(_ships)
     public
   {
-    ships = _ships;
+    //
   }
 
   //  getCensureCount(): return length of array of censures made by _whose
@@ -126,13 +123,5 @@ contract Censures
     cens.length = last;
     indexes[_as][_who] = 0;
     emit Forgiven(_as, _who);
-  }
-
-  //  shipOwner(): require that :msg.sender is the owner of _ship
-  //
-  modifier shipOwner(uint32 _ship)
-  {
-    require(ships.isOwner(_ship, msg.sender));
-    _;
   }
 }

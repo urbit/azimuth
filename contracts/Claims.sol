@@ -2,7 +2,7 @@
 
 pragma solidity 0.4.24;
 
-import './Ships.sol';
+import './ReadsShips.sol';
 
 //  Claims: simple identity management
 //
@@ -15,7 +15,7 @@ import './Ships.sol';
 //    be removed entirely. It is recommended to remove any claims associated
 //    with a ship when it is about to be transfered to a new owner.
 //
-contract Claims
+contract Claims is ReadsShips
 {
   //  Claimed: a claim was made by :by
   //
@@ -24,10 +24,6 @@ contract Claims
   //  Disclaimed: a claim was disclaimed by :by
   //
   event Disclaimed(uint32 by, string _protocol, string _claim);
-
-  //  ships: ships data storage
-  //
-  Ships public ships;
 
   //  Claim: claim details
   //
@@ -62,9 +58,10 @@ contract Claims
   //  constructor(): register the ships contract.
   //
   constructor(Ships _ships)
+    ReadsShips(_ships)
     public
   {
-    ships = _ships;
+    //
   }
 
   //  getClaimCount(): return the length of the array of claims made by _whose
@@ -185,13 +182,5 @@ contract Claims
     return keccak256(abi.encodePacked(
              keccak256(abi.encodePacked(_protocol)),
              _claim ));
-  }
-
-  //  shipOwner(): require that :msg.sender is the owner of _ship
-  //
-  modifier shipOwner(uint32 _ship)
-  {
-    require(ships.isOwner(_ship, msg.sender));
-    _;
   }
 }
