@@ -12,8 +12,6 @@ import './Ships.sol';
 //    Since the Urbit network provides incentives for good behavior,
 //    making bad behavior is the exception rather than the rule, this
 //    only provides registration of negative reputation.
-//    To avoid casual use of this, a single ship may only register
-//    up to 16 censures.
 //
 contract Censures
 {
