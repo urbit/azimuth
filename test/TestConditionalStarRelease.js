@@ -57,6 +57,8 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   it('creation sanity check', async function() {
     // need as many deadlines as conditions
     await assertRevert(CSR.new(ships.address, [0, condit2], [deadline1]));
+    var many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    await assertRevert(CSR.new(ships.address, many, many));
   });
 
   it('analyzing tranches', async function() {

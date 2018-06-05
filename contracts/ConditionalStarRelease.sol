@@ -136,7 +136,8 @@ contract ConditionalStarRelease is Ownable
   {
     //  sanity check: condition per deadline
     //
-    require(_deadlines.length == _conditions.length);
+    require( _conditions.length <= 8 &&
+             _deadlines.length == _conditions.length );
 
     //  reference ships and polls contracts
     //
