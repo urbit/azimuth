@@ -481,7 +481,9 @@ contract Ships is Ownable
       onlyOwner
       external
     {
-      ships[_ship].escapeRequested = false;
+      Hull storage ship = ships[_ship];
+      ship.escapeRequestedTo = 0;
+      ship.escapeRequested = false;
       emit EscapeCanceled(_ship);
     }
 
@@ -494,8 +496,9 @@ contract Ships is Ownable
       Hull storage ship = ships[_ship];
       require(ship.escapeRequested);
       ship.sponsor = ship.escapeRequestedTo;
+      ship.escapeRequestedTo = 0;
       ship.escapeRequested = false;
-      emit EscapeAccepted(_ship, ship.escapeRequestedTo);
+      emit EscapeAccepted(_ship, ship.sponsor);
     }
 
     function isSpawnProxy(uint32 _ship, address _spawner)
