@@ -5,24 +5,16 @@ const Constitution = artifacts.require('../contracts/Constitution.sol');
 const LSR = artifacts.require('../contracts/LinearStarRelease.sol');
 
 const assertRevert = require('./helpers/assertRevert');
+const increaseTime = require('./helpers/increaseTime');
 
 contract('Linear Star Release', function([owner, user1, user2, user3]) {
   let ships, polls, constit, lsr, windup, rateUnit;
-
-  // because setTimeout doesn't work.
-  function busywait(s) {
-    var start = Date.now();
-    var ms = s * 1000;
-    while (true) {
-      if ((Date.now() - start) > ms) break;
-    }
-  }
 
   before('setting up for tests', async function() {
     windup = 2;
     rateUnit = 5;
     ships = await Ships.new();
-    polls = await Polls.new(60, 0);
+    polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
     constit = await Constitution.new(0, ships.address, polls.address,
                                      0, '', '', claims.address);
@@ -59,13 +51,13 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
 
   it('withdraw limit', async function() {
     // pass windup, still need to wait a rateUnit
-    busywait(windup);
+    await increaseTime(windup);
     assert.equal(await lsr.withdrawLimit(user1), 1);
     // pass a rateUnit
-    busywait(rateUnit);
+    await increaseTime(rateUnit);
     assert.equal(await lsr.withdrawLimit(user1), 2);
     // pass two rateUnits
-    busywait(rateUnit);
+    await increaseTime(rateUnit);
     assert.equal(await lsr.withdrawLimit(user1), 4);
     // unregistered address should not yet have a withdraw limit
     try {

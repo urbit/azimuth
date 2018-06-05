@@ -37,7 +37,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     condit2 = 123456789;
     rateUnit = 6;
     ships = await Ships.new();
-    polls = await Polls.new(60, 0);
+    polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
     constit = await Constitution.new(0, ships.address, polls.address,
                                      0, '', '', claims.address);

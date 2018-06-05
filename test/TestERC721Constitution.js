@@ -46,7 +46,7 @@ contract('NFTokenMock', (accounts) => {
 
   beforeEach(async () => {
     ships = await Ships.new();
-    polls = await Polls.new(0, 0);
+    polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
     nftoken = await Constitution.new(0, ships.address, polls.address, 0, '', '', claims.address);
     ships.transferOwnership(nftoken.address);

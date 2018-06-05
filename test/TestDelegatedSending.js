@@ -18,7 +18,7 @@ contract('Delegated Sending', function([owner, user]) {
     p5 = 327936;
     //
     ships = await Ships.new();
-    polls = await Polls.new(0, 0);
+    polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
     constit = await Constitution.new(0, ships.address, polls.address,
                                      0, '', '', claims.address);
