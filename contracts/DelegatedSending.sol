@@ -14,15 +14,11 @@ import './Constitution.sol';
 //    to a value higher than zero can help the network grow by providing
 //    regular users with a way to get their friends and family onto it.
 //
-contract DelegatedSending
+contract DelegatedSending is ReadsShips
 {
   //  Sent: :by sent :ship.
   //
   event Sent(uint32 by, uint32 ship);
-
-  //  ships: the ships contract
-  //
-  Ships public ships;
 
   //  limits: per star, the maximum amount of planets any of its planets may
   //          give away
@@ -41,9 +37,10 @@ contract DelegatedSending
   //  constructor(): register the ships contract
   //
   constructor(Ships _ships)
+    ReadsShips(_ships)
     public
   {
-    ships = _ships;
+    //
   }
 
   //  configureLimit(): as the owner of a star, configure the amount of
@@ -152,13 +149,5 @@ contract DelegatedSending
     {
       return _ship;
     }
-  }
-
-  //  shipOwner(): require that :msg.sender is the owner of _ship
-  //
-  modifier shipOwner(uint32 _ship)
-  {
-    require(ships.isOwner(_ship, msg.sender));
-    _;
   }
 }

@@ -686,16 +686,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
       _;
     }
 
-    //  shipOwner(): require that :msg.sender is the owner of _ship
-    //
-    //    Note: ships with non-zore owners are guaranteed to be active.
-    //
-    modifier shipOwner(uint32 _ship)
-    {
-      require(ships.isOwner(_ship, msg.sender));
-      _;
-    }
-
     //  active(): require that _ship is in the active state
     //
     modifier active(uint32 _ship)

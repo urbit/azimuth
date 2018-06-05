@@ -5,7 +5,7 @@ pragma solidity 0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
-import './Ships.sol';
+import './ReadsShips.sol';
 import './Polls.sol';
 
 import './interfaces/ENS.sol';
@@ -23,14 +23,12 @@ import './interfaces/ResolverInterface.sol';
 //    provided by the Constitution proper. Keep this in mind when writing
 //    updated versions of it.
 //
-contract ConstitutionBase is Ownable
+contract ConstitutionBase is Ownable, ReadsShips
 {
   event Upgraded(address to);
 
-  //  ships: ship state data storage contract
   //  polls: senate voting contract
   //
-  Ships public ships;
   Polls public polls;
 
   //  ens: ENS registry where ownership of the urbit domain is registered
@@ -57,10 +55,10 @@ contract ConstitutionBase is Ownable
               ENS _ensRegistry,
               string _baseEns,
               string _subEns)
+    ReadsShips(_ships)
     internal
   {
     previousConstitution = _previous;
-    ships = _ships;
     polls = _polls;
     ens = _ensRegistry;
     subLabel = keccak256(abi.encodePacked(_subEns));
