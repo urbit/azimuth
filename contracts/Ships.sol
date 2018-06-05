@@ -196,12 +196,12 @@ contract Ships is Ownable
       return owners[msg.sender];
     }
 
-    //  getOwnedShips(): return array of ships that _whose owns
+    //  getOwnedShipsByAddress(): return array of ships that _whose owns
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getOwnedShips(address _whose)
+    function getOwnedShipsByAddress(address _whose)
       view
       external
       returns (uint32[] ownedShips)
