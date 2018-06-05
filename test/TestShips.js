@@ -2,27 +2,8 @@ const Ships = artifacts.require('../contracts/Ships.sol');
 
 const assertRevert = require('./helpers/assertRevert');
 
-// the below hacks around the fact that truffle doesn't play well with overloads
-
 const web3abi = require('web3-eth-abi');
 const web3 = Ships.web3;
-
-const overloadedGetOwnedShipsAbi = {
-  "constant": true,
-  "inputs": [],
-  "name": "getOwnedShips",
-  "outputs": [
-    {
-      "name": "ownedShips",
-      "type": "uint32[]"
-    }
-  ],
-  "payable": false,
-  "stateMutability": "view",
-  "type": "function"
-};
-
-const getOwnedShipsData = web3abi.encodeFunctionCall(overloadedGetOwnedShipsAbi, []);
 
 contract('Ships', function([owner, user]) {
   let ships;
@@ -79,19 +60,13 @@ contract('Ships', function([owner, user]) {
   it('getting owned ships', async function() {
     await ships.setOwner(1, user);
     await ships.setOwner(2, user);
-    let ownedEncoded = await web3.eth.call({
-      from: user,
-      to: ships.address,
-      data: getOwnedShipsData,
-      value: 0
-    });
-    let owned = web3abi.decodeParameters(['uint32[]'], ownedEncoded)[0];
+    let owned = await ships.getOwnedShipsByAddress(user);
     assert.equal(owned[0], 0);
     assert.equal(owned[1], 1);
     assert.equal(owned[2], 2);
     assert.equal(owned.length, 3);
     await ships.setOwner(0, 0);
-    owned = await ships.getOwnedShips(user, {from:user});
+    owned = await ships.getOwnedShips({from:user});
     assert.equal(owned[0].toNumber(), 2);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned.length, 2);
