@@ -55,13 +55,21 @@ contract Polls is Ownable
     //  noVotes: amount of votes against the proposal
     //
     uint8 noVotes;
+
+    //  duration: amount of time during which the poll can be voted on
+    //
+    uint256 duration;
+
+    //  cooldown: amount of time before the (non-majority) poll can be reopened
+    //
+    uint256 cooldown;
   }
 
-  //  pollDuration: amount of time during which a poll can be voted on
+  //  pollDuration: duration set for new polls. see also Poll.duration above
   //
   uint256 public pollDuration;
 
-  //  pollCooldown: amount of time before a non-majority poll can be reopened
+  //  pollCooldown: cooldown set for new polls. see also Poll.cooldown above
   //
   uint256 public pollCooldown;
 
@@ -217,14 +225,15 @@ contract Polls is Ownable
   {
     //  check that the poll has cooled down enough to be started again
     //
-    //    for completely new polls, :start will be zero, so this check
-    //    will only fail for unreasonable duration and cooldown values
+    //    for completely new polls, the values used will be zero
     //
-    require(block.timestamp > (_poll.start + pollDuration + pollCooldown));
+    require(block.timestamp > (_poll.start + _poll.duration + _poll.cooldown));
 
     //  set started poll state
     //
     _poll.start = block.timestamp;
+    _poll.duration = pollDuration;
+    _poll.cooldown = pollCooldown;
     delete _poll.voted;
     _poll.yesVotes = 0;
     _poll.noVotes = 0;
@@ -268,7 +277,7 @@ contract Polls is Ownable
              //
              //  may only vote when the poll is open
              //
-             (block.timestamp < (_poll.start + pollDuration)) );
+             (block.timestamp < (_poll.start + _poll.duration)) );
 
     //  update poll state to account for the new vote
     //
@@ -358,7 +367,7 @@ contract Polls is Ownable
              //
              ( //  either because the poll has ended
                //
-               (block.timestamp > (_poll.start + pollDuration)) ||
+               (block.timestamp > (_poll.start + _poll.duration)) ||
                //
                //  or because there aren't enough remaining voters to
                //  tip the scale
