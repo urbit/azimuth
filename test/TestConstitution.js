@@ -6,6 +6,7 @@ const ENSRegistry = artifacts.require('../contracts/ENSRegistry.sol');
 const PublicResolver = artifacts.require('../contracts/PublicResolver.sol');
 
 const assertRevert = require('./helpers/assertRevert');
+const increaseTime = require('./helpers/increaseTime');
 
 contract('Constitution', function([owner, user1, user2]) {
   let ships, polls, claims, ens, resolver, constit, consti2, pollTime;
@@ -23,17 +24,8 @@ contract('Constitution', function([owner, user1, user2]) {
     return node.toString();
   }
 
-  // because setTimeout doesn't work.
-  function busywait(s) {
-    var start = Date.now();
-    var ms = s * 1000;
-    while (true) {
-      if ((Date.now() - start) > ms) break;
-    }
-  }
-
   before('setting up for tests', async function() {
-    pollTime = 3;
+    pollTime = 432000;
     ships = await Ships.new();
     polls = await Polls.new(pollTime, pollTime);
     claims = await Claims.new(ships.address);
@@ -221,7 +213,7 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.startAbstractPoll(0, 10, {from:user1});
     await constit.castAbstractVote(0, 10, true, {from:user1});
     assert.isTrue(await polls.hasVotedOnAbstractPoll(0, 10));
-    busywait(pollTime * 1.3); // make timing less tight
+    await increaseTime(pollTime + 5);
     await constit.updateAbstractPoll(10);
     assert.isTrue(await polls.abstractMajorityMap(10));
   });
@@ -256,7 +248,7 @@ contract('Constitution', function([owner, user1, user2]) {
     await assertRevert(consti3.upgraded({from:user2}));
     await consti2.startConcretePoll(0, consti3.address, {from:user1});
     await consti2.castConcreteVote(0, consti3.address, true, {from:user1});
-    busywait(pollTime * 1.3); // make timing less tight
+    await increaseTime(pollTime + 5);
     await consti2.updateConcretePoll(consti3.address);
     assert.equal(await ships.owner(), consti3.address);
     assert.equal(await polls.owner(), consti3.address);

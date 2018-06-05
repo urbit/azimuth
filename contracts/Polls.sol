@@ -124,6 +124,8 @@ contract Polls is Ownable
     public
     onlyOwner
   {
+    require( (5 days <= _pollDuration) && (_pollDuration <= 90 days) &&
+             (5 days <= _pollCooldown) && (_pollCooldown <= 90 days) );
     pollDuration = _pollDuration;
     pollCooldown = _pollCooldown;
   }

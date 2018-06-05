@@ -1,6 +1,9 @@
 const Polls = artifacts.require('../contracts/Polls.sol');
 
 const assertRevert = require('./helpers/assertRevert');
+const increaseTime = require('./helpers/increaseTime');
+
+const web3 = Polls.web3;
 
 contract('Polls', function([owner, user]) {
   let polls, duration, cooldown;
@@ -11,32 +14,28 @@ contract('Polls', function([owner, user]) {
   const abstrProp2 =
     '0xcdef100000000000000000000000000000000000000000000000000000000000';
 
-  // because setTimeout doesn't work.
-  function busywait(s) {
-    var start = Date.now();
-    var ms = s * 1000;
-    while (true) {
-      if ((Date.now() - start) > ms) break;
-    }
-  }
-
   before('setting up for tests', async function() {
-    polls = await Polls.new(1, 2);
-    duration = 3;
-    cooldown = 4;
+    polls = await Polls.new(432111, 432222);
+    duration = 432000;
+    cooldown = 7776000;
   });
 
   it('configuring polls', async function() {
-    assert.equal(await polls.pollDuration(), 1);
-    assert.equal(await polls.pollCooldown(), 2);
+    assert.equal(await polls.pollDuration(), 432111);
+    assert.equal(await polls.pollCooldown(), 432222);
     assert.equal(await polls.totalVoters(), 0);
-    polls.reconfigure(duration, cooldown);
+    await polls.reconfigure(duration, cooldown);
     for (var i = 0; i < 3; i++) {
       await polls.incrementTotalVoters();
     }
     assert.equal(await polls.pollDuration(), duration);
     assert.equal(await polls.pollCooldown(), cooldown);
     assert.equal(await polls.totalVoters(), 3);
+    // can't set too high or too low
+    await assertRevert(polls.reconfigure(431999, cooldown));
+    await assertRevert(polls.reconfigure(7776001, cooldown));
+    await assertRevert(polls.reconfigure(duration, 431999));
+    await assertRevert(polls.reconfigure(duration, 7776001));
   });
 
   it('concrete poll start & majority', async function() {
@@ -71,12 +70,12 @@ contract('Polls', function([owner, user]) {
     // start poll and wait for it to time out
     await polls.startConcretePoll(concrProp2);
     await polls.castConcreteVote(0, concrProp2, false);
-    busywait(duration);
+    await increaseTime(duration);
     // can't vote on finished poll
     await assertRevert(polls.castConcreteVote(1, concrProp2, true));
     // can't recreate right away.
     await assertRevert(polls.startConcretePoll(concrProp2));
-    busywait(cooldown * 1.3); // make timing less tight
+    await increaseTime(cooldown + 5);
     // recreate poll.
     await polls.startConcretePoll(concrProp2);
     let cPoll = await polls.concretePolls(concrProp2);
@@ -86,7 +85,7 @@ contract('Polls', function([owner, user]) {
     // test timeout majority
     await polls.castConcreteVote(0, concrProp2, true);
     assert.isTrue(await polls.hasVotedOnConcretePoll(0, concrProp2));
-    busywait(duration * 1.3); // make timing less tight
+    await increaseTime(duration + 5);
     assert.isTrue(await polls.updateConcretePoll.call(concrProp2));
     await polls.updateConcretePoll(concrProp2);
     assert.isTrue(await polls.concreteMajorityMap(concrProp2));
@@ -129,12 +128,12 @@ contract('Polls', function([owner, user]) {
     // start poll and wait for it to time out
     await polls.startAbstractPoll(abstrProp2);
     await polls.castAbstractVote(0, abstrProp2, false);
-    busywait(duration);
+    await increaseTime(duration);
     // can't vote on finished poll
     await assertRevert(polls.castAbstractVote(1, abstrProp2, true));
     // can't recreate right away.
     await assertRevert(polls.startAbstractPoll(abstrProp2));
-    busywait(cooldown * 1.3); // make timing less tight
+    await increaseTime(cooldown + 5);
     // recreate poll.
     await polls.startAbstractPoll(abstrProp2);
     let aPoll = await polls.abstractPolls(abstrProp2);
@@ -144,7 +143,7 @@ contract('Polls', function([owner, user]) {
     // test timeout majority
     await polls.castAbstractVote(0, abstrProp2, true);
     assert.isTrue(await polls.hasVotedOnAbstractPoll(0, abstrProp2));
-    busywait(duration * 1.3); // make timing less tight
+    await increaseTime(duration + 5);
     await polls.updateAbstractPoll(abstrProp2);
     assert.isTrue(await polls.abstractMajorityMap(abstrProp2));
   });
