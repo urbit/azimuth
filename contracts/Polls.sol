@@ -118,7 +118,7 @@ contract Polls is Ownable
     reconfigure(_pollDuration, _pollCooldown);
   }
 
-  //  reconfigure(): change poll duration, cooldown, and vote requirements
+  //  reconfigure(): change poll duration and cooldown
   //
   function reconfigure(uint256 _pollDuration, uint256 _pollCooldown)
     public
