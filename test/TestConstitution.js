@@ -115,7 +115,7 @@ contract('Constitution', function([owner, user1, user2]) {
     // set values that should be cleared on-transfer.
     await constit.setSpawnProxy(0, owner, {from:user1});
     await constit.setTransferProxy(0, owner, {from:user1});
-    await claims.claim(0, "protocol", "claim", "proof", {from:user1});
+    await claims.addClaim(0, "protocol", "claim", "proof", {from:user1});
     // can't do if not owner.
     await assertRevert(constit.transferShip(0, user2, true, {from:user2}));
     // transfer as owner, resetting the ship.
