@@ -82,7 +82,7 @@ contract Censures is ReadsShips
              (indexes[_as][_who] == 0) );
 
     //  only stars and galaxies may censure, and only galaxies may censure
-    //  other galaxies
+    //  other galaxies. (enum gets smaller for higher ship classes)
     //
     Ships.Class asClass = ships.getShipClass(_as);
     Ships.Class whoClass = ships.getShipClass(_who);
