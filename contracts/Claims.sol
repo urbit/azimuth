@@ -25,6 +25,10 @@ contract Claims is ReadsShips
   //
   event Disclaimed(uint32 by, string _protocol, string _claim);
 
+  //  maxClaims: the amount of claims that can be registered per ship.
+  //
+  uint8 constant maxClaims = 16;
+
   //  Claim: claim details
   //
   struct Claim
@@ -46,12 +50,12 @@ contract Claims is ReadsShips
   //
   mapping(uint32 => Claim[]) public claims;
 
-  //  indexes: per ship, per claim hash, (index + 1) in claims array
+  //  indexes: per ship, per claim id, (index + 1) in claims array
   //
   //    We delete claims by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
   //    indexes[ship][claimHash].
-  //    We use hashes because structures can't be used as keys.
+  //    We use claim IDs because structures can't be used as keys.
   //
   mapping(uint32 => mapping(bytes32 => uint256)) public indexes;
 
@@ -74,15 +78,18 @@ contract Claims is ReadsShips
     return claims[_whose].length;
   }
 
-  //  claim(): register a claim as _as
+  //  addClaim(): register a claim as _ship
   //
-  function claim(uint32 _as, string _protocol, string _claim, bytes _dossier)
+  function addClaim(uint32 _ship,
+                    string _protocol,
+                    string _claim,
+                    bytes _dossier)
     external
-    shipOwner(_as)
+    shipOwner(_ship)
   {
-    //  may only submit up to 16 claims
+    //  may only submit up to :maxClaims claims
     //
-    require(claims[_as].length < 16);
+    require(claims[_ship].length < maxClaims);
 
     //  id: a unique identifier for this claim
     //
@@ -90,38 +97,38 @@ contract Claims is ReadsShips
 
     //  cur: index + 1 of the claim if it already exists, 0 otherwise
     //
-    uint256 cur = indexes[_as][id];
+    uint256 cur = indexes[_ship][id];
 
     //  if the claim doesn't yet exist, store it in state
     //
     if (cur == 0)
     {
-      claims[_as].push(Claim(_protocol, _claim, _dossier));
-      indexes[_as][id] = claims[_as].length;
+      claims[_ship].push(Claim(_protocol, _claim, _dossier));
+      indexes[_ship][id] = claims[_ship].length;
     }
     //
     //  if the claim has been made before, update the version in state
     //
     else
     {
-      claims[_as][cur-1] = Claim(_protocol, _claim, _dossier);
+      claims[_ship][cur-1] = Claim(_protocol, _claim, _dossier);
     }
-    emit Claimed(_as, _protocol, _claim, _dossier);
+    emit Claimed(_ship, _protocol, _claim, _dossier);
   }
 
-  //  disclaim(): unregister a claim as _as
+  //  removeClaim(): unregister a claim as _ship
   //
-  function disclaim(uint32 _as, string _protocol, string _claim)
+  function removeClaim(uint32 _ship, string _protocol, string _claim)
     external
-    shipOwner(_as)
+    shipOwner(_ship)
   {
     //  id: unique identifier of this claim
     //
     bytes32 id = claimId(_protocol, _claim);
 
-    //  i: current index in _as's list of censures
+    //  i: current index in _ship's list of censures
     //
-    uint256 i = indexes[_as][id];
+    uint256 i = indexes[_ship][id];
 
     //  we store index + 1, because 0 is the eth default value
     //  can only delete an existing claim
@@ -131,7 +138,7 @@ contract Claims is ReadsShips
 
     //  copy last item in the list into the now-unused slot
     //
-    Claim[] storage clams = claims[_as];
+    Claim[] storage clams = claims[_ship];
     uint256 last = clams.length - 1;
     clams[i] = clams[last];
 
@@ -139,37 +146,37 @@ contract Claims is ReadsShips
     //
     delete(clams[last]);
     clams.length = last;
-    indexes[_as][id] = 0;
-    emit Disclaimed(_as, _protocol, _claim);
+    indexes[_ship][id] = 0;
+    emit Disclaimed(_ship, _protocol, _claim);
   }
 
-  //  clearClaims(): unregister all of _as's claims
+  //  clearClaims(): unregister all of _ship's claims
   //
   //    can also be called by the constitution during ship transfer
   //
-  function clearClaims(uint32 _as)
+  function clearClaims(uint32 _ship)
     external
   {
     //  both ship owner and constitution may do this
     //
-    require( ships.isOwner(_as, msg.sender) ||
+    require( ships.isOwner(_ship, msg.sender) ||
              ( msg.sender == ships.owner() ) );
 
-    Claim[] storage clams = claims[_as];
+    Claim[] storage currClaims = claims[_ship];
 
     //  clear out the indexes mapping
     //
-    //    this has an upper bound of 16 iterations due to the claims limit
+    //    this has an upper bound of :maxClaims iterations due to that limit
     //
-    for (uint8 i = 0; i < clams.length; i++)
+    for (uint8 i = 0; i < currClaims.length; i++)
     {
-      Claim storage clam = clams[i];
-      indexes[_as][claimId(clam.protocol, clam.claim)] = 0;
+      Claim storage currClaim = currClaims[i];
+      indexes[_ship][claimId(currClaim.protocol, currClaim.claim)] = 0;
     }
 
     //  lastly, remove all claims from storage
     //
-    clams.length = 0;
+    currClaims.length = 0;
   }
 
   //  claimId(): generate a unique identifier for a claim
