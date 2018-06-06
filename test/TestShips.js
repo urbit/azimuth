@@ -65,7 +65,7 @@ contract('Ships', function([owner, user]) {
     assert.equal(owned[1], 1);
     assert.equal(owned[2], 2);
     assert.equal(owned.length, 3);
-    await ships.setOwner(0, 0);
+    await ships.setOwner(0, owner);
     owned = await ships.getOwnedShips({from:user});
     assert.equal(owned[0].toNumber(), 2);
     assert.equal(owned[1].toNumber(), 1);
@@ -77,9 +77,9 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getSpawnCount(1), 0);
     assert.isFalse(await ships.isActive(257));
     // only owner can do this.
-    await assertRevert(ships.setActive(0, owner, {from:user}));
-    await ships.setActive(0, owner);
-    await ships.setActive(257, owner);
+    await assertRevert(ships.initializeShip(0, owner, {from:user}));
+    await ships.initializeShip(0, owner);
+    await ships.initializeShip(257, owner);
     assert.isTrue(await ships.isActive(0));
     assert.isTrue(await ships.isOwner(0, owner));
     assert.equal(await ships.getSpawnCount(1), 1);
@@ -89,29 +89,29 @@ contract('Ships', function([owner, user]) {
     assert.isTrue(await ships.isActive(257));
     assert.equal(await ships.getSponsor(257), 1);
     // can't do it twice.
-    await assertRevert(ships.setActive(0, owner));
+    await assertRevert(ships.initializeShip(0, owner));
   });
 
   it('setting, canceling, and doing escape', async function() {
     assert.isFalse(await ships.isEscaping(257));
     // only owner can do this.
-    await assertRevert(ships.setEscape(257, 2, {from:user}));
+    await assertRevert(ships.setEscapeRequest(257, 2, {from:user}));
     // only owner can do this.
     await assertRevert(ships.cancelEscape(257, {from:user}));
-    await ships.setEscape(257, 2);
-    assert.isTrue(await ships.isEscape(257, 2));
+    await ships.setEscapeRequest(257, 2);
+    assert.isTrue(await ships.isRequestingEscapeTo(257, 2));
     assert.isTrue(await ships.isEscaping(257));
-    assert.equal(await ships.getEscape(257), 2);
+    assert.equal(await ships.getEscapeRequest(257), 2);
     await ships.cancelEscape(257);
-    assert.isFalse(await ships.isEscape(257, 2));
+    assert.isFalse(await ships.isRequestingEscapeTo(257, 2));
     assert.isFalse(await ships.isEscaping(257));
     // only owner can do this.
     await assertRevert(ships.doEscape(257, {from:user}));
     // can't do if not escaping.
     await assertRevert(ships.doEscape(257));
-    await ships.setEscape(257, 2);
+    await ships.setEscapeRequest(257, 2);
     await ships.doEscape(257);
-    assert.isFalse(await ships.isEscape(257, 2));
+    assert.isFalse(await ships.isRequestingEscapeTo(257, 2));
     assert.equal(await ships.getSponsor(257), 2);
   });
 
