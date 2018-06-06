@@ -3,6 +3,7 @@
 pragma solidity 0.4.24;
 
 import './Constitution.sol';
+import './SafeMath16.sol';
 
 //  LinearStarRelease: batch transfer over time
 //
@@ -20,6 +21,9 @@ import './Constitution.sol';
 //
 contract LinearStarRelease is Ownable
 {
+  using SafeMath for uint256;
+  using SafeMath16 for uint16;
+
   //  ships: public contract which stores ship state
   //
   Ships public ships;
@@ -120,7 +124,7 @@ contract LinearStarRelease is Ownable
       //  ensure we can't deposit more stars than the participant
       //  is entitled to
       //
-      require( batch.stars.length < (batch.amount - batch.withdrawn) );
+      require( batch.stars.length < batch.amount.sub(batch.withdrawn) );
 
       //  There are two ways to deposit a star.  One way is for a galaxy to
       //  grant the LSR contract permission to spawn its stars.  The LSR
@@ -171,12 +175,12 @@ contract LinearStarRelease is Ownable
     {
       //  this can only be done ten years after the contract launch
       //
-      require(block.timestamp > (start + 10*365 days));
+      require(block.timestamp > start.add(10*365 days));
 
       //  update contract state
       //
       Batch storage batch = batches[_participant];
-      batch.withdrawn = batch.withdrawn + 1;
+      batch.withdrawn = batch.withdrawn.add(1);
 
       //  star: star being withdrawn
       //
@@ -244,7 +248,7 @@ contract LinearStarRelease is Ownable
 
       //  update contract state
       //
-      batch.withdrawn = batch.withdrawn + 1;
+      batch.withdrawn = batch.withdrawn.add(1);
 
       //  withdraw a star from the batch
       //
@@ -262,11 +266,11 @@ contract LinearStarRelease is Ownable
     {
       //  star: star being withdrawn
       //
-      uint16 star = _batch.stars[_batch.stars.length - 1];
+      uint16 star = _batch.stars[_batch.stars.length.sub(1)];
 
       //  remove the star from the batch
       //
-      _batch.stars.length = _batch.stars.length - 1;
+      _batch.stars.length = _batch.stars.length.sub(1);
 
       //  transfer :star
       //
@@ -290,15 +294,15 @@ contract LinearStarRelease is Ownable
 
       //  only do real calculations if the windup time is over
       //
-      if ( block.timestamp > (start + batch.windup) )
+      if ( block.timestamp > start.add(batch.windup) )
       {
         //  calculate the amount of stars available from this batch by
         //  multiplying the release rate (stars per :rateUnit) by the number
         //  of rateUnits that have passed since the windup period ended
         //
-        allowed = batch.rate *
-                  ( (block.timestamp - (start + batch.windup)) /
-                    batch.rateUnit );
+        allowed = uint256(batch.rate).mul(
+                  ( block.timestamp.sub(start.add(batch.windup)) /
+                    batch.rateUnit ) );
       }
 
       //  allow at least one star
@@ -329,7 +333,7 @@ contract LinearStarRelease is Ownable
       //  return true if this contract holds as many stars as we'll ever
       //  be entitled to withdraw
       //
-      return ( (batch.amount - batch.withdrawn) == batch.stars.length );
+      return ( batch.amount.sub(batch.withdrawn) == batch.stars.length );
     }
 
     //  getRemainingStars(): get the stars deposited into the batch

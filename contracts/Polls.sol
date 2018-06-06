@@ -3,6 +3,7 @@
 pragma solidity 0.4.24;
 
 import './SafeMath8.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  Polls: proposals & votes data contract
@@ -20,6 +21,9 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //
 contract Polls is Ownable
 {
+  using SafeMath for uint256;
+  using SafeMath8 for uint8;
+
   //  ConcretePollStarted: a poll on :proposal has opened
   //
   event ConcretePollStarted(address proposal);
@@ -137,7 +141,7 @@ contract Polls is Ownable
     onlyOwner
   {
     require(totalVoters < 255);
-    totalVoters = totalVoters + 1;
+    totalVoters = totalVoters.add(1);
   }
 
   //  getAbstractMajorities(): return array of all abstract majorities
@@ -229,16 +233,18 @@ contract Polls is Ownable
     //
     //    for completely new polls, the values used will be zero
     //
-    require(block.timestamp > (_poll.start + _poll.duration + _poll.cooldown));
+    require( block.timestamp > ( _poll.start.add(
+                                 _poll.duration.add(
+                                 _poll.cooldown )) ) );
 
     //  set started poll state
     //
     _poll.start = block.timestamp;
-    _poll.duration = pollDuration;
-    _poll.cooldown = pollCooldown;
     delete _poll.voted;
     _poll.yesVotes = 0;
     _poll.noVotes = 0;
+    _poll.duration = pollDuration;
+    _poll.cooldown = pollCooldown;
   }
 
   //  castConcreteVote(): as galaxy _as, cast a vote on the _proposal
@@ -279,18 +285,18 @@ contract Polls is Ownable
              //
              //  may only vote when the poll is open
              //
-             (block.timestamp < (_poll.start + _poll.duration)) );
+             (block.timestamp < _poll.start.add(_poll.duration)) );
 
     //  update poll state to account for the new vote
     //
     _poll.voted[_as] = true;
     if (_vote)
     {
-      _poll.yesVotes = _poll.yesVotes + 1;
+      _poll.yesVotes = _poll.yesVotes.add(1);
     }
     else
     {
-      _poll.noVotes = _poll.noVotes + 1;
+      _poll.noVotes = _poll.noVotes.add(1);
     }
   }
 
@@ -369,12 +375,12 @@ contract Polls is Ownable
              //
              ( //  either because the poll has ended
                //
-               (block.timestamp > (_poll.start + _poll.duration)) ||
+               (block.timestamp > _poll.start.add(_poll.duration)) ||
                //
                //  or because there aren't enough remaining voters to
                //  tip the scale
                //
-               ( (_poll.yesVotes - _poll.noVotes) >
-                 (totalVoters - (_poll.yesVotes + _poll.noVotes)) ) ) );
+               ( _poll.yesVotes.sub(_poll.noVotes) >
+                 totalVoters.sub(_poll.yesVotes.add(_poll.noVotes)) ) ) );
   }
 }
