@@ -66,7 +66,7 @@ contract ConditionalStarRelease is Ownable
   Ships public ships;
   Polls public polls;
 
-  //  conditions: hashes for abstract proposals that must achieve majority
+  //  conditions: hashes for document proposals that must achieve majority
   //              in the polls contract
   //
   bytes32[] public conditions;
@@ -456,7 +456,7 @@ contract ConditionalStarRelease is Ownable
            //
            //  an real condition is met when it has achieved a majority vote
            //
-           polls.abstractMajorityMap(condition) )
+           polls.documentHasAchievedMajority(condition) )
       {
         //  if the tranche is completed, set :timestamps[_tranche] to the
         //  timestamp of the current eth block

@@ -24,21 +24,21 @@ contract Polls is Ownable
   using SafeMath for uint256;
   using SafeMath8 for uint8;
 
-  //  ConcretePollStarted: a poll on :proposal has opened
+  //  ConstitutionPollStarted: a poll on :proposal has opened
   //
-  event ConcretePollStarted(address proposal);
+  event ConstitutionPollStarted(address proposal);
 
-  //  AbstractPollStarted: a poll on :proposal has opened
+  //  DocumentPollStarted: a poll on :proposal has opened
   //
-  event AbstractPollStarted(bytes32 proposal);
+  event DocumentPollStarted(bytes32 proposal);
 
-  //  ConcreteMajority: :proposal has achieved majority
+  //  ConstitutionMajority: :proposal has achieved majority
   //
-  event ConcreteMajority(address proposal);
+  event ConstitutionMajority(address proposal);
 
-  //  AbstractMajority: :proposal has achieved majority
+  //  DocumentMajority: :proposal has achieved majority
   //
-  event AbstractMajority(bytes32 proposal);
+  event DocumentMajority(bytes32 proposal);
 
   //  Poll: full poll state
   //
@@ -81,13 +81,13 @@ contract Polls is Ownable
   //
   uint8 public totalVoters;
 
-  //  concretePolls: per address, poll held to determine if that address
+  //  constitutionPolls: per address, poll held to determine if that address
   //                 will become the new constitution
   //
-  mapping(address => Poll) public concretePolls;
+  mapping(address => Poll) public constitutionPolls;
 
-  //  concreteMajorityMap: per address, whether that address has ever
-  //                       achieved majority
+  //  constitutionHasAchievedMajority: per address, whether that address
+  //                                   has everachieved majority
   //
   //    if we did not store this, we would have to look at old poll data
   //    to see whether or not a proposal has achieved majority. but since
@@ -96,23 +96,23 @@ contract Polls is Ownable
   //    explicitly, we can always tell with certainty whether or not a
   //    majority was achieved.
   //
-  mapping(address => bool) public concreteMajorityMap;
+  mapping(address => bool) public constitutionHasAchievedMajority;
 
-  //  abstractPolls: per hash, poll held to determine if the corresponding
+  //  documentPolls: per hash, poll held to determine if the corresponding
   //                 document is accepted by the galactic senate
   //
-  mapping(bytes32 => Poll) public abstractPolls;
+  mapping(bytes32 => Poll) public documentPolls;
 
-  //  abstractMajorityMap: per hash, whether that hash has ever
-  //                       achieved majority
+  //  documentHasAchievedMajority: per hash, whether that hash has ever
+  //                               achieved majority
   //
-  //    the note for concreteMajorityMap above applies here as well
+  //    the note for constitutionHasAchievedMajority above applies here as well
   //
-  mapping(bytes32 => bool) public abstractMajorityMap;
+  mapping(bytes32 => bool) public documentHasAchievedMajority;
 
-  //  abstractMajorities: all hashes that have achieved majority
+  //  documentMajorities: all hashes that have achieved majority
   //
-  bytes32[] public abstractMajorities;
+  bytes32[] public documentMajorities;
 
   //  constructor(): initial contract configuration
   //
@@ -144,84 +144,74 @@ contract Polls is Ownable
     totalVoters = totalVoters.add(1);
   }
 
-  //  getAbstractMajorities(): return array of all abstract majorities
+  //  getDocumentMajorities(): return array of all document majorities
   //
   //    Note: only useful for clients, as Solidity does not currently
   //    support returning dynamic arrays.
   //
-  function getAbstractMajorities()
+  function getDocumentMajorities()
     external
     view
     returns (bytes32[] majorities)
   {
-    return abstractMajorities;
+    return documentMajorities;
   }
 
-  //  hasVotedOnConcretePoll(): returns true if _who has voted on the _proposal
+  //  hasVotedOnConstitutionPoll(): returns true if _galaxy has voted
+  //                                on the _proposal
   //
-  function hasVotedOnConcretePoll(uint8 _who, address _proposal)
+  function hasVotedOnConstitutionPoll(uint8 _galaxy, address _proposal)
     external
     view
     returns (bool result)
   {
-    Poll storage poll = concretePolls[_proposal];
-    return hasVoted(_who, poll);
+    return constitutionPolls[_proposal].voted[_galaxy];
   }
 
-  //  hasVotedOnAbstractPoll(): returns true if _who has voted on the _proposal
+  //  hasVotedOnDocumentPoll(): returns true if _galaxy has voted
+  //                            on the _proposal
   //
-  function hasVotedOnAbstractPoll(uint8 _who, bytes32 _proposal)
+  function hasVotedOnDocumentPoll(uint8 _galaxy, bytes32 _proposal)
     external
     view
     returns (bool result)
   {
-    Poll storage poll = abstractPolls[_proposal];
-    return hasVoted(_who, poll);
-  }
-
-  //  hasVoted(): returns true if _who has voted on the _poll
-  //
-  function hasVoted(uint8 _who, Poll storage _poll)
-    internal
-    view
-    returns (bool result)
-  {
-    return _poll.voted[_who];
+    return documentPolls[_proposal].voted[_galaxy];
   }
 
   //  startConretePoll(): open a poll on making _proposal the new constitution
   //
-  function startConcretePoll(address _proposal)
+  function startConstitutionPoll(address _proposal)
     external
     onlyOwner
   {
     //  _proposal must not have achieved majority before
     //
-    require(!concreteMajorityMap[_proposal]);
+    require(!constitutionHasAchievedMajority[_proposal]);
 
     //  start the poll
     //
-    Poll storage poll = concretePolls[_proposal];
+    Poll storage poll = constitutionPolls[_proposal];
     startPoll(poll);
-    emit ConcretePollStarted(_proposal);
+    emit ConstitutionPollStarted(_proposal);
   }
 
-  //  startAbstractPoll(): open a poll on accepting the document
+  //  startDocumentPoll(): open a poll on accepting the document
   //                       whose hash is _proposal
   //
-  function startAbstractPoll(bytes32 _proposal)
+  function startDocumentPoll(bytes32 _proposal)
     external
     onlyOwner
   {
     //  _proposal must not have achieved majority before
     //
-    require(!abstractMajorityMap[_proposal]);
+    require(!documentHasAchievedMajority[_proposal]);
 
     //  start the poll
     //
-    Poll storage poll = abstractPolls[_proposal];
+    Poll storage poll = documentPolls[_proposal];
     startPoll(poll);
-    emit AbstractPollStarted(_proposal);
+    emit DocumentPollStarted(_proposal);
   }
 
   //  startPoll(): open a new poll, or re-open an old one
@@ -247,31 +237,32 @@ contract Polls is Ownable
     _poll.cooldown = pollCooldown;
   }
 
-  //  castConcreteVote(): as galaxy _as, cast a vote on the _proposal
+  //  castConstitutionVote(): as galaxy _as, cast a vote on the _proposal
   //
   //    _vote is true when in favor of the proposal, false otherwise
   //
-  function castConcreteVote(uint8 _as, address _proposal, bool _vote)
+  function castConstitutionVote(uint8 _as, address _proposal, bool _vote)
     external
     onlyOwner
     returns (bool majority)
   {
-    Poll storage poll = concretePolls[_proposal];
+    Poll storage poll = constitutionPolls[_proposal];
     processVote(poll, _as, _vote);
-    return updateConcretePoll(_proposal);
+    return updateConstitutionPoll(_proposal);
   }
 
-  //  castAbstractVote(): as galaxy _as, cast a vote on the _proposal
+  //  castDocumentVote(): as galaxy _as, cast a vote on the _proposal
   //
   //    _vote is true when in favor of the proposal, false otherwise
   //
-  function castAbstractVote(uint8 _as, bytes32 _proposal, bool _vote)
+  function castDocumentVote(uint8 _as, bytes32 _proposal, bool _vote)
     external
     onlyOwner
+    returns (bool majority)
   {
-    Poll storage poll = abstractPolls[_proposal];
+    Poll storage poll = documentPolls[_proposal];
     processVote(poll, _as, _vote);
-    updateAbstractPoll(_proposal);
+    return updateDocumentPoll(_proposal);
   }
 
   //  processVote(): record a vote from _as on the _poll
@@ -279,6 +270,10 @@ contract Polls is Ownable
   function processVote(Poll storage _poll, uint8 _as, bool _vote)
     internal
   {
+    //  assist symbolic execution tools
+    //
+    assert(block.timestamp >= _poll.start);
+
     require( //  may only vote once
              //
              !_poll.voted[_as] &&
@@ -300,59 +295,62 @@ contract Polls is Ownable
     }
   }
 
-  //  updateConcretePoll(): check whether the _proposal has achieved majority,
+  //  updateConstitutionPoll(): check whether the _proposal has achieved majority,
   //                        updating state, sending an event, and returning
   //                        true if it has
   //
-  function updateConcretePoll(address _proposal)
+  function updateConstitutionPoll(address _proposal)
     public
     onlyOwner
     returns (bool majority)
   {
     //  _proposal must not have achieved majority before
     //
-    require(!concreteMajorityMap[_proposal]);
+    require(!constitutionHasAchievedMajority[_proposal]);
 
     //  check for majority in the poll
     //
-    Poll storage poll = concretePolls[_proposal];
+    Poll storage poll = constitutionPolls[_proposal];
     majority = checkPollMajority(poll);
 
     //  if majority was achieved, update the state and send an event
     //
     if (majority)
     {
-      concreteMajorityMap[_proposal] = true;
-      emit ConcreteMajority(_proposal);
+      constitutionHasAchievedMajority[_proposal] = true;
+      emit ConstitutionMajority(_proposal);
     }
+    return majority;
   }
 
-  //  updateAbstractPoll(): check whether the _proposal has achieved majority,
+  //  updateDocumentPoll(): check whether the _proposal has achieved majority,
   //                        updating the state and sending an event if it has
   //
   //    this can be called by anyone, because the constitution does not
   //    need to be aware of the result
   //
-  function updateAbstractPoll(bytes32 _proposal)
+  function updateDocumentPoll(bytes32 _proposal)
     public
+    returns (bool majority)
   {
     //  _proposal must not have achieved majority before
     //
-    require(!abstractMajorityMap[_proposal]);
+    require(!documentHasAchievedMajority[_proposal]);
 
     //  check for majority in the poll
     //
-    Poll storage poll = abstractPolls[_proposal];
-    bool majority = checkPollMajority(poll);
+    Poll storage poll = documentPolls[_proposal];
+    majority = checkPollMajority(poll);
 
     //  if majority was achieved, update state and send an event
     //
     if (majority)
     {
-      abstractMajorityMap[_proposal] = true;
-      abstractMajorities.push(_proposal);
-      emit AbstractMajority(_proposal);
+      documentHasAchievedMajority[_proposal] = true;
+      documentMajorities.push(_proposal);
+      emit DocumentMajority(_proposal);
     }
+    return majority;
   }
 
   //  checkPollMajority(): returns true if the majority is in favor of
@@ -363,6 +361,11 @@ contract Polls is Ownable
     view
     returns (bool majority)
   {
+    //  remainingVotes: amount of votes that can still be cast
+    //
+    uint8 remainingVotes = totalVoters.sub( _poll.yesVotes.add(_poll.noVotes) );
+    int16 score = int16(_poll.yesVotes) - _poll.noVotes;
+
     return ( //  poll must have at least the minimum required yes-votes
              //
              (_poll.yesVotes >= (totalVoters / 4)) &&
@@ -380,7 +383,6 @@ contract Polls is Ownable
                //  or because there aren't enough remaining voters to
                //  tip the scale
                //
-               ( _poll.yesVotes.sub(_poll.noVotes) >
-                 totalVoters.sub(_poll.yesVotes.add(_poll.noVotes)) ) ) );
+               (score > remainingVotes) ) );
   }
 }

@@ -69,9 +69,9 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await csr.analyzeTranche(1);
     assert.equal(await csr.timestamps(1), 0);
     // fulfill condition for tranche 2
-    await constit.startAbstractPoll(0, condit2);
-    await constit.castAbstractVote(0, condit2, true);
-    assert.isTrue(await polls.abstractMajorityMap(condit2));
+    await constit.startDocumentPoll(0, condit2);
+    await constit.castDocumentVote(0, condit2, true);
+    assert.isTrue(await polls.documentHasAchievedMajority(condit2));
     await csr.analyzeTranche(1, {from:user1});
     assert.notEqual(await csr.timestamps(1), 0);
     // can't analyzn twice
