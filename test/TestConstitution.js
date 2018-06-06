@@ -206,30 +206,30 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getSponsor(512), 0);
   });
 
-  it('voting on and updating abstract poll', async function() {
+  it('voting on and updating document poll', async function() {
     // can't if not galaxy owner.
-    await assertRevert(constit.startAbstractPoll(0, 10, {from:user2}));
-    await assertRevert(constit.castAbstractVote(0, 10, true, {from:user2}));
-    await constit.startAbstractPoll(0, 10, {from:user1});
-    await constit.castAbstractVote(0, 10, true, {from:user1});
-    assert.isTrue(await polls.hasVotedOnAbstractPoll(0, 10));
+    await assertRevert(constit.startDocumentPoll(0, 10, {from:user2}));
+    await assertRevert(constit.castDocumentVote(0, 10, true, {from:user2}));
+    await constit.startDocumentPoll(0, 10, {from:user1});
+    await constit.castDocumentVote(0, 10, true, {from:user1});
+    assert.isTrue(await polls.hasVotedOnDocumentPoll(0, 10));
     await increaseTime(pollTime + 5);
-    await constit.updateAbstractPoll(10);
-    assert.isTrue(await polls.abstractMajorityMap(10));
+    await constit.updateDocumentPoll(10);
+    assert.isTrue(await polls.documentHasAchievedMajority(10));
   });
 
-  it('voting on concrete poll', async function() {
+  it('voting on constitution poll', async function() {
     consti2 = await Constitution.new(constit.address,
                                      ships.address,
                                      polls.address,
                                      ens.address, 'foo', 'sub',
                                      claims.address);
     // can't if not galaxy owner.
-    await assertRevert(constit.castConcreteVote(0, consti2.address, true, {from:user2}));
-    await assertRevert(constit.startConcretePoll(0, consti2.address, {from:user2}));
-    await constit.startConcretePoll(0, consti2.address, {from:user1});
-    await constit.castConcreteVote(0, consti2.address, true, {from:user1});
-    await constit.castConcreteVote(1, consti2.address, true, {from:user1});
+    await assertRevert(constit.castConstitutionVote(0, consti2.address, true, {from:user2}));
+    await assertRevert(constit.startConstitutionPoll(0, consti2.address, {from:user2}));
+    await constit.startConstitutionPoll(0, consti2.address, {from:user1});
+    await constit.castConstitutionVote(0, consti2.address, true, {from:user1});
+    await constit.castConstitutionVote(1, consti2.address, true, {from:user1});
     assert.equal(await ships.owner(), consti2.address);
     assert.equal(await polls.owner(), consti2.address);
     assert.equal(await ens.owner(namehash('foo.eth')), consti2.address);
@@ -238,7 +238,7 @@ contract('Constitution', function([owner, user1, user2]) {
                   consti2.address);
   });
 
-  it('updating concrete poll', async function() {
+  it('updating constituton poll', async function() {
     let consti3 = await Constitution.new(consti2.address,
                                          ships.address,
                                          polls.address,
@@ -246,10 +246,10 @@ contract('Constitution', function([owner, user1, user2]) {
                                          claims.address);
     // upgraded can only be called by previous constitution
     await assertRevert(consti3.upgraded({from:user2}));
-    await consti2.startConcretePoll(0, consti3.address, {from:user1});
-    await consti2.castConcreteVote(0, consti3.address, true, {from:user1});
+    await consti2.startConstitutionPoll(0, consti3.address, {from:user1});
+    await consti2.castConstitutionVote(0, consti3.address, true, {from:user1});
     await increaseTime(pollTime + 5);
-    await consti2.updateConcretePoll(consti3.address);
+    await consti2.updateConstitutionPoll(consti3.address);
     assert.equal(await ships.owner(), consti3.address);
     assert.equal(await polls.owner(), consti3.address);
     assert.equal(await ens.owner(namehash('foo.eth')), consti3.address);
