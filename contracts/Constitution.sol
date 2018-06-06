@@ -411,7 +411,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
 
         //  clear claims
         //
-        claims.clearClaims(0);
+        claims.clearClaims(_ship);
       }
 
       //  emit Transfer event
