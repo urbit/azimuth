@@ -41,9 +41,10 @@ import './Constitution.sol';
 //    Participants can withdraw stars as they get released, and forfeit
 //    the remainder of their commitment if a deadline is missed.
 //    Anyone can check unsatisfied conditions for completion.
-//    If, ten years after the contract launch, any stars remain, the
-//    owner is able to withdraw them. This saves address space from
-//    being lost forever in case of key loss by participants.
+//    If, ten years after the first tranche unlocked (usually equivalent
+//    to contract launch), any stars remain, the owner is able to withdraw
+//    them. This saves address space from being lost forever in case of
+//    key loss by participants.
 //
 contract ConditionalStarRelease is Ownable
 {
