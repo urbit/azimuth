@@ -3,6 +3,7 @@
 pragma solidity 0.4.24;
 
 import './Constitution.sol';
+import './SafeMath16.sol';
 
 //  ConditionalStarRelease: star transfer over time, based on conditions
 //
@@ -48,6 +49,8 @@ import './Constitution.sol';
 //
 contract ConditionalStarRelease is Ownable
 {
+  using SafeMath for uint256;
+  using SafeMath16 for uint16;
 
   //  TrancheCompleted: :tranche has either been hit or missed
   //
@@ -203,7 +206,7 @@ contract ConditionalStarRelease is Ownable
       //  ensure we can't deposit more stars than the participant
       //  is entitled to
       //
-      require( com.stars.length < (com.total - com.withdrawn) );
+      require( com.stars.length < com.total.sub(com.withdrawn) );
 
       //  There are two ways to deposit a star.  One way is for a galaxy to
       //  grant the CSR contract permission to spawn its stars.  The CSR
@@ -261,7 +264,7 @@ contract ConditionalStarRelease is Ownable
 
       //  update contract state
       //
-      com.forfeited = com.forfeited - 1;
+      com.forfeited = com.forfeited.sub(1);
 
       //  withdraw a star from the commitment (don't reset it because
       //  no one whom we don't trust has ever had control of it)
@@ -276,12 +279,12 @@ contract ConditionalStarRelease is Ownable
       //  this can only be done ten years after the first tranche unlocked
       //
       require( ( 0 != timestamps[0] ) &&
-               ( block.timestamp > (timestamps[0] + 10*365 days) ) );
+               ( block.timestamp > timestamps[0].add(10*365 days) ) );
 
       //  update contract state
       //
       Commitment storage com = commitments[_participant];
-      com.withdrawn = com.withdrawn + 1;
+      com.withdrawn = com.withdrawn.add(1);
 
       //  withdraw a star from the commitment (don't reset it because
       //  no one whom we don't trust has ever had control of it)
@@ -352,7 +355,7 @@ contract ConditionalStarRelease is Ownable
 
       //  update contract state
       //
-      com.withdrawn = com.withdrawn + 1;
+      com.withdrawn = com.withdrawn.add(1);
 
       //  withdraw a star from the commitment
       //
@@ -380,9 +383,9 @@ contract ConditionalStarRelease is Ownable
 
       //  restrict :forfeited to the number of stars not withdrawn
       //
-      if ( forfeited > (com.total - com.withdrawn) )
+      if ( forfeited > com.total.sub(com.withdrawn) )
       {
-        forfeited = (com.total - com.withdrawn);
+        forfeited = com.total.sub(com.withdrawn);
       }
 
       //  update commitment metadata
@@ -406,11 +409,11 @@ contract ConditionalStarRelease is Ownable
     {
       //  star: star to forfeit (from end of array)
       //
-      uint16 star = _com.stars[_com.stars.length-1];
+      uint16 star = _com.stars[_com.stars.length.sub(1)];
 
       //  remove the star from the batch
       //
-      _com.stars.length = _com.stars.length - 1;
+      _com.stars.length = _com.stars.length.sub(1);
 
       //  then transfer the star
       //
@@ -494,7 +497,8 @@ contract ConditionalStarRelease is Ownable
         //  multiplying the release rate (stars per :rateUnit) by the number
         //  of rateUnits that have passed since the tranche unlocked
         //
-        uint256 num = (com.rate * ((block.timestamp - ts) / com.rateUnit));
+        uint256 num = uint256(com.rate).mul(
+                      block.timestamp.sub(ts) / com.rateUnit );
 
         //  bound the release rate by the tranche count
         //
@@ -505,7 +509,7 @@ contract ConditionalStarRelease is Ownable
 
         //  add it to the total limit
         //
-        limit = limit + uint16(num);
+        limit = limit.add(uint16(num));
       }
 
       //  limit can't be higher than the total amount of stars made available
@@ -530,10 +534,7 @@ contract ConditionalStarRelease is Ownable
     {
       for (uint256 i = _from; i < _tranches.length; i++)
       {
-        //  simple safemath
-        //
-        require( (total + _tranches[i]) >= total);
-        total = total + _tranches[i];
+        total = total.add(_tranches[i]);
       }
     }
 
@@ -549,7 +550,7 @@ contract ConditionalStarRelease is Ownable
       //  return true if this contract holds as many stars as we'll ever
       //  be entitled to withdraw
       //
-      return ( (com.total - com.withdrawn) == com.stars.length );
+      return ( com.total.sub(com.withdrawn) == com.stars.length );
     }
 
     //  getTranches(): get the configured tranche sizes for a commitment

@@ -11,8 +11,8 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
   let ships, polls, constit, lsr, windup, rateUnit;
 
   before('setting up for tests', async function() {
-    windup = 2;
-    rateUnit = 5;
+    windup = 20;
+    rateUnit = 50;
     ships = await Ships.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
@@ -117,5 +117,11 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     assert.equal(await lsr.withdrawLimit(user2), 4);
     // can't withdraw over limit
     await assertRevert(lsr.withdraw({from:user2}));
+  });
+
+  it('withdraw limit maximum', async function() {
+    // pass all rateUnits, and then some
+    await increaseTime(rateUnit * 100);
+    assert.equal(await lsr.withdrawLimit(user2), 8);
   });
 });
