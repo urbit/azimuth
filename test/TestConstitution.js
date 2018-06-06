@@ -173,9 +173,9 @@ contract('Constitution', function([owner, user1, user2]) {
     await assertRevert(constit.escape(0, 1, {from:user1}));
     // set escape as owner.
     await constit.escape(256, 1, {from:user1});
-    assert.isTrue(await ships.isEscape(256, 1));
+    assert.isTrue(await ships.isRequestingEscapeTo(256, 1));
     await constit.cancelEscape(256, {from:user1});
-    assert.isFalse(await ships.isEscape(256, 1));
+    assert.isFalse(await ships.isRequestingEscapeTo(256, 1));
     await constit.escape(256, 1, {from:user1});
     await constit.escape(512, 1, {from:user1});
     // try out peer sponsorship.
@@ -198,11 +198,11 @@ contract('Constitution', function([owner, user1, user2]) {
     await assertRevert(constit.reject(1, 258, {from:user1}));
     // adopt as parent owner.
     await constit.adopt(1, 256, {from:user1});
-    assert.isFalse(await ships.isEscape(256, 1));
+    assert.isFalse(await ships.isRequestingEscapeTo(256, 1));
     assert.equal(await ships.getSponsor(256), 1);
     // reject as parent owner.
     await constit.reject(1, 512, {from:user1});
-    assert.isFalse(await ships.isEscape(512, 1));
+    assert.isFalse(await ships.isRequestingEscapeTo(512, 1));
     assert.equal(await ships.getSponsor(512), 0);
   });
 

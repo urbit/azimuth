@@ -296,7 +296,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
 
       //  set the new owner of the ship and make it active
       //
-      ships.setActive(_ship, _target);
+      ships.initializeShip(_ship, _target);
     }
 
     //  getSpawnLimit(): returns the total number of children the ship _ship
@@ -367,13 +367,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
     //    - :msg.sender must be either _ship's current owner, authorized
     //      to transfer _ship, or authorized to transfer the current
     //      owner's ships.
+    //    - _target must not be the zero address.
     //
     function transferShip(uint32 _ship, address _target, bool _reset)
       public
     {
-      //  forbid transfer to the zero address
-      //
-      require(0x0 != _target);
 
       //  old: current ship owner
       //
@@ -385,6 +383,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
       require((old == msg.sender)
               || ships.isOperator(old, msg.sender)
               || ships.isTransferProxy(_ship, msg.sender));
+
+      //  set new owner. throws if _target is the zero address.
+      //
+      ships.setOwner(_ship, _target);
 
       //  reset sensitive data -- are transferring the
       //  ship to a new owner
@@ -411,7 +413,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
         //
         claims.clearClaims(0);
       }
-      ships.setOwner(_ship, _target);
 
       //  emit Transfer event
       //
@@ -504,7 +505,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
       shipOwner(_ship)
     {
       require(canEscapeTo(_ship, _sponsor));
-      ships.setEscape(_ship, _sponsor);
+      ships.setEscapeRequest(_ship, _sponsor);
     }
 
     //  cancelEscape(): cancel the currently set escape for _ship
@@ -526,7 +527,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
       external
       shipOwner(_sponsor)
     {
-      require(ships.isEscape(_escapee, _sponsor));
+      require(ships.isRequestingEscapeTo(_escapee, _sponsor));
 
       //  _sponsor becomes _escapee's sponsor
       //  its escape request is reset to "not escaping"
@@ -544,7 +545,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
       external
       shipOwner(_sponsor)
     {
-      require(ships.isEscape(_escapee, _sponsor));
+      require(ships.isRequestingEscapeTo(_escapee, _sponsor));
 
       //  reset the _escapee's escape request to "not escaping"
       //
@@ -664,7 +665,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
       require( !ships.isActive(_galaxy) &&
                0x0 != _target );
       polls.incrementTotalVoters();
-      ships.setActive(_galaxy, _target);
+      ships.initializeShip(_galaxy, _target);
     }
 
     function setDnsDomains(string _primary, string _secondary, string _tertiary)

@@ -18,13 +18,13 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //
 contract Ships is Ownable
 {
-  //  Transferred: :ship is now owned by :owner
+  //  OwnerChanged: :ship is now owned by :owner
   //
-  event Transferred(uint32 ship, address owner);
+  event OwnerChanged(uint32 ship, address owner);
 
-  //  Activated: :ship is now activated and owned by :owner
+  //  Initialized: :ship is now activated and owned by :owner
   //
-  event Activated(uint32 ship, address owner);
+  event Initialized(uint32 ship, address owner);
 
   //  Spawned: :parent has spawned :child.
   //
@@ -44,7 +44,10 @@ contract Ships is Ownable
 
   //  ChangedKeys: :ship has new Urbit public keys, :crypt and :auth
   //
-  event ChangedKeys(uint32 ship, bytes32 crypt, bytes32 auth, uint32 rev);
+  event ChangedKeys( uint32 ship,
+                     bytes32 encryptionKey,
+                     bytes32 authenticationKey,
+                     uint32 keyRevisionNumber );
 
   //  BrokeContinuity: :ship has a new continuity number, :number.
   //
@@ -135,11 +138,11 @@ contract Ships is Ownable
   //
   mapping(uint32 => Hull) public ships;
 
-  //  owners: per eth address, list of ships owned
+  //  shipsOwnedBy: per eth address, list of ships owned
   //
-  mapping(address => uint32[]) public owners;
+  mapping(address => uint32[]) public shipsOwnedBy;
 
-  //  shipOwnerIndexes: per owner per ship, (index + 1) in owners array
+  //  shipOwnerIndexes: per owner per ship, (index + 1) in shipsOwnedBy array
   //
   //    We delete owners by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
@@ -193,7 +196,7 @@ contract Ships is Ownable
       external
       returns (uint32[] ownedShips)
     {
-      return owners[msg.sender];
+      return shipsOwnedBy[msg.sender];
     }
 
     //  getOwnedShipsByAddress(): return array of ships that _whose owns
@@ -206,7 +209,7 @@ contract Ships is Ownable
       external
       returns (uint32[] ownedShips)
     {
-      return owners[_whose];
+      return shipsOwnedBy[_whose];
     }
 
     //  getOwnedShipCount(): return length of array of ships that _whose owns
@@ -216,7 +219,7 @@ contract Ships is Ownable
       external
       returns (uint256 count)
     {
-      return owners[_whose].length;
+      return shipsOwnedBy[_whose].length;
     }
 
     //  getOwnedShipAtIndex(): get ship at _index from array of ships that
@@ -227,9 +230,9 @@ contract Ships is Ownable
       external
       returns (uint32 ship)
     {
-      uint32[] storage owned = owners[_whose];
+      uint32[] storage owned = shipsOwnedBy[_whose];
       require(_index < owned.length);
-      return owners[_whose][_index];
+      return owned[_index];
     }
 
     //  isOwner(): true if _ship is owned by _address
@@ -258,12 +261,16 @@ contract Ships is Ownable
     //    logic for a transfer; use the constitution contract for a
     //    full transfer.
     //
-    //    Note: _owner must not equal the present owner.
+    //    Note: _owner must not equal the present owner or the zero address.
     //
     function setOwner(uint32 _ship, address _owner)
       onlyOwner
       external
     {
+      //  prevent burning of ships by making zero the owner
+      //
+      require(0x0 != _owner);
+
       //  prev: previous owner, if any
       //
       address prev = ships[_ship].owner;
@@ -276,7 +283,7 @@ contract Ships is Ownable
       //  keep the list of owned ships gapless.  delete this ship from the
       //  list, then fill that gap with the list tail.
       //
-      if (prev != 0)
+      if (0x0 != prev)
       {
         //  i: current index in previous owner's list of owned ships
         //
@@ -289,7 +296,7 @@ contract Ships is Ownable
 
         //  copy the last item in the list into the now-unused slot
         //
-        uint32[] storage owner = owners[prev];
+        uint32[] storage owner = shipsOwnedBy[prev];
         uint256 last = owner.length - 1;
         owner[i] = owner[last];
 
@@ -302,12 +309,8 @@ contract Ships is Ownable
 
       //  update the owner list and the owner's index list
       //
-      if (_owner != 0)
-      {
-        registerOwnership(_ship, _owner);
-      }
-      ships[_ship].owner = _owner;
-      emit Transferred(_ship, _owner);
+      registerOwnership(_ship, _owner);
+      emit OwnerChanged(_ship, _owner);
     }
 
     //  isActive(): return true if ship is active
@@ -320,9 +323,9 @@ contract Ships is Ownable
       return ships[_ship].active;
     }
 
-    //  setActive(): activate a ship, give it an initial owner
+    //  initializeShip(): activate a ship, give it an initial owner
     //
-    function setActive(uint32 _ship, address _owner)
+    function initializeShip(uint32 _ship, address _owner)
       onlyOwner
       external
     {
@@ -346,8 +349,7 @@ contract Ships is Ownable
       //  give the ship to its initial owner
       //
       registerOwnership(_ship, _owner);
-      ships[_ship].owner = _owner;
-      emit Activated(_ship, _owner);
+      emit Initialized(_ship, _owner);
     }
 
     function getKeys(uint32 _ship)
@@ -450,7 +452,7 @@ contract Ships is Ownable
       return ships[_ship].escapeRequested;
     }
 
-    function getEscape(uint32 _ship)
+    function getEscapeRequest(uint32 _ship)
       view
       external
       returns (uint32 escape)
@@ -458,7 +460,7 @@ contract Ships is Ownable
       return ships[_ship].escapeRequestedTo;
     }
 
-    function isEscape(uint32 _ship, uint32 _sponsor)
+    function isRequestingEscapeTo(uint32 _ship, uint32 _sponsor)
       view
       external
       returns (bool equals)
@@ -467,7 +469,7 @@ contract Ships is Ownable
       return (ship.escapeRequested && (ship.escapeRequestedTo == _sponsor));
     }
 
-    function setEscape(uint32 _ship, uint32 _sponsor)
+    function setEscapeRequest(uint32 _ship, uint32 _sponsor)
       onlyOwner
       external
     {
@@ -573,8 +575,9 @@ contract Ships is Ownable
     function registerOwnership(uint32 _ship, address _owner)
       internal
     {
-      owners[_owner].push(_ship);
-      shipOwnerIndexes[_owner][_ship] = owners[_owner].length;
+      ships[_ship].owner = _owner;
+      shipsOwnedBy[_owner].push(_ship);
+      shipOwnerIndexes[_owner][_ship] = shipsOwnedBy[_owner].length;
     }
 
     //  getPrefix(): compute prefix parent of _ship
