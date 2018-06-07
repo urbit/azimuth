@@ -61,6 +61,14 @@ contract ConditionalStarRelease is Ownable
   //
   event Forfeit(address indexed who, uint16 stars);
 
+  //  maxConditions: the max amount of conditions (and thus tranches) that
+  //                 can be configured
+  //  escapeHatchTime: amount of time after the first tranche unlocks, after
+  //                   which the contract owner can withdraw arbitrary stars
+  //
+  uint8 constant maxConditions = 8;
+  uint256 constant escapeHatchTime = 10 * 365 days;
+
   //  ships: public contract which stores ship state
   //  polls: public contract which registers polls
   //
@@ -141,7 +149,7 @@ contract ConditionalStarRelease is Ownable
   {
     //  sanity check: condition per deadline
     //
-    require( _conditions.length <= 8 &&
+    require( _conditions.length <= maxConditions &&
              _deadlines.length == _conditions.length );
 
     //  reference ships and polls contracts
@@ -273,14 +281,20 @@ contract ConditionalStarRelease is Ownable
       performWithdraw(com, _to, false);
     }
 
+    //  withdrawOverdue(): withdraw arbitrary star from the contract
+    //
+    //    this functions as an escape hatch in the case of key loss,
+    //    to prevent blocks of address space from being lost permanently.
+    //
     function withdrawOverdue(address _participant, address _to)
       external
       onlyOwner
     {
-      //  this can only be done ten years after the first tranche unlocked
+      //  this can only be done :escapeHatchTime after the first
+      //  tranche unlocked
       //
       require( ( 0 != timestamps[0] ) &&
-               ( block.timestamp > timestamps[0].add(10*365 days) ) );
+               ( block.timestamp > timestamps[0].add(escapeHatchTime) ) );
 
       //  update contract state
       //

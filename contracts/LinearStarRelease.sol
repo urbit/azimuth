@@ -25,6 +25,11 @@ contract LinearStarRelease is Ownable
   using SafeMath for uint256;
   using SafeMath16 for uint16;
 
+  //  escapeHatchTime: amount of time after the first tranche unlocks, after
+  //                   which the contract owner can withdraw arbitrary stars
+  //
+  uint256 constant escapeHatchTime = 10 * 365 days;
+
   //  ships: public contract which stores ship state
   //
   Ships public ships;
@@ -174,16 +179,16 @@ contract LinearStarRelease is Ownable
       external
       onlyOwner
     {
-      //  this can only be done ten years after the contract launch
+      //  this can only be done :escapeHatchTime after the contract launch
       //
-      require(block.timestamp > start.add(10*365 days));
+      require(block.timestamp > start.add(escapeHatchTime));
 
       //  update contract state
       //
       Batch storage batch = batches[_participant];
       batch.withdrawn = batch.withdrawn.add(1);
 
-      //  star: star being withdrawn
+      //  withdraw a star from the batch
       //
       performWithdraw(batch, _to, false);
     }
