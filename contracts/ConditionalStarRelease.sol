@@ -25,15 +25,15 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //    Per participant, the contract stores a commitment. This structure
 //    contains the details of the stars to be made available to the
 //    participant. The amount of stars is specified per condition, in
-//    so-called tranches.
+//    so-called batches.
 //
 //    When a timestamp for a condition is set, the amount of stars in
-//    the tranche corresponding to that condition is released to the
+//    the batch corresponding to that condition is released to the
 //    participant at the rate specified in the commitment.
 //
 //    If a condition's timestamp is equal to its deadline, participants
 //    have the option to forfeit any stars that remain in their commitment
-//    from that condition's tranche and onward. The participant will no
+//    from that condition's batch and onward. The participant will no
 //    longer be able to withdraw any of the forfeited stars (they are to
 //    be collected by the contract owner), and will settle compensation
 //    with the contract owner off-chain.
@@ -43,7 +43,7 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //    Participants can withdraw stars as they get released, and forfeit
 //    the remainder of their commitment if a deadline is missed.
 //    Anyone can check unsatisfied conditions for completion.
-//    If, ten years after the first tranche unlocked (usually equivalent
+//    If, ten years after the first condition completes (usually equivalent
 //    to contract launch), any stars remain, the owner is able to withdraw
 //    them. This saves address space from being lost forever in case of
 //    key loss by participants.
@@ -53,17 +53,16 @@ contract ConditionalStarRelease is Ownable
   using SafeMath for uint256;
   using SafeMath16 for uint16;
 
-  //  TrancheCompleted: :tranche has either been hit or missed
+  //  ConditionCompleted: :condition has either been met or missed
   //
-  event TrancheCompleted(uint8 indexed tranche, uint256 when);
+  event ConditionCompleted(uint8 indexed condition, uint256 when);
 
   //  Forfeit: :who has chosen to forfeit :stars number of stars
   //
   event Forfeit(address indexed who, uint16 stars);
 
-  //  maxConditions: the max amount of conditions (and thus tranches) that
-  //                 can be configured
-  //  escapeHatchTime: amount of time after the first tranche unlocks, after
+  //  maxConditions: the max amount of conditions that can be configured
+  //  escapeHatchTime: amount of time after the first condition completes, after
   //                   which the contract owner can withdraw arbitrary stars
   //
   uint8 constant maxConditions = 8;
@@ -80,8 +79,8 @@ contract ConditionalStarRelease is Ownable
   //
   bytes32[] public conditions;
 
-  //  deadlines: deadlines by which conditions for a tranche must have been
-  //             met. if the polls does not contain a majority vote for the
+  //  deadlines: deadlines by which conditions must have been met. if the
+  //             polls contract does not contain a majority vote for the
   //             appropriate condition by the time its deadline is hit,
   //             stars in a commitment can be forfeit and withdrawn by the
   //             CSR contract owner.
@@ -98,15 +97,15 @@ contract ConditionalStarRelease is Ownable
   //
   struct Commitment
   {
-    //  tranches: number of stars to release in each tranche
+    //  batches: number of stars to release per condition
     //
-    uint16[] tranches;
+    uint16[] batches;
 
-    //  total: sum of stars in all tranches
+    //  total: sum of stars in all batches
     //
     uint16 total;
 
-    //  rate: number of stars released per unlocked tranche per :rateUnit
+    //  rate: number of stars released per unlocked batch per :rateUnit
     //
     uint16 rate;
 
@@ -120,7 +119,7 @@ contract ConditionalStarRelease is Ownable
     //
     uint16[] stars;
 
-    //  withdrawn: number of stars withdrawn by this commitment
+    //  withdrawn: number of stars withdrawn by the participant
     //
     uint16 withdrawn;
 
@@ -149,7 +148,8 @@ contract ConditionalStarRelease is Ownable
   {
     //  sanity check: condition per deadline
     //
-    require( _conditions.length <= maxConditions &&
+    require( _conditions.length > 0 &&
+             _conditions.length <= maxConditions &&
              _deadlines.length == _conditions.length );
 
     //  reference ships and polls contracts
@@ -163,10 +163,10 @@ contract ConditionalStarRelease is Ownable
     deadlines = _deadlines;
     timestamps.length = _deadlines.length;
 
-    //  check if the first tranche can be unlocked. most uses of this
-    //  contract will set its condition to 0, unlocking it immediately
+    //  check if the first condition is met. most uses of this contract
+    //  will set its condition to 0, clearing it immediately
     //
-    analyzeTranche(0);
+    analyzeCondition(0);
   }
 
   //
@@ -176,30 +176,35 @@ contract ConditionalStarRelease is Ownable
     //  register(): register a new commitment
     //
     function register( //  _participant: address of the paper contract signer
-                       //  _tranches: number of stars unlocking per tranche
+                       //  _batches: number of stars releasing per batch
                        //  _rate: number of stars that unlock per _rateUnit
                        //  _rateUnit: amount of time it takes for the next
                        //             _rate stars to unlock
                        //
                        address _participant,
-                       uint16[] _tranches,
+                       uint16[] _batches,
                        uint16 _rate,
                        uint256 _rateUnit )
       external
       onlyOwner
     {
-      //  for every condition/deadline, a tranche release amount must be
+      //  for every condition/deadline, a batch release amount must be
       //  specified, even if it's zero
       //
-      require(_tranches.length == conditions.length);
+      require(_batches.length == conditions.length);
 
       //  make sure a sane rate is submitted
       //
       require(_rate > 0);
 
+      //  make sure we're not promising more than we can possibly give
+      //
+      uint16 total = totalStars(_batches, 0);
+      require(com.total <= 65280);
+
       Commitment storage com = commitments[_participant];
-      com.tranches = _tranches;
-      com.total = totalStars(_tranches, 0);
+      com.batches = _batches;
+      com.total = total;
       com.rate = _rate;
       com.rateUnit = _rateUnit;
     }
@@ -212,10 +217,12 @@ contract ConditionalStarRelease is Ownable
     {
       Commitment storage com = commitments[_participant];
 
-      //  ensure we can't deposit more stars than the participant
-      //  is entitled to
+      //  ensure we can only deposit stars, and that we can't deposit
+      //  more stars than necessary
       //
-      require( com.stars.length < com.total.sub(com.withdrawn) );
+      require( (_star > 255) &&
+               ( com.stars.length <
+                 com.total.sub( com.withdrawn.add(com.forfeited) ) ) );
 
       //  There are two ways to deposit a star.  One way is for a galaxy to
       //  grant the CSR contract permission to spawn its stars.  The CSR
@@ -227,8 +234,9 @@ contract ConditionalStarRelease is Ownable
       //  permission to transfer ownership of the star; the contract will
       //  transfer the star to itself.
       //
-      if ( ships.isOwner(ships.getPrefix(_star), msg.sender) &&
-           ships.isSpawnProxy(ships.getPrefix(_star), this) &&
+      uint16 prefix = ships.getPrefix(_star);
+      if ( ships.isOwner(prefix, msg.sender) &&
+           ships.isSpawnProxy(prefix, this) &&
            !ships.isActive(_star) )
       {
         //  first model: spawn _star to :this contract
@@ -291,7 +299,7 @@ contract ConditionalStarRelease is Ownable
       onlyOwner
     {
       //  this can only be done :escapeHatchTime after the first
-      //  tranche unlocked
+      //  condition has been met
       //
       require( ( 0 != timestamps[0] ) &&
                ( block.timestamp > timestamps[0].add(escapeHatchTime) ) );
@@ -316,9 +324,11 @@ contract ConditionalStarRelease is Ownable
     function approveCommitmentTransfer(address _to)
       external
     {
-      //  make sure the target isn't also a participant
+      //  make sure the caller is a participant,
+      //  and that the target isn't
       //
-      require(0 == commitments[_to].total);
+      require( 0 != commitments[msg.sender].total &&
+               0 == commitments[_to].total );
       transfers[msg.sender] = _to;
     }
 
@@ -332,7 +342,8 @@ contract ConditionalStarRelease is Ownable
       //
       require(transfers[_from] == msg.sender);
 
-      //  make sure the target isn't also a participant
+      //  make sure the target isn't also a participant again,
+      //  this could have changed since approveCommitmentTransfer
       //
       require(0 == commitments[msg.sender].total);
 
@@ -377,24 +388,24 @@ contract ConditionalStarRelease is Ownable
       performWithdraw(com, _to, true);
     }
 
-    //  forfeit(): forfeit all remaining stars from tranche number _tranche
-    //             and all tranches after it
+    //  forfeit(): forfeit all remaining stars from batch number _batch
+    //             and all batches after it
     //
-    function forfeit(uint8 _tranche)
+    function forfeit(uint8 _batch)
       external
     {
       Commitment storage com = commitments[msg.sender];
 
-      //  the participant can forfeit if and only if the tranche is missed
-      //  (its deadline has passed without confirmation), and has not
+      //  the participant can forfeit if and only if the condition deadline
+      //  is missed (has passed without confirmation), and has not
       //  previously forfeited
       //
-      require( (deadlines[_tranche] == timestamps[_tranche]) &&
+      require( (deadlines[_batch] == timestamps[_batch]) &&
                !com.forfeit );
 
       //  forfeited: number of stars the participant will forfeit
       //
-      uint16 forfeited = totalStars(com.tranches, _tranche);
+      uint16 forfeited = totalStars(com.batches, _batch);
 
       //  restrict :forfeited to the number of stars not withdrawn
       //
@@ -439,45 +450,45 @@ contract ConditionalStarRelease is Ownable
   //  Public operations and utilities
   //
 
-    //  analyzeTranche(): analyze tranche number _tranche for completion;
-    //                    set :timestamps[_tranche] if either the tranche's
+    //  analyzeCondition(): analyze condition number _condition for completion;
+    //                    set :timestamps[_condition] if either the condition's
     //                    deadline has passed, or its conditions have been met
     //
-    function analyzeTranche(uint8 _tranche)
+    function analyzeCondition(uint8 _condition)
       public
     {
-      //  only analyze tranches that haven't been unlocked yet
+      //  only analyze conditions that haven't been met yet
       //
-      require(0 == timestamps[_tranche]);
+      require(0 == timestamps[_condition]);
 
 
-      //  if the deadline has passed, the tranche is missed, and the
-      //  deadline becomes the tranche's timestamp.
+      //  if the deadline has passed, the condition is missed, and the
+      //  deadline becomes the condition's timestamp.
       //
-      uint256 deadline = deadlines[_tranche];
+      uint256 deadline = deadlines[_condition];
       if (block.timestamp > deadline)
       {
-        timestamps[_tranche] = deadline;
-        emit TrancheCompleted(_tranche, deadline);
+        timestamps[_condition] = deadline;
+        emit ConditionCompleted(_condition, deadline);
         return;
       }
 
-      //  check if the tranche condition has been met
+      //  check if the condition has been met
       //
-      bytes32 condition = conditions[_tranche];
+      bytes32 condition = conditions[_condition];
       if ( //  if there is no condition, it is always met
            //
            (bytes32(0) == condition) ||
            //
-           //  an real condition is met when it has achieved a majority vote
+           //  a real condition is met when it has achieved a majority vote
            //
            polls.documentHasAchievedMajority(condition) )
       {
-        //  if the tranche is completed, set :timestamps[_tranche] to the
+        //  if the condition is met, set :timestamps[_condition] to the
         //  timestamp of the current eth block
         //
-        timestamps[_tranche] = block.timestamp;
-        emit TrancheCompleted(_tranche, block.timestamp);
+        timestamps[_condition] = block.timestamp;
+        emit ConditionCompleted(_condition, block.timestamp);
       }
     }
 
@@ -491,35 +502,35 @@ contract ConditionalStarRelease is Ownable
     {
       Commitment storage com = commitments[_participant];
 
-      //  for each tranche, calculate the current limit and add it to the total.
+      //  for each batch, calculate the current limit and add it to the total.
       //
       for (uint256 i = 0; i < timestamps.length; i++)
       {
         uint256 ts = timestamps[i];
 
-        //  if a tranche hasn't completed yet, there is nothing to add.
+        //  if a condition hasn't completed yet, there is nothing to add.
         //
         if ( ts == 0 )
         {
           continue;
         }
 
-        //  a tranche can't have been unlocked in the future
+        //  a condition can't have been completed in the future
         //
         assert(ts <= block.timestamp);
 
-        //  calculate the amount of stars available from this tranche by
+        //  calculate the amount of stars available from this batch by
         //  multiplying the release rate (stars per :rateUnit) by the number
-        //  of rateUnits that have passed since the tranche unlocked
+        //  of rateUnits that have passed since the condition completed
         //
         uint256 num = uint256(com.rate).mul(
                       block.timestamp.sub(ts) / com.rateUnit );
 
-        //  bound the release rate by the tranche count
+        //  bound the release rate by the batch amount
         //
-        if ( num > com.tranches[i] )
+        if ( num > com.batches[i] )
         {
-          num = com.tranches[i];
+          num = com.batches[i];
         }
 
         //  add it to the total limit
@@ -539,17 +550,17 @@ contract ConditionalStarRelease is Ownable
       }
     }
 
-    //  totalStars(): return the number of stars available after tranche _from
-    //                in the _tranches array
+    //  totalStars(): return the number of stars available after batch _from
+    //                in the _batches array
     //
-    function totalStars(uint16[] _tranches, uint8 _from)
+    function totalStars(uint16[] _batches, uint8 _from)
       public
       pure
       returns (uint16 total)
     {
-      for (uint256 i = _from; i < _tranches.length; i++)
+      for (uint256 i = _from; i < _batches.length; i++)
       {
-        total = total.add(_tranches[i]);
+        total = total.add(_batches[i]);
       }
     }
 
@@ -568,14 +579,14 @@ contract ConditionalStarRelease is Ownable
       return ( com.total.sub(com.withdrawn) == com.stars.length );
     }
 
-    //  getTranches(): get the configured tranche sizes for a commitment
+    //  getBatches(): get the configured batch sizes for a commitment
     //
-    function getTranches(address _participant)
+    function getBatches(address _participant)
       external
       view
-      returns (uint16[] tranches)
+      returns (uint16[] batches)
     {
-      return commitments[_participant].tranches;
+      return commitments[_participant].batches;
     }
 
     //  getRemainingStars(): get the stars deposited into the commitment
