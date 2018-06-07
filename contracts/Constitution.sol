@@ -40,11 +40,7 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 //    allowing ships to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
-contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
-                         //TODO: fix this :-)
-                         // including more interfaces causes the contract to
-                         // not deploy properly, so we only temporarily
-                         // enable it during compilation
+contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
 {
   using SafeMath for uint256;
   using AddressUtils for address;
@@ -103,7 +99,16 @@ contract Constitution is ConstitutionBase, ERC165Mapping//, ERC721Metadata
       uint32 id = uint32(_tokenId);
       require(ships.isActive(id));
       owner = ships.getOwner(id);
-      require(0x0 != owner);
+      require(0x0 != owner); //TODO redundant with isActive check
+    }
+
+    function exists(uint256 _tokenId)
+      public
+      view
+      returns (bool)
+    {
+      return ( (_tokenId < 4294967296) &&
+               ships.isActive(uint32(_tokenId)) );
     }
 
     //  safeTransferFrom(): transfer ship _tokenId from _from to _to
