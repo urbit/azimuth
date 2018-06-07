@@ -54,11 +54,11 @@ contract ConditionalStarRelease is Ownable
 
   //  TrancheCompleted: :tranche has either been hit or missed
   //
-  event TrancheCompleted(uint8 tranche, uint256 when);
+  event TrancheCompleted(uint8 indexed tranche, uint256 when);
 
   //  Forfeit: :who has chosen to forfeit :stars number of stars
   //
-  event Forfeit(address who, uint16 stars);
+  event Forfeit(address indexed who, uint16 stars);
 
   //  ships: public contract which stores ship state
   //  polls: public contract which registers polls

@@ -20,46 +20,46 @@ contract Ships is Ownable
 {
   //  OwnerChanged: :ship is now owned by :owner
   //
-  event OwnerChanged(uint32 ship, address owner);
+  event OwnerChanged(uint32 indexed ship, address indexed owner);
 
   //  Initialized: :ship is now activated and owned by :owner
   //
-  event Initialized(uint32 ship, address owner);
+  event Initialized(uint32 indexed ship, address indexed owner);
 
   //  Spawned: :parent has spawned :child.
   //
-  event Spawned(uint32 parent, uint32 child);
+  event Spawned(uint32 indexed parent, uint32 child);
 
   //  EscapeRequested: :ship has requested a new sponsor, :sponsor
   //
-  event EscapeRequested(uint32 ship, uint32 sponsor);
+  event EscapeRequested(uint32 indexed ship, uint32 indexed sponsor);
 
-  //  EscapeCanceled: :ship's sponsor request was canceled or rejected
+  //  EscapeCanceled: :ship's :sponsor request was canceled or rejected
   //
-  event EscapeCanceled(uint32 ship);
+  event EscapeCanceled(uint32 indexed ship, uint32 indexed sponsor);
 
   //  EscapeAccepted: :ship confirmed with a new sponsor, :sponsor
   //
-  event EscapeAccepted(uint32 ship, uint32 sponsor);
+  event EscapeAccepted(uint32 indexed ship, uint32 indexed sponsor);
 
   //  ChangedKeys: :ship has new Urbit public keys, :crypt and :auth
   //
-  event ChangedKeys( uint32 ship,
+  event ChangedKeys( uint32 indexed ship,
                      bytes32 encryptionKey,
                      bytes32 authenticationKey,
                      uint32 keyRevisionNumber );
 
   //  BrokeContinuity: :ship has a new continuity number, :number.
   //
-  event BrokeContinuity(uint32 ship, uint32 number);
+  event BrokeContinuity(uint32 indexed ship, uint32 number);
 
   //  ChangedSpawnProxy: :ship has a new spawn proxy
   //
-  event ChangedSpawnProxy(uint32 ship, address spawnProxy);
+  event ChangedSpawnProxy(uint32 indexed ship, address indexed spawnProxy);
 
   //  ChangedTransferProxy: :ship has a new transfer proxy
   //
-  event ChangedTransferProxy(uint32 ship, address transferProxy);
+  event ChangedTransferProxy(uint32 indexed ship, address indexed transferProxy);
 
   //  ChangedDns: dnsDomains has been updated
   //
@@ -484,9 +484,10 @@ contract Ships is Ownable
       external
     {
       Hull storage ship = ships[_ship];
+      uint32 request = ship.escapeRequestedTo;
       ship.escapeRequestedTo = 0;
       ship.escapeRequested = false;
-      emit EscapeCanceled(_ship);
+      emit EscapeCanceled(_ship, request);
     }
 
     //  doEscape(): perform the requested escape
