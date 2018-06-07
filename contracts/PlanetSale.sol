@@ -25,7 +25,7 @@ contract PlanetSale is Ownable
 {
   //  PlanetSold: _planet has been sold
   //
-  event PlanetSold(uint32 planet);
+  event PlanetSold(uint32 indexed prefix, uint32 indexed planet);
 
   //  ships: ships state data store
   //
@@ -40,6 +40,7 @@ contract PlanetSale is Ownable
   constructor(Ships _ships, uint256 _price)
     public
   {
+    require(0 < _price);
     ships = _ships;
     price = _price;
   }
@@ -89,7 +90,7 @@ contract PlanetSale is Ownable
       //  spawn the planet to its new owner
       //
       Constitution(ships.owner()).spawn(_planet, msg.sender);
-      emit PlanetSold(_planet);
+      emit PlanetSold(ships.getPrefix(_planet), _planet);
     }
 
   //
@@ -102,6 +103,7 @@ contract PlanetSale is Ownable
       external
       onlyOwner
     {
+      require(0 < _price);
       price = _price;
     }
 
@@ -111,6 +113,7 @@ contract PlanetSale is Ownable
       external
       onlyOwner
     {
+      require(0x0 != _target);
       _target.transfer(address(this).balance);
     }
 
@@ -121,6 +124,7 @@ contract PlanetSale is Ownable
       external
       onlyOwner
     {
+      require(0x0 != _target);
       selfdestruct(_target);
     }
 }
