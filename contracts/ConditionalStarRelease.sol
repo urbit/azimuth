@@ -4,6 +4,7 @@ pragma solidity 0.4.24;
 
 import './Constitution.sol';
 import './SafeMath16.sol';
+import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  ConditionalStarRelease: star transfer over time, based on conditions
 //
