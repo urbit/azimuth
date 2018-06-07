@@ -87,6 +87,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  ERC721 interface
   //
 
+    //  balanceOf(): get the amount of ships owned by _owner
+    //
     function balanceOf(address _owner)
       public
       view
@@ -96,22 +98,30 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       return ships.getOwnedShipCount(_owner);
     }
 
+    //  ownerOf(): get the current owner of ship _tokenId
+    //
     function ownerOf(uint256 _tokenId)
       public
       view
-      shipId(_tokenId)
+      validShipId(_tokenId)
       returns (address owner)
     {
       uint32 id = uint32(_tokenId);
+
+      //  this will throw if the owner is the zero address,
+      //  active ships always have a valid owner.
+      //
       require(ships.isActive(id));
+
       owner = ships.getOwner(id);
-      require(0x0 != owner); //TODO redundant with isActive check
     }
 
+    //  exists(): returns true if ship _tokenId is active
+    //
     function exists(uint256 _tokenId)
       public
       view
-      returns (bool)
+      returns (bool doesExist)
     {
       return ( (_tokenId < 4294967296) &&
                ships.isActive(uint32(_tokenId)) );
@@ -131,7 +141,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //                      and call recipient if it's a contract
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId,
-                              bytes data)
+                              bytes _data)
       public
     {
       //  perform raw transfer
@@ -143,7 +153,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       if (_to.isContract())
       {
         bytes4 retval = ERC721Receiver(_to)
-                        .onERC721Received(_from, _tokenId, data);
+                        .onERC721Received(_from, _tokenId, _data);
         //
         //  standard return idiom to confirm contract semantics
         //
@@ -156,7 +166,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function transferFrom(address _from, address _to, uint256 _tokenId)
       public
-      shipId(_tokenId)
+      validShipId(_tokenId)
     {
       uint32 id = uint32(_tokenId);
       require(ships.isOwner(id, _from));
@@ -167,7 +177,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function approve(address _approved, uint256 _tokenId)
       public
-      shipId(_tokenId)
+      validShipId(_tokenId)
     {
       setTransferProxy(uint32(_tokenId), _approved);
     }
@@ -183,16 +193,20 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       emit ApprovalForAll(msg.sender, _operator, _approved);
     }
 
+    //  getApproved(): get the transfer proxy for ship _tokenId
+    //
     function getApproved(uint256 _tokenId)
       public
       view
-      shipId(_tokenId)
+      validShipId(_tokenId)
       returns (address approved)
     {
       require(ships.isActive(uint32(_tokenId)));
       return ships.getTransferProxy(uint32(_tokenId));
     }
 
+    //  isApprovedForAll(): returns true if _operator is an operator for _owner
+    //
     function isApprovedForAll(address _owner, address _operator)
       public
       view
@@ -226,7 +240,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     function tokenURI(uint256 _tokenId)
       public
       view
-      shipId(_tokenId)
+      validShipId(_tokenId)
       returns (string _tokenURI)
     {
       _tokenURI = "https://eth.urbit.org/erc721/0000000000.json";
@@ -294,15 +308,15 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //  prefix ship must be live and able to spawn
       //
       require( (ships.hasBeenBooted(prefix)) &&
-               (ships.getSpawnCount(prefix) <
-                getSpawnLimit(prefix, block.timestamp)) );
+               ( ships.getSpawnCount(prefix) <
+                 getSpawnLimit(prefix, block.timestamp) ) );
 
       //  the owner of a prefix can always spawn its children;
       //  other addresses need explicit permission (the role
       //  of "spawnProxy" in the Ships contract)
       //
-      require(ships.isOwner(prefix, msg.sender)
-              || ships.isSpawnProxy(prefix, msg.sender));
+      require( ships.isOwner(prefix, msg.sender) ||
+               ships.isSpawnProxy(prefix, msg.sender) );
 
       //  set the new owner of the ship and make it active
       //
@@ -357,14 +371,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     }
 
     //  setSpawnProxy(): give _spawnProxy the right to spawn ships
-    //                   with the prefix _ship
+    //                   with the prefix _prefix
     //
-    function setSpawnProxy(uint16 _ship, address _spawnProxy)
+    function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
-      shipOwner(_ship)
-      active(_ship)
+      shipOwner(_prefix)
+      active(_prefix)
     {
-      ships.setSpawnProxy(_ship, _spawnProxy);
+      ships.setSpawnProxy(_prefix, _spawnProxy);
     }
 
     //  transferShip(): transfer _ship to _target, clearing all permissions
@@ -689,9 +703,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Function modifiers for this contract
   //
 
-    //  shipId(): require that _id is a valid ship
+    //  validShipId(): require that _id is a valid ship
     //
-    modifier shipId(uint256 _id)
+    modifier validShipId(uint256 _id)
     {
       require(_id < 4294967296);
       _;
