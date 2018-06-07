@@ -66,6 +66,13 @@ contract('NFTokenMock', (accounts) => {
     assert.equal(count.toNumber(), 1);
   });
 
+  it('correctly tells if NFT exists', async () => {
+    await nftoken.createGalaxy(id1, accounts[0]);
+    assert.isTrue(await nftoken.exists(id1));
+    assert.isFalse(await nftoken.exists(id2));
+    assert.isFalse(await nftoken.exists(id1+4294967296));
+  });
+
   it('throws when trying to mint 2 NFTs with the same claim', async () => {
     await nftoken.createGalaxy(id2, accounts[0]);
     await assertRevert(nftoken.createGalaxy(id2, accounts[0]));
