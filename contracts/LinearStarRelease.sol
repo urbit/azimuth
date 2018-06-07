@@ -153,7 +153,7 @@ contract LinearStarRelease is Ownable
       else if ( ships.isOwner(_star, msg.sender) &&
                 ships.isTransferProxy(_star, this) &&
                 ships.isActive(_star) &&
-                (0 == ships.getKeyRevisionNumber(_star)) )
+                !ships.hasBeenBooted(_star) )
       {
         //  second model: transfer active, unused _star to :this contract
         //
@@ -202,9 +202,11 @@ contract LinearStarRelease is Ownable
     function approveBatchTransfer(address _to)
       external
     {
-      //  make sure the target isn't also a participant
+      //  make sure the caller is a participant,
+      //  and that the target isn't
       //
-      require(0 == batches[_to].amount);
+      require( 0 != batches[msg.sender].amount &&
+               0 == batches[_to].amount );
       transfers[msg.sender] = _to;
     }
 
@@ -245,9 +247,8 @@ contract LinearStarRelease is Ownable
     {
       Batch storage batch = batches[msg.sender];
 
-      //  to withdraw, the participant must have a star balance,
-      //  be under their current withdrawal limit, and cannot
-      //  withdraw forfeited stars
+      //  to withdraw, the participant must have a star balance
+      //  and be under their current withdrawal limit
       //
       require( (batch.stars.length > 0) &&
                (batch.withdrawn < withdrawLimit(msg.sender)) );
