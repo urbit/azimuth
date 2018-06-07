@@ -244,8 +244,8 @@ contract('Constitution', function([owner, user1, user2]) {
                                          polls.address,
                                          ens.address, 'foo', 'sub',
                                          claims.address);
-    // upgraded can only be called by previous constitution
-    await assertRevert(consti3.upgraded({from:user2}));
+    // onUpgrade can only be called by previous constitution
+    await assertRevert(consti3.onUpgrade({from:user2}));
     await consti2.startConstitutionPoll(0, consti3.address, {from:user1});
     await consti2.castConstitutionVote(0, consti3.address, true, {from:user1});
     await increaseTime(pollTime + 5);

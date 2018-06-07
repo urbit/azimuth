@@ -15,10 +15,10 @@ import './interfaces/ResolverInterface.sol';
 //
 //    This contract implements the upgrade logic for the Constitution.
 //    Newer versions of the Constitution are expected to provide at least
-//    the upgraded() function. If they don't, upgrading to them will fail.
+//    the onUpgrade() function. If they don't, upgrading to them will fail.
 //
 //    Note that even though this contract doesn't specify any required
-//    interface members aside from upgrade() and upgraded(), contracts
+//    interface members aside from upgrade() and onUpgrade(), contracts
 //    and clients may still rely on the presence of certain functions
 //    provided by the Constitution proper. Keep this in mind when writing
 //    updated versions of it.
@@ -68,15 +68,21 @@ contract ConstitutionBase is Ownable, ReadsShips
     subNode = keccak256(abi.encodePacked( baseNode, subLabel ));
   }
 
-  //  upgraded(): called by previous constitution when upgrading
+  //  onUpgrade(): called by previous constitution when upgrading
   //
-  function upgraded()
+  //    in future constitutions, this might perform more logic than
+  //    just simple checks and verifications.
+  //    when overriding this, make sure to call the original as well.
+  //
+  function onUpgrade()
     external
   {
     //  make sure this is the expected upgrade path,
-    //  and that we have gotten ownership of the ENS nodes
+    //  and that we have gotten the ownership we require
     //
     require( msg.sender == previousConstitution &&
+             this == ships.owner() &&
+             this == polls.owner() &&
              this == ens.owner(baseNode) &&
              this == ens.owner(subNode) );
   }
@@ -108,7 +114,7 @@ contract ConstitutionBase is Ownable, ReadsShips
 
     //  trigger upgrade logic on the target contract
     //
-    _new.upgraded();
+    _new.onUpgrade();
 
     //  emit event and destroy this contract
     //
