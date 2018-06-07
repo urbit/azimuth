@@ -5,5 +5,6 @@ module.exports = {
                  'ENSRegistry.sol',
                  'NFTokenReceiverTestMock.sol',
                  'PublicResolver.sol',
-                 'SafeMath8.sol' ]
+                 'SafeMath8.sol',
+                 'SafeMath16.sol' ]
 };
