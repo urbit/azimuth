@@ -17,11 +17,11 @@ contract Censures is ReadsShips
 {
   //  Censured: :who got censures by :by
   //
-  event Censured(uint16 by, uint32 who);
+  event Censured(uint16 indexed by, uint32 indexed who);
 
   //  Forgiven: :who is no longer censured by :by
   //
-  event Forgiven(uint16 by, uint32 who);
+  event Forgiven(uint16 indexed by, uint32 indexed who);
 
   //  censures: per ship, their registered censures
   //

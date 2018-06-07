@@ -17,15 +17,18 @@ import './ReadsShips.sol';
 //
 contract Claims is ReadsShips
 {
-  //  Claimed: a claim was made by :by
+  //  ClaimAdded: a claim was addhd by :by
   //
-  event Claimed(uint32 by, string _protocol, string _claim, bytes _dossier);
+  event ClaimAdded( uint32 indexed by,
+                    string _protocol,
+                    string _claim,
+                    bytes _dossier );
 
-  //  Disclaimed: a claim was disclaimed by :by
+  //  ClaimRemoved: a claim was removed by :by
   //
-  event Disclaimed(uint32 by, string _protocol, string _claim);
+  event ClaimRemoved(uint32 indexed by, string _protocol, string _claim);
 
-  //  maxClaims: the amount of claims that can be registered per ship.
+  //  maxClaims: the amount of claims that can be registered per ship
   //
   uint8 constant maxClaims = 16;
 
@@ -113,7 +116,7 @@ contract Claims is ReadsShips
     {
       claims[_ship][cur-1] = Claim(_protocol, _claim, _dossier);
     }
-    emit Claimed(_ship, _protocol, _claim, _dossier);
+    emit ClaimAdded(_ship, _protocol, _claim, _dossier);
   }
 
   //  removeClaim(): unregister a claim as _ship
@@ -147,7 +150,7 @@ contract Claims is ReadsShips
     delete(clams[last]);
     clams.length = last;
     indexes[_ship][id] = 0;
-    emit Disclaimed(_ship, _protocol, _claim);
+    emit ClaimRemoved(_ship, _protocol, _claim);
   }
 
   //  clearClaims(): unregister all of _ship's claims
