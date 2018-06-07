@@ -51,6 +51,12 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   event ApprovalForAll(address indexed _owner, address indexed _operator,
                        bool _approved);
 
+  // erc721Received: equal to:
+  //               bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`
+  //                 which can be also obtained as:
+  //               ERC721Receiver(0).onERC721Received.selector`
+  bytes4 constant erc721Received = 0xf0b9e5ba;
+
   Claims public claims;
 
   //  constructor(): set Urbit data addresses and signal interface support
@@ -141,8 +147,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         //
         //  standard return idiom to confirm contract semantics
         //
-        require(retval ==
-                bytes4(keccak256("onERC721Received(address,uint256,bytes)")));
+        require(retval == erc721Received);
       }
     }
 
