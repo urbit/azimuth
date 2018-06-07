@@ -5,37 +5,38 @@ const Constitution = artifacts.require('../contracts/Constitution.sol');
 const CSR = artifacts.require('../contracts/ConditionalStarRelease.sol');
 
 const assertRevert = require('./helpers/assertRevert');
+const increaseTime = require('./helpers/increaseTime');
 
 contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   let ships, polls, constit, csr,
-      deadline1, deadline2, deadline3, condit2, rateUnit;
+      deadline1, deadline2, deadline3, condit2, rateUnit,
+      deadlineStep;
 
   function assertInvalid(error) {
     assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode must be returned, but got ' + error);
   }
 
-  // because setTimeout doesn't work.
-  function busywait(s) {
-    var start = Date.now();
-    var ms = s * 1000;
-    while (true) {
-      if ((Date.now() - start) > ms) break;
-    }
-  }
-
-  function busywaitUntil(timestamp) {
-    var ms = timestamp * 1000;
-    while (true) {
-      if (Date.now() > ms) break;
-    }
-  }
+  function getChainTime() {
+    return new Promise((resolve, reject) => {
+      web3.currentProvider.sendAsync({
+        jsonrpc: '2.0',
+        method: 'eth_getBlockByNumber',
+        params: ['latest', false],
+        id: 'csr-getting-time',
+      }, (err, res) => {
+        if (err) return reject(err);
+        return resolve(res.result.timestamp);
+      });
+    });
+  };
 
   before('setting up for tests', async function() {
-    deadline1 = Math.floor(Date.now() / 1000) + 1;
-    deadline2 = deadline1 + 2;
-    deadline3 = deadline2 + 2;
+    deadlineStep = 100;
+    deadline1 = web3.toDecimal(await getChainTime()) + 2;
+    deadline2 = deadline1 + deadlineStep;
+    deadline3 = deadline2 + deadlineStep;
     condit2 = 123456789;
-    rateUnit = 6;
+    rateUnit = deadlineStep * 10;
     ships = await Ships.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
@@ -49,7 +50,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await constit.spawn(2560, owner);
     await constit.configureKeys(2560, 1, 2, false);
     csr = await CSR.new(ships.address, [0, condit2, "miss me", "too"],
-                         [deadline1, deadline2, deadline3, deadline3+1000]);
+                         [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
     await constit.setSpawnProxy(0, csr.address);
     await constit.setTransferProxy(256, csr.address);
   });
@@ -65,12 +66,9 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     // first condition is zero, so automatically unlocked on-construct.
     assert.notEqual(await csr.timestamps(0), 0);
     // other conditions should not have timestamps yet.
-    console.log('a');
     assert.equal(await csr.timestamps(3), 0);
     await csr.analyzeCondition(1);
-    console.log(await csr.timestamps(1));
     assert.equal(await csr.timestamps(1), 0);
-    console.log('c');
     // fulfill condition 2
     await constit.startDocumentPoll(0, condit2);
     await constit.castDocumentVote(0, condit2, true);
@@ -80,7 +78,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     // can't analyzn twice
     await assertRevert(csr.analyzeCondition(1, {from:user1}));
     // miss deadline for condition 3
-    busywaitUntil(deadline3+1);
+    await increaseTime((deadlineStep+2) * 2);
     await csr.analyzeCondition(2);
     assert.equal(await csr.timestamps(2), deadline3);
   });
@@ -115,7 +113,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   it('withdraw limit', async function() {
     await csr.register(owner, [1, 0, 5, 0], 2, rateUnit);
     assert.equal(await csr.withdrawLimit(user1), 1);
-    busywaitUntil(deadline3+rateUnit);
+    await increaseTime(rateUnit);
     assert.equal(await csr.withdrawLimit(user1), 3);
     // unregistered address should not yet have a withdraw limit
     try {
@@ -183,7 +181,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     assert.isTrue(com[4]);
     assert.equal(com[5], com[0] - com[3]);
     assert.equal(com[5], 5);
-    busywait(rateUnit);
+    await increaseTime(rateUnit);
     // can't withdraw because of forfeit
     await assertRevert(csr.withdraw({from:user2}));
     // only owner can still withdraw
