@@ -19,7 +19,7 @@ import './Constitution.sol';
 //    to prevent further sales.
 //
 //    This contract is intended to be deployed by star owners that want
-//    to sell that planets on-chain.
+//    to sell their planets on-chain.
 //
 contract PlanetSale is Ownable
 {
