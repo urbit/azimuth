@@ -165,8 +165,11 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     // can't transfer without permission
     await assertRevert(csr.transferCommitment(user1, {from:user2}));
     await csr.approveCommitmentTransfer(user2, {from:user1});
+    await csr.approveCommitmentTransfer(user2, {from:user3});
     assert.equal(await csr.transfers(user1), user2);
     await csr.transferCommitment(user1, {from:user2});
+    // can't if we became a participant in the mean time
+    await assertRevert(csr.transferCommitment(user3, {from:user2}));
     await csr.withdrawLimit(user2);
     // unregistered address should no longer have batches, etc
     let batches = await csr.getBatches(user1);
@@ -174,6 +177,8 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   });
 
   it('forfeiting and withdrawing', async function() {
+    // owner can't withdraw if not forfeited
+    await assertRevert(csr.withdrawForfeited(user2, owner));
     await csr.forfeit(2, {from:user2});
     // can't forfeit twice
     await assertRevert(csr.forfeit(2, {from:user2}));
@@ -186,9 +191,16 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await assertRevert(csr.withdraw({from:user2}));
     // only owner can still withdraw
     await assertRevert(csr.withdrawForfeited(user2, owner, {from:user2}));
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 4; i++) {
       await csr.withdrawForfeited(user2, owner);
     }
+    assert.isTrue(await ships.isOwner(512, owner));
+  });
+
+  it('escape hatch', async function() {
+    await assertRevert(csr.withdrawOverdue(user2, owner));
+    await increaseTime(10*365*24*60*60);
+    await csr.withdrawOverdue(user2, owner);
     assert.isTrue(await ships.isOwner(256, owner));
   });
 });
