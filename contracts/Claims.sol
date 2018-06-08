@@ -10,10 +10,14 @@ import './ReadsShips.sol';
 //    Most commonly, these are about identity, with a claim's protocol
 //    defining the context or platform of the claim, and its dossier
 //    containing proof of its validity.
+//    Ships are limited to a maximum of 16 claims.
 //
 //    For existing claims, the dossier can be updated, or the claim can
 //    be removed entirely. It is recommended to remove any claims associated
 //    with a ship when it is about to be transfered to a new owner.
+//    For convenience, the owner of the Ships contract (the Constitution)
+//    is allowed to clear claims for any ship, allowing it to do this for
+//    you on-transfer.
 //
 contract Claims is ReadsShips
 {
