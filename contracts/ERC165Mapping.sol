@@ -8,7 +8,7 @@ contract ERC165Mapping is ERC165 {
     /// @dev You must not set element 0xffffffff to true
     mapping(bytes4 => bool) internal supportedInterfaces;
 
-    function ERC165Mapping() internal {
+    constructor() internal {
         supportedInterfaces[this.supportsInterface.selector] = true;
     }
 
