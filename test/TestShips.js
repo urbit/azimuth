@@ -65,6 +65,7 @@ contract('Ships', function([owner, user]) {
     assert.equal(owned[1], 1);
     assert.equal(owned[2], 2);
     assert.equal(owned.length, 3);
+    assert.equal(await ships.getOwnedShipAtIndex(user, 2), 2);
     await ships.setOwner(0, owner);
     owned = await ships.getOwnedShips({from:user});
     assert.equal(owned[0].toNumber(), 2);
