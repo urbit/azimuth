@@ -29,6 +29,9 @@ contract('Planet Sale', function([owner, user]) {
     assert.equal(await sale.price(), price / 10);
     // only owner can do this.
     await assertRevert(sale.setPrice(price, {from:user}));
+    // must be more than zero
+    await assertRevert(PlanetSale.new(ships.address, 0));
+    await assertRevert(sale.setPrice(0));
     await sale.setPrice(price);
     assert.equal(await sale.price(), price);
   });
@@ -56,6 +59,8 @@ contract('Planet Sale', function([owner, user]) {
   it('withdrawing', async function() {
     // only owner can do this.
     await assertRevert(sale.withdraw(user, {from:user}));
+    // can't withdraw to zero address
+    await assertRevert(sale.withdraw(0));
     let userBal = web3.eth.getBalance(user).toNumber();
     let saleBal = web3.eth.getBalance(sale.address).toNumber();
     await sale.withdraw(user);
@@ -65,6 +70,8 @@ contract('Planet Sale', function([owner, user]) {
   it('ending', async function() {
     // only owner can do this.
     await assertRevert(sale.close(user, {from:user}));
+    // can't send remaining funds to zero address
+    await assertRevert(sale.close(0));
     await sale.purchase(131328, {from:user,value:price});
     let userBal = web3.eth.getBalance(user).toNumber();
     let saleBal = web3.eth.getBalance(sale.address).toNumber();
