@@ -14,9 +14,12 @@ import './Constitution.sol';
 //    to a value higher than zero can help the network grow by providing
 //    regular users with a way to get their friends and family onto it.
 //
+//    To allow planets to be sent my this contract, stars must set it as
+//    their spawnProxy using the Constitution.
+//
 contract DelegatedSending is ReadsShips
 {
-  //  Sent: :by sent :ship.
+  //  Sent: :by sent :ship
   //
   event Sent(uint32 by, uint32 ship);
 
