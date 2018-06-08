@@ -9,6 +9,12 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //    This contract is used for storing all data related to Urbit addresses
 //    and their ownership. Consider this contract the Urbit ledger.
 //
+//    It also contains permissions data, which ties in to ERC721
+//    functionality. Operators of an address are allowed to transfer
+//    ownership of all ships owned by their associated address
+//    (ERC721's approveAll()). A transfer proxy is allowed to transfer
+//    ownership of a single ship (ERC721's approve()).
+//
 //    Since data stores are difficult to upgrade, this contract contains
 //    as little actual business logic as possible. Instead, the data stored
 //    herein can only be modified by this contract's owner, which can be
@@ -59,13 +65,14 @@ contract Ships is Ownable
 
   //  ChangedTransferProxy: :ship has a new transfer proxy
   //
-  event ChangedTransferProxy(uint32 indexed ship, address indexed transferProxy);
+  event ChangedTransferProxy( uint32 indexed ship,
+                              address indexed transferProxy );
 
   //  ChangedDns: dnsDomains has been updated
   //
   event ChangedDns(string primary, string secondary, string tertiary);
 
-  //  Class: classes of ship registered on eth
+  //  Class: classes of ship registered on-chain
   //
   enum Class
   {
@@ -78,11 +85,12 @@ contract Ships is Ownable
   //
   struct Hull
   {
-    //  owner: eth address that owns this ship
+    //  owner: address that owns this ship
     //
     address owner;
 
     //  active: whether ship can be run
+    //
     //    false: ship belongs to parent, cannot be booted
     //    true: ship has been, or can be, booted
     //
@@ -138,7 +146,7 @@ contract Ships is Ownable
   //
   mapping(uint32 => Hull) public ships;
 
-  //  shipsOwnedBy: per eth address, list of ships owned
+  //  shipsOwnedBy: per address, list of ships owned
   //
   mapping(address => uint32[]) public shipsOwnedBy;
 
@@ -160,6 +168,8 @@ contract Ships is Ownable
   //
   string[3] public dnsDomains;
 
+  //  constructor(): configure default dns domains
+  //
   constructor()
     public
   {
@@ -289,7 +299,7 @@ contract Ships is Ownable
         //
         uint256 i = shipOwnerIndexes[prev][_ship];
 
-        //  we store index + 1, because 0 is the eth default value
+        //  we store index + 1, because 0 is the solidity default value
         //
         assert(i > 0);
         i--;
@@ -337,7 +347,7 @@ contract Ships is Ownable
       uint32 prefix = getPrefix(_ship);
       ship.sponsor = prefix;
 
-      //  for non-galaxies, increase the spawn count of the prefix
+      //  register a new spawned ship for the prefix
       //
       ships[prefix].spawnCount++;
       ships[prefix].spawned.push(_ship);
@@ -425,6 +435,11 @@ contract Ships is Ownable
       return ships[_ship].spawnCount;
     }
 
+    //  getSpawned(): return array ships spawned under _ship
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
     function getSpawned(uint32 _ship)
       view
       external
