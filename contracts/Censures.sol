@@ -8,6 +8,7 @@ import './ReadsShips.sol';
 //
 //    This contract allows stars and galaxies to assign a negative
 //    reputation (censure) to other ships of the same or lower rank.
+//    These censures are not permanent, they can be forgiven.
 //
 //    Since the Urbit network provides incentives for good behavior,
 //    making bad behavior is the exception rather than the rule, this
@@ -23,11 +24,12 @@ contract Censures is ReadsShips
   //
   event Forgiven(uint16 indexed by, uint32 indexed who);
 
-  //  censures: per ship, their registered censures
+  //  censures: per ship, the ships they're censuring
   //
   mapping(uint16 => uint32[]) public censures;
 
-  //  indexes: per ship per censure, (index + 1) in censures array
+  //  indexes: per ship, per ship they've censured,
+  //           (index + 1) in the censures array
   //
   //    We delete censures by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
