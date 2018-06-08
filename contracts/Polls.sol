@@ -13,6 +13,20 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //    It keeps track of votes and uses them to calculate whether a majority
 //    is in favor of a proposal.
 //
+//    Every galaxy can only vote on a proposal exactly once. Votes cannot
+//    be changed. If a proposal fails to achieve majority within its
+//    duration, it can be restarted after its cooldown period has passed.
+//
+//    The requirements for a proposal to achieve majority are as follows:
+//    - At least 1/4 of the currently active voters (rounded down) must have
+//      voted in favor of the proposal,
+//    - More than half of the votes cast must be in favor of the proposal,
+//      and this can no longer change, either because
+//      - the poll duration has passed, or
+//      - not enough voters remain to take away the in-favor majority.
+//    As soon as these conditions are met, no further interaction with
+//    the proposal is possible. Achieving majority is permanent.
+//
 //    Since data stores are difficult to upgrade, all of the logic unrelated
 //    to the voting itself (that is, determining who is eligible to vote)
 //    is expected to be implemented by this contract's owner.
@@ -90,11 +104,12 @@ contract Polls is Ownable
   //                                   has everachieved majority
   //
   //    if we did not store this, we would have to look at old poll data
-  //    to see whether or not a proposal has achieved majority. but since
-  //    the results calculated from poll data rely on contract configuration
-  //    that may not be accurate accross time. by storing majority flags
-  //    explicitly, we can always tell with certainty whether or not a
-  //    majority was achieved.
+  //    to see whether or not a proposal has ever achieved majority.
+  //    since the outcome of a poll is calculated based on :totalVoters,
+  //    which may not be consistent accross time, we need to store outcomes
+  //    explicitly instead of re-calculating them, so that we can always
+  //    tell with certainty whether or not a majority was achieved,
+  //    regardless of the current :totalVoters.
   //
   mapping(address => bool) public constitutionHasAchievedMajority;
 
@@ -295,9 +310,9 @@ contract Polls is Ownable
     }
   }
 
-  //  updateConstitutionPoll(): check whether the _proposal has achieved majority,
-  //                        updating state, sending an event, and returning
-  //                        true if it has
+  //  updateConstitutionPoll(): check whether the _proposal has achieved
+  //                            majority, updating state, sending an event,
+  //                            and returning true if it has
   //
   function updateConstitutionPoll(address _proposal)
     public
