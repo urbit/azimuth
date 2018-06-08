@@ -8,28 +8,34 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  ConditionalStarRelease: star transfer over time, based on conditions
 //
-//    This contract allows its owner to transfer a batch of stars to a
+//    This contract allows its owner to transfer batches of stars to a
 //    recipient (also "participant") gradually over time, assuming
 //    the specified conditions are met.
 //
-//    The contract state holds an arbitrary number of conditions and
-//    deadlines, which get configured during contract creation.
+//    This contract represents a single set of conditions and corrosponding
+//    deadlines (up to eight) which get configured during contract creation.
 //    The conditions take the form of hashes, and they are checked for
-//    by looking at the Votes contract. A condition is met if it has
-//    achieved a majority in the Votes contract, or its deadline has
+//    by looking at the Polls contract. A condition is met if it has
+//    achieved a majority in the Polls contract, or its deadline has
 //    passed.
 //    Completion timestamps are stored for each completed condition.
 //    They are equal to the time at which majority was observed, or
 //    the condition's deadline, whichever comes first.
 //
+//    An arbitrary number of participants (in the form of Ethereum
+//    addresses) can be registered with the contract.
 //    Per participant, the contract stores a commitment. This structure
 //    contains the details of the stars to be made available to the
-//    participant. The amount of stars is specified per condition, in
-//    so-called batches.
+//    participant, configured during registration. This allows for
+//    per-participant configuration of the amount of stars they receive
+//    per condition, and at what rate these stars get released.
 //
 //    When a timestamp for a condition is set, the amount of stars in
 //    the batch corresponding to that condition is released to the
 //    participant at the rate specified in the commitment.
+//
+//    Stars deposited into the contracts for participants to (eventually)
+//    withdraw are treated on a last-in first-out basis.
 //
 //    If a condition's timestamp is equal to its deadline, participants
 //    have the option to forfeit any stars that remain in their commitment
@@ -510,6 +516,9 @@ contract ConditionalStarRelease is Ownable
 
         //  if a condition hasn't completed yet, there is nothing to add.
         //
+        //    we don't break, because technically conditions can be met in
+        //    any arbitrary order.
+        //
         if ( ts == 0 )
         {
           continue;
@@ -566,6 +575,10 @@ contract ConditionalStarRelease is Ownable
 
     //  verifyBalance: check the balance of _participant
     //
+    //    Note: for use by clients that have not forfeited,
+    //    to verify the contract owner has deposited the stars
+    //    they're entitled to.
+    //
     function verifyBalance(address _participant)
       external
       view
@@ -581,6 +594,9 @@ contract ConditionalStarRelease is Ownable
 
     //  getBatches(): get the configured batch sizes for a commitment
     //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
     function getBatches(address _participant)
       external
       view
@@ -590,6 +606,9 @@ contract ConditionalStarRelease is Ownable
     }
 
     //  getRemainingStars(): get the stars deposited into the commitment
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
     //
     function getRemainingStars(address _participant)
       external
