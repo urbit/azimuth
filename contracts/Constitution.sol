@@ -335,7 +335,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
 
       if ( class == Ships.Class.Planet )
       {
-        //
         //  planets can create moons, but moons aren't on the chain
         //
         return 0;
@@ -352,17 +351,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         //    Note: 1514764800 corresponds to 2018-01-01
         //
         uint256 yearsSince2018 = (_time - 1514764800) / 365 days;
-        if (yearsSince2018 > 6)
+        if (yearsSince2018 < 6)
         {
-          yearsSince2018 = 6;
+          limit = uint32( 1024 * (2 ** yearsSince2018) );
         }
-        limit = 1024;
-        while (yearsSince2018 > 0)
-        {
-          limit = limit * 2;
-          yearsSince2018--;
-        }
-        if (limit > 65535)
+        else
         {
           limit = 65535;
         }
