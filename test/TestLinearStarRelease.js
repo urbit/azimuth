@@ -89,18 +89,19 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
 
   it('transferring batch', async function() {
     assert.equal(await lsr.transfers(user1), 0);
-    assert.notEqual(await lsr.getRemainingStars(user1), 0);
-    assert.equal(await lsr.getRemainingStars(user2), 0);
     // can't transfer to other participant
     await assertRevert(lsr.approveBatchTransfer(user3, {from:user1}));
     // can't transfer without permission
     await assertRevert(lsr.transferBatch(user1, {from:user2}));
     await lsr.approveBatchTransfer(user2, {from:user1});
+    await lsr.approveBatchTransfer(user2, {from:user3});
     assert.equal(await lsr.transfers(user1), user2);
     await lsr.transferBatch(user1, {from:user2});
+    // can't if we became a participant in the mean time
+    await assertRevert(lsr.transferBatch(user3, {from:user2}));
     await lsr.withdrawLimit(user2);
-    // unregistered address should no longer have remaining stars
-    assert.equal(await lsr.getRemainingStars(user1), 0);
+    // unregistered address should no longer have stars, etc
+    assert.equal((await lsr.getRemainingStars(user1)).length, 0);
   });
 
   it('withdrawing', async function() {
@@ -123,5 +124,12 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     // pass all rateUnits, and then some
     await increaseTime(rateUnit * 100);
     assert.equal(await lsr.withdrawLimit(user2), 8);
+  });
+
+  it('escape hatch', async function() {
+    await assertRevert(lsr.withdrawOverdue(user2, owner));
+    await increaseTime(10*365*24*60*60);
+    await lsr.withdrawOverdue(user2, owner);
+    assert.isTrue(await ships.isOwner(1024, owner));
   });
 });
