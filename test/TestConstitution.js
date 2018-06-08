@@ -72,11 +72,13 @@ contract('Constitution', function([owner, user1, user2]) {
   });
 
   it('spawning ships', async function() {
-    // can't spawn if not parent owner.
-    await assertRevert(constit.spawn(256, user1, {from:user2}));
     // can't spawn if parent not live.
     await assertRevert(constit.spawn(256, user1, {from:user1}));
     await constit.configureKeys(0, 1, 2, false, {from:user1});
+    // can't spawn if not parent owner.
+    await assertRevert(constit.spawn(256, user1, {from:user2}));
+    // can only spawn class directly below prefix
+    await assertRevert(constit.spawn(65536, user1), {from:user1});
     // spawn child.
     await constit.spawn(256, user1, {from:user1});
     assert.isTrue(await ships.isOwner(256, user1));
@@ -87,7 +89,6 @@ contract('Constitution', function([owner, user1, user2]) {
     // check the spawn limits.
     assert.equal(await constit.getSpawnLimit(0, 0), 255);
     assert.equal(await constit.getSpawnLimit(123455, 0), 0);
-    let time = Math.floor(Date.now() / 1000);
     assert.equal(await constit.getSpawnLimit(512, 1514764800), 1024); // 2018
     assert.equal(await constit.getSpawnLimit(512, 1546214400), 1024); // 2018-12
     assert.equal(await constit.getSpawnLimit(512, 1546300800), 2048); // 2019
@@ -220,15 +221,23 @@ contract('Constitution', function([owner, user1, user2]) {
   });
 
   it('voting on constitution poll', async function() {
+    constix = await Constitution.new('0x0',
+                                     ships.address,
+                                     polls.address,
+                                     ens.address, 'foo', 'sub',
+                                     claims.address);
     consti2 = await Constitution.new(constit.address,
                                      ships.address,
                                      polls.address,
                                      ens.address, 'foo', 'sub',
                                      claims.address);
-    // can't if not galaxy owner.
-    await assertRevert(constit.castConstitutionVote(0, consti2.address, true, {from:user2}));
+    // can't if upgrade path not correct
+    await assertRevert(constit.startConstitutionPoll(0, constix.address, {from:user1}));
+    // can't start if not galaxy owner.
     await assertRevert(constit.startConstitutionPoll(0, consti2.address, {from:user2}));
     await constit.startConstitutionPoll(0, consti2.address, {from:user1});
+    // can't vote if not galaxy owner
+    await assertRevert(constit.castConstitutionVote(0, consti2.address, true, {from:user2}));
     await constit.castConstitutionVote(0, consti2.address, true, {from:user1});
     await constit.castConstitutionVote(1, consti2.address, true, {from:user1});
     assert.equal(await ships.owner(), consti2.address);
