@@ -339,12 +339,9 @@ contract Ships is Ownable
 
       //  for non-galaxies, increase the spawn count of the prefix
       //
-      if (_ship > 255)
-      {
-        ships[prefix].spawnCount++;
-        ships[prefix].spawned.push(_ship);
-        emit Spawned(prefix, _ship);
-      }
+      ships[prefix].spawnCount++;
+      ships[prefix].spawned.push(_ship);
+      emit Spawned(prefix, _ship);
 
       //  give the ship to its initial owner
       //
