@@ -57,6 +57,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //               ERC721Receiver(0).onERC721Received.selector`
   bytes4 constant erc721Received = 0xf0b9e5ba;
 
+  //  claims: contract reference, for clearing claims on-transfer
+  //
   Claims public claims;
 
   //  constructor(): set Urbit data addresses and signal interface support
@@ -300,7 +302,16 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //
       uint16 prefix = ships.getPrefix(_ship);
 
-      //  prevent galaxies from spawning planets
+      //  only allow spawning of ships of the class directly below the prefix
+      //
+      //    this is possible because of how the address space works,
+      //    but supporting it introduces complexity through broken assumptions.
+      //
+      //    example:
+      //    0x0000.0000 - galaxy zero
+      //    0x0000.0100 - the first star of galaxy zero
+      //    0x0001.0100 - the first planet of the first star
+      //    0x0001.0000 - the first planet of galaxy zero
       //
       require( (uint8(ships.getShipClass(prefix)) + 1) ==
                uint8(ships.getShipClass(_ship)) );
@@ -475,9 +486,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //
       if ( !ships.hasBeenBooted(_sponsor) ) return false;
 
-      //  We must escape to a sponsor of the same class, except in
-      //  the special case where the escaping ship hasn't been
-      //  born yet -- to support lightweight invitation chains.
+      //  Can only escape to a ship one class higher than ourselves,
+      //  except in the special case where the escaping ship hasn't
+      //  been booted yet -- in that case we may escape to ships of
+      //  the same class, to support lightweight invitation chains.
       //
       //  The use case for lightweight invitations is that a planet
       //  owner should be able to invite their friends to Urbit in
