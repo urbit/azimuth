@@ -330,6 +330,10 @@ contract LinearStarRelease is Ownable
 
     //  verifyBalance: check the balance of _participant
     //
+    //    Note: for use by clients that have not forfeited,
+    //    to verify the contract owner has deposited the stars
+    //    they're entitled to.
+    //
     function verifyBalance(address _participant)
       external
       view
@@ -344,6 +348,9 @@ contract LinearStarRelease is Ownable
     }
 
     //  getRemainingStars(): get the stars deposited into the batch
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
     //
     function getRemainingStars(address _participant)
       external
