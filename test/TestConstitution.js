@@ -130,7 +130,8 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getContinuityNumber(0), 1);
     assert.isFalse(await ships.isSpawnProxy(0, user2));
     assert.isFalse(await ships.isTransferProxy(0, user2));
-    assert.equal(await claims.getClaimCount(0), 0);
+    let claim = await claims.claims(0, 0);
+    assert.equal(claim[0], "");
   });
 
   it('allowing transfer of ownership', async function() {
