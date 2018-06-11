@@ -152,14 +152,14 @@ contract Claims is ReadsShips
     view
     returns (uint8 index)
   {
+    bytes32 protocolHash = keccak256(bytes(_protocol));
+    bytes32 claimHash = keccak256(bytes(_claim));
     Claim[maxClaims] storage theirClaims = claims[_whose];
     for (uint8 i = 0; i < maxClaims; i++)
     {
       Claim storage thisClaim = theirClaims[i];
-      if ( ( keccak256(bytes(_protocol)) ==
-             keccak256(bytes(thisClaim.protocol)) ) &&
-           ( keccak256(bytes(_claim)) ==
-             keccak256(bytes(thisClaim.claim)) ) )
+      if ( ( protocolHash == keccak256(bytes(thisClaim.protocol)) ) &&
+           ( claimHash == keccak256(bytes(thisClaim.claim)) ) )
       {
         return i+1;
       }
