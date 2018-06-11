@@ -380,7 +380,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
       shipOwner(_prefix)
-      active(_prefix)
     {
       ships.setSpawnProxy(_prefix, _spawnProxy);
     }
@@ -713,14 +712,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     modifier validShipId(uint256 _id)
     {
       require(_id < 4294967296);
-      _;
-    }
-
-    //  active(): require that _ship is in the active state
-    //
-    modifier active(uint32 _ship)
-    {
-      require(ships.isActive(_ship));
       _;
     }
 }
