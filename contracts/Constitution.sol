@@ -420,13 +420,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //
       if ( _reset )
       {
-        //  break continuity
+        //  clear the Urbit public keys and break continuity,
+        //  but only if the ship has already been used
         //
-        ships.incrementContinuityNumber(_ship);
-
-        //  clear Urbit public keys
-        //
-        ships.setKeys(_ship, 0, 0);
+        if ( ships.hasBeenBooted(_ship) )
+        {
+          ships.incrementContinuityNumber(_ship);
+          ships.setKeys(_ship, 0, 0);
+        }
 
         //  clear transfer proxy
         //
