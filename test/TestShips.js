@@ -71,6 +71,11 @@ contract('Ships', function([owner, user]) {
     assert.equal(owned[0].toNumber(), 2);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned.length, 2);
+    // interact with ships that got moved in the array
+    await ships.setOwner(2, owner);
+    owned = await ships.getOwnedShips({from:user});
+    assert.equal(owned[0].toNumber(), 1);
+    assert.equal(owned.length, 1);
   });
 
   it('activating and spawn count', async function() {
