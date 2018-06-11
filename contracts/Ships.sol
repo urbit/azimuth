@@ -304,11 +304,14 @@ contract Ships is Ownable
         assert(i > 0);
         i--;
 
-        //  copy the last item in the list into the now-unused slot
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :shipOwnerIndexes reference
         //
         uint32[] storage owner = shipsOwnedBy[prev];
         uint256 last = owner.length - 1;
-        owner[i] = owner[last];
+        uint32 moved = owner[last];
+        owner[i] = moved;
+        shipOwnerIndexes[prev][moved] = i + 1;
 
         //  delete the last item
         //
