@@ -194,7 +194,7 @@ contract Polls is Ownable
     return documentPolls[_proposal].voted[_galaxy];
   }
 
-  //  startConretePoll(): open a poll on making _proposal the new constitution
+  //  startConstitutionPoll(): open a poll on making _proposal the new constitution
   //
   function startConstitutionPoll(address _proposal)
     external
