@@ -24,18 +24,27 @@ contract Censures is ReadsShips
   //
   event Forgiven(uint16 indexed by, uint32 indexed who);
 
-  //  censures: per ship, the ships they're censuring
+  //  censuring: per ship, the ships they're censuring
   //
-  mapping(uint16 => uint32[]) public censures;
+  mapping(uint16 => uint32[]) public censuring;
 
-  //  indexes: per ship, per ship they've censured,
-  //           (index + 1) in the censures array
+  //  censuredBy: per ship, those who have censured them
+  //
+  mapping(uint32 => uint16[]) public censuredBy;
+
+  //  censuringIndexes: per ship per censure, (index + 1) in censures array
   //
   //    We delete censures by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
   //    indexes[ship][censure].
   //
-  mapping(uint16 => mapping(uint32 => uint256)) public indexes;
+  mapping(uint16 => mapping(uint32 => uint256)) public censuringIndexes;
+
+  //  censuredByIndexes: per censure per ship, (index + 1) in censured array
+  //
+  //    see also explanation for indexes_censures above
+  //
+  mapping(uint32 => mapping(uint16 => uint256)) public censuredByIndexes;
 
   //  constructor(): register the ships contract
   //
@@ -46,27 +55,50 @@ contract Censures is ReadsShips
     //
   }
 
-  //  getCensureCount(): return length of array of censures made by _whose
+  //  getCensuringCount(): return length of array of censures made by _whose
   //
-  function getCensureCount(uint16 _whose)
+  function getCensuringCount(uint16 _whose)
     view
     public
     returns (uint256 count)
   {
-    return censures[_whose].length;
+    return censuring[_whose].length;
   }
 
-  //  getCensures(): return array of censures made by _whose
+  //  getCensuring(): return array of censures made by _whose
   //
   //    Note: only useful for clients, as Solidity does not currently
   //    support returning dynamic arrays.
   //
-  function getCensures(uint16 _whose)
+  function getCensuring(uint16 _whose)
     view
     public
     returns (uint32[] cens)
   {
-    return censures[_whose];
+    return censuring[_whose];
+  }
+
+  //  getCensuredByCount(): return length of array of censures made against _who
+  //
+  function getCensuredByCount(uint16 _who)
+    view
+    public
+    returns (uint256 count)
+  {
+    return censuredBy[_who].length;
+  }
+
+  //  getCensuredBy(): return array of censures made against _who
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
+  function getCensuredBy(uint16 _who)
+    view
+    public
+    returns (uint16[] cens)
+  {
+    return censuredBy[_who];
   }
 
   //  censure(): register a censure of _who as _as
@@ -81,7 +113,7 @@ contract Censures is ReadsShips
              //
              //  must not haven censured _who already
              //
-             (indexes[_as][_who] == 0) );
+             (censuringIndexes[_as][_who] == 0) );
 
     //  only stars and galaxies may censure, and only galaxies may censure
     //  other galaxies. (enum gets smaller for higher ship classes)
@@ -92,8 +124,14 @@ contract Censures is ReadsShips
 
     //  update contract state with the new censure
     //
-    censures[_as].push(_who);
-    indexes[_as][_who] = censures[_as].length;
+    censuring[_as].push(_who);
+    censuringIndexes[_as][_who] = censuring[_as].length;
+
+    //  and update the reverse lookup
+    //
+    censuredBy[_who].push(_as);
+    censuredByIndexes[_who][_as] = censuredBy[_who].length;
+
     emit Censured(_as, _who);
   }
 
@@ -103,27 +141,43 @@ contract Censures is ReadsShips
     external
     shipOwner(_as)
   {
-    //  i: current index in _as's list of censures
+    //  below, we perform the same logic twice: once on the canonical data,
+    //  and once on the reverse lookup
     //
-    uint256 i = indexes[_as][_who];
+    //  i: current index in _as's list of censures
+    //  j: current index in _who's list of ships that have censured it
+    //
+    uint256 i = censuringIndexes[_as][_who];
+    uint256 j = censuredByIndexes[_who][_as];
 
     //  we store index + 1, because 0 is the eth default value
     //  can only delete an existing censure
     //
-    require(i > 0);
+    require( (i > 0) && (j > 0) );
     i--;
+    j--;
 
-    //  copy last item in the list into the now-unused slot
+    //  copy last item in the list into the now-unused slot,
+    //  making sure to update the :indexes_ references
     //
-    uint32[] storage cens = censures[_as];
-    uint256 last = cens.length - 1;
-    cens[i] = cens[last];
+    uint32[] storage cens = censuring[_as];
+    uint16[] storage cend = censuredBy[_who];
+    uint256 lastCens = cens.length - 1;
+    uint256 lastCend = cend.length - 1;
+    uint32 movedCens = cens[lastCens];
+    uint16 movedCend = cend[lastCend];
+    cens[i] = movedCens;
+    cend[j] = movedCend;
+    censuringIndexes[_as][movedCens] = i + 1;
+    censuredByIndexes[_who][movedCend] = j + 1;
 
     //  delete the last item
     //
-    delete(cens[last]);
-    cens.length = last;
-    indexes[_as][_who] = 0;
+    cens.length = lastCens;
+    cend.length = lastCend;
+    censuringIndexes[_as][_who] = 0;
+    censuredByIndexes[_who][_as] = 0;
+
     emit Forgiven(_as, _who);
   }
 }
