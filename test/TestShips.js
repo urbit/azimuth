@@ -158,11 +158,25 @@ contract('Ships', function([owner, user]) {
 
   it('setting transfer proxy', async function() {
     assert.isFalse(await ships.isTransferProxy(0, owner));
+    assert.equal(await ships.getTransferringForCount(owner), 0);
     // only owner can do this.
     await assertRevert(ships.setTransferProxy(0, owner, {from:user}));
     await ships.setTransferProxy(0, owner);
+    await ships.setTransferProxy(1, owner);
+    await ships.setTransferProxy(2, owner);
     assert.isTrue(await ships.isTransferProxy(0, owner));
+    assert.equal(await ships.getTransferringForCount(owner), 3);
+    let stt = await ships.getTransferringFor(owner);
+    assert.equal(stt[0], 0);
+    assert.equal(stt[1], 1);
+    assert.equal(stt[2], 2);
     await ships.setTransferProxy(0, 0);
     assert.isFalse(await ships.isTransferProxy(0, owner));
+    assert.equal(await ships.getTransferringForCount(owner), 2);
+    stt = await ships.getTransferringFor(owner);
+    assert.equal(stt[0], 2);
+    assert.equal(stt[1], 1);
+    // can still interact with ships that got shuffled around in array
+    await ships.setTransferProxy(2, 0);
   });
 });
