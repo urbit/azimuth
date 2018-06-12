@@ -162,6 +162,15 @@ contract Ships is Ownable
   //
   mapping(address => mapping(address => bool)) public operators;
 
+  //  transferringFor: per address, the ships they are transfer proxy for
+  //
+  mapping(address => uint32[]) public transferringFor;
+
+  //  transferringForIndexes: per address, per ship, (index + 1) in
+  //                          the transferringFor array
+  //
+  mapping(address => mapping(uint32 => uint256)) public transferringForIndexes;
+
   //  dnsDomains: base domains for contacting galaxies in urbit
   //
   //    dnsDomains[0] is primary, the others are used as fallbacks
@@ -559,12 +568,77 @@ contract Ships is Ownable
       return ships[_ship].transferProxy;
     }
 
+    //  setTransferProxy(): configure _transferrer as transfer proxy for _ship
+    //
     function setTransferProxy(uint32 _ship, address _transferrer)
       onlyOwner
       external
     {
-      ships[_ship].transferProxy = _transferrer;
+      Hull storage ship = ships[_ship];
+      address prev = ship.transferProxy;
+      require(prev != _transferrer);
+
+      //  if the ship used to have a different transfer proxy, do some
+      //  gymnastics to keep the reverse lookup gappless.  delete the ship
+      //  from the old proxy's list, then fill that gap with the list tail.
+      //
+      if (0x0 != prev)
+      {
+        //  i: current index in previous proxy's list of transferable ships
+        //
+        uint256 i = transferringForIndexes[prev][_ship];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :transferringForIndexes reference
+        //
+        uint32[] storage prevTfor = transferringFor[prev];
+        uint256 last = prevTfor.length - 1;
+        uint32 moved = prevTfor[last];
+        prevTfor[i] = moved;
+        transferringForIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevTfor[last]);
+        prevTfor.length = last;
+        transferringForIndexes[prev][_ship] = 0;
+      }
+
+      if (0x0 != _transferrer)
+      {
+        uint32[] storage tfor = transferringFor[_transferrer];
+        tfor.push(_ship);
+        transferringForIndexes[_transferrer][_ship] = tfor.length;
+      }
+
+      ship.transferProxy = _transferrer;
       emit ChangedTransferProxy(_ship, _transferrer);
+    }
+
+    function getTransferringForCount(address _proxy)
+      view
+      external
+      returns (uint256 count)
+    {
+      return transferringFor[_proxy].length;
+    }
+
+    //  getTransferringFor(): get the ships _proxy is a transfer proxy for
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getTransferringFor(address _proxy)
+      view
+      external
+      returns (uint32[] tfor)
+    {
+      return transferringFor[_proxy];
     }
 
     function isOperator(address _owner, address _operator)
