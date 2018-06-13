@@ -294,9 +294,10 @@ contract Ships is Ownable
       //
       address prev = ships[_ship].owner;
 
-      //  don't use setOwner() to set to current owner
-      //
-      require(prev != _owner);
+      if (prev == _owner)
+      {
+        return;
+      }
 
       //  if the ship used to have a different owner, do some gymnastics to
       //  keep the list of owned ships gapless.  delete this ship from the
@@ -547,6 +548,10 @@ contract Ships is Ownable
       onlyOwner
       external
     {
+      if (ships[_ship].spawnProxy == _spawner)
+      {
+        return;
+      }
       ships[_ship].spawnProxy = _spawner;
       emit ChangedSpawnProxy(_ship, _spawner);
     }
