@@ -454,6 +454,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       {
         ships.setOwner(_ship, _target);
 
+        //  according to ERC721, the transferrer gets cleared during every
+        //  Transfer event
+        //
+        ships.setTransferProxy(_ship, 0);
+
         emit Transfer(old, _target, uint256(_ship));
       }
 
@@ -470,10 +475,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
           ships.incrementContinuityNumber(_ship);
           ships.setKeys(_ship, 0, 0);
         }
-
-        //  clear transfer proxy
-        //
-        ships.setTransferProxy(_ship, 0);
 
         //  clear spawning proxy
         //

@@ -575,7 +575,10 @@ contract Ships is Ownable
     {
       Hull storage ship = ships[_ship];
       address prev = ship.transferProxy;
-      require(prev != _transferrer);
+      if (prev == _transferrer)
+      {
+        return;
+      }
 
       //  if the ship used to have a different transfer proxy, do some
       //  gymnastics to keep the reverse lookup gappless.  delete the ship

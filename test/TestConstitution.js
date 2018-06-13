@@ -154,11 +154,14 @@ contract('Constitution', function([owner, user1, user2]) {
     await assertRevert(constit.setTransferProxy(0, user1, {from:user1}));
     // allow as owner.
     await constit.setTransferProxy(0, user1, {from:user2});
+    await constit.setSpawnProxy(0, user1, {from:user2});
     assert.isTrue(await ships.isTransferProxy(0, user1));
     // transfer as transferrer, but don't reset.
     await constit.transferShip(0, user1, false, {from:user1});
     assert.isTrue(await ships.isOwner(0, user1));
-    assert.isTrue(await ships.isTransferProxy(0, user1));
+    assert.isTrue(await ships.isSpawnProxy(0, user1));
+    // transferrer always reset on-transfer, as per erc721
+    assert.isFalse(await ships.isTransferProxy(0, user1));
   });
 
   it('rekeying a ship', async function() {
