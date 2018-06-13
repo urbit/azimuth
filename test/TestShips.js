@@ -52,7 +52,6 @@ contract('Ships', function([owner, user]) {
     await assertRevert(ships.setOwner(0, user, {from:user}));
     await ships.setOwner(0, user);
     // can't set to same owner.
-    await assertRevert(ships.setOwner(0, user));
     assert.equal(await ships.isOwner(0, user), true);
     assert.equal(await ships.isOwner(0, owner), false);
   });
