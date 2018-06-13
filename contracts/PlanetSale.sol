@@ -58,9 +58,9 @@ contract PlanetSale is Ownable
     {
       uint16 prefix = ships.getPrefix(_planet);
 
-      return ( //  planet must not be active yet
+      return ( //  planet must not have an owner yet
                //
-               !ships.isActive(_planet) &&
+               ships.isOwner(_planet, 0x0) &&
                //
                //  this contract must be allowed to spawn for the prefix
                //
@@ -87,9 +87,14 @@ contract PlanetSale is Ownable
                //
                available(_planet) );
 
-      //  spawn the planet to its new owner
+      //  spawn the planet to us, then immediately transfer to the caller
       //
-      Constitution(ships.owner()).spawn(_planet, msg.sender);
+      //    spawning to the caller would give the ship's parent a
+      //    window off opportunity to cancel the transfer
+      //
+      Constitution constitution = Constitution(ships.owner());
+      constitution.spawn(_planet, this);
+      constitution.transferShip(_planet, msg.sender, false);
       emit PlanetSold(ships.getPrefix(_planet), _planet);
     }
 

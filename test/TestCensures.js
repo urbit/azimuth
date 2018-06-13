@@ -9,8 +9,11 @@ contract('Censures', function([owner, user]) {
   before('setting up for tests', async function() {
     ships = await Ships.new();
     await ships.setOwner(0, owner);
+    await ships.activateShip(0);
     await ships.setOwner(256, owner);
+    await ships.activateShip(256);
     await ships.setOwner(65792, owner);
+    await ships.activateShip(65792);
     cens = await Censures.new(ships.address);
   });
 

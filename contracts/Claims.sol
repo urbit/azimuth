@@ -73,7 +73,7 @@ contract Claims is ReadsShips
                     string _claim,
                     bytes _dossier)
     external
-    shipOwner(_ship)
+    activeShipOwner(_ship)
   {
     //  cur: index + 1 of the claim if it already exists, 0 otherwise
     //

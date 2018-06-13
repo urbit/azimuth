@@ -51,7 +51,7 @@ contract DelegatedSending is ReadsShips
   //
   function configureLimit(uint16 _prefix, uint16 _limit)
     external
-    shipOwner(_prefix)
+    activeShipOwner(_prefix)
   {
     limits[_prefix] = _limit;
   }
@@ -76,7 +76,7 @@ contract DelegatedSending is ReadsShips
   //
   function sendShip(uint32 _as, uint32 _ship, address _to)
     external
-    shipOwner(_as)
+    activeShipOwner(_as)
   {
     require(canSend(_as, _ship));
 
@@ -94,7 +94,7 @@ contract DelegatedSending is ReadsShips
     //
     fromPool[_ship] = pool;
 
-    //  grant _to ownership of _ship.
+    //  spawn _ship to _to, they still need to accept the transfer manually
     //
     Constitution(ships.owner()).spawn(_ship, _to);
 

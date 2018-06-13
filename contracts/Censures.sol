@@ -105,7 +105,7 @@ contract Censures is ReadsShips
   //
   function censure(uint16 _as, uint32 _who)
     external
-    shipOwner(_as)
+    activeShipOwner(_as)
   {
     require( //  can't censure self
              //
