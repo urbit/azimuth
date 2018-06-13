@@ -51,11 +51,14 @@ contract('Delegated Sending', function([owner, user]) {
     await assertRevert(dese.sendShip(p1, p2, owner));
     // send as regular planet
     await dese.sendShip(p1, p2, user);
-    assert.isTrue(await ships.isOwner(p2, user));
+    assert.isTrue(await ships.isTransferProxy(p2, user));
+    await constit.transferShip(p2, user, true);
     assert.isFalse(await dese.canSend(p1, p2));
     // send as invited planet
     await dese.sendShip(p2, p3, owner, {from:user});
+    await constit.transferShip(p3, owner, true);
     await dese.sendShip(p3, p4, user, {from:owner});
+    await constit.transferShip(p4, user, true);
     // can't send more than the limit
     assert.isFalse(await dese.canSend(p1, p5));
     assert.isFalse(await dese.canSend(p3, p5));

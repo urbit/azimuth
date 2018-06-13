@@ -25,11 +25,19 @@ contract ReadsShips
 
   //  shipOwner(): require that :msg.sender is the owner of _ship
   //
-  //    Note: ships with non-zore owners are guaranteed to be active.
-  //
   modifier shipOwner(uint32 _ship)
   {
     require(ships.isOwner(_ship, msg.sender));
+    _;
+  }
+
+  //  activeShipOwner(): require that :msg.sender is the owner of _ship,
+  //                     and that _ship is active
+  //
+  modifier activeShipOwner(uint32 _ship)
+  {
+    require( ships.isActive(_ship) &&
+             ships.isOwner(_ship, msg.sender) );
     _;
   }
 }

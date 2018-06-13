@@ -83,11 +83,10 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getSpawnCount(1), 0);
     assert.isFalse(await ships.isActive(257));
     // only owner can do this.
-    await assertRevert(ships.initializeShip(0, owner, {from:user}));
-    await ships.initializeShip(0, owner);
-    await ships.initializeShip(257, owner);
+    await assertRevert(ships.activateShip(0, {from:user}));
+    await ships.activateShip(0);
+    await ships.activateShip(257);
     assert.isTrue(await ships.isActive(0));
-    assert.isTrue(await ships.isOwner(0, owner));
     assert.equal(await ships.getSpawnCount(1), 1);
     let spawned = await ships.getSpawned(1);
     assert.equal(spawned.length, 1);
@@ -95,7 +94,7 @@ contract('Ships', function([owner, user]) {
     assert.isTrue(await ships.isActive(257));
     assert.equal(await ships.getSponsor(257), 1);
     // can't do it twice.
-    await assertRevert(ships.initializeShip(0, owner));
+    await assertRevert(ships.activateShip(0));
   });
 
   it('setting, canceling, and doing escape', async function() {

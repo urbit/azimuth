@@ -272,7 +272,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                            bytes32 _authenticationKey,
                            bool _discontinuous)
       external
-      shipOwner(_ship)
+      activeShipOwner(_ship)
     {
       if (_discontinuous)
       {
@@ -294,9 +294,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                    address _target)
       external
     {
-      //  only currently inactive ships can be spawned
+      //  only currently unowned (and thus also inactive) ships can be spawned
       //
-      require(!ships.isActive(_ship));
+      require(ships.isOwner(_ship, 0x0));
 
       //  prefix: half-width prefix of _ship
       //
@@ -329,9 +329,35 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       require( ships.isOwner(prefix, msg.sender) ||
                ships.isSpawnProxy(prefix, msg.sender) );
 
-      //  set the new owner of the ship and make it active
+      //  if the caller is spawning the ship to themselves,
+      //  assume it knows what it's doing and resolve right away
       //
-      ships.initializeShip(_ship, _target);
+      if (msg.sender == _target)
+      {
+        //  make the ship active and set its new owner
+        //
+        ships.activateShip(_ship);
+        ships.setOwner(_ship, _target);
+
+        emit Transfer(0x0, _target, uint256(_ship));
+      }
+      //
+      //  when sending to a "foreign" address, enforce a withdraw pattern
+      //  by approving the _target for transfer of the _ship.
+      //  we make the parent's owner the owner of this _ship in the mean time,
+      //  so that it may cancel the transfer (un-approve) if _target flakes.
+      //  we don't make _ship active yet, because it still belongs to its
+      //  parent.
+      //
+      else
+      {
+        address prefixOwner = ships.getOwner(prefix);
+        ships.setOwner(_ship, prefixOwner);
+        ships.setTransferProxy(_ship, _target);
+
+        emit Transfer(0x0, prefixOwner, uint256(_ship));
+        emit Approval(prefixOwner, _target, uint256(_ship));
+      }
     }
 
     //  getSpawnLimit(): returns the total number of children the ship _ship
@@ -379,7 +405,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
-      shipOwner(_prefix)
+      activeShipOwner(_prefix)
     {
       ships.setSpawnProxy(_prefix, _spawnProxy);
     }
@@ -411,9 +437,25 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
               || ships.isOperator(old, msg.sender)
               || ships.isTransferProxy(_ship, msg.sender));
 
-      //  set new owner. throws if _target is the zero address.
+      //  if the ship wasn't active yet, that means transferring it
+      //  is part of the "spawn" flow, so we need to activate it
       //
-      ships.setOwner(_ship, _target);
+      if ( !ships.isActive(_ship) )
+      {
+        ships.activateShip(_ship);
+      }
+
+      //  if the owner would actually change, change it
+      //
+      //    the only time this would deliberately be the case is when a
+      //    parent ship wants to activate a spawned but untransferred child.
+      //
+      if ( !ships.isOwner(_ship, _target) )
+      {
+        ships.setOwner(_ship, _target);
+
+        emit Transfer(old, _target, uint256(_ship));
+      }
 
       //  reset sensitive data -- are transferring the
       //  ship to a new owner
@@ -441,10 +483,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         //
         claims.clearClaims(_ship);
       }
-
-      //  emit Transfer event
-      //
-      emit Transfer(old, _target, uint256(_ship));
     }
 
     //  setTransferProxy(): give _transferProxy the right to transfer _ship
@@ -531,7 +569,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function escape(uint32 _ship, uint32 _sponsor)
       external
-      shipOwner(_ship)
+      activeShipOwner(_ship)
     {
       require(canEscapeTo(_ship, _sponsor));
       ships.setEscapeRequest(_ship, _sponsor);
@@ -541,7 +579,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function cancelEscape(uint32 _ship)
       external
-      shipOwner(_ship)
+      activeShipOwner(_ship)
     {
       ships.cancelEscape(_ship);
     }
@@ -554,7 +592,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function adopt(uint32 _sponsor, uint32 _escapee)
       external
-      shipOwner(_sponsor)
+      activeShipOwner(_sponsor)
     {
       require(ships.isRequestingEscapeTo(_escapee, _sponsor));
 
@@ -572,7 +610,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function reject(uint32 _sponsor, uint32 _escapee)
       external
-      shipOwner(_sponsor)
+      activeShipOwner(_sponsor)
     {
       require(ships.isRequestingEscapeTo(_escapee, _sponsor));
 
@@ -595,7 +633,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function startConstitutionPoll(uint8 _galaxy, ConstitutionBase _proposal)
       external
-      shipOwner(_galaxy)
+      activeShipOwner(_galaxy)
     {
       //  ensure that the upgrade target expects this contract as the source
       //
@@ -607,7 +645,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function startDocumentPoll(uint8 _galaxy, bytes32 _proposal)
       external
-      shipOwner(_galaxy)
+      activeShipOwner(_galaxy)
     {
       polls.startDocumentPoll(_proposal);
     }
@@ -624,7 +662,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                               ConstitutionBase _proposal,
                               bool _vote)
       external
-      shipOwner(_galaxy)
+      activeShipOwner(_galaxy)
     {
       //  majority: true if the vote resulted in a majority, false otherwise
       //
@@ -645,7 +683,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function castDocumentVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
       external
-      shipOwner(_galaxy)
+      activeShipOwner(_galaxy)
     {
       polls.castDocumentVote(_galaxy, _proposal, _vote);
     }
@@ -694,7 +732,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       require( !ships.isActive(_galaxy) &&
                0x0 != _target );
       polls.incrementTotalVoters();
-      ships.initializeShip(_galaxy, _target);
+      ships.activateShip(_galaxy);
+      ships.setOwner(_galaxy, _target);
     }
 
     function setDnsDomains(string _primary, string _secondary, string _tertiary)

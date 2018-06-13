@@ -79,13 +79,21 @@ contract('Constitution', function([owner, user1, user2]) {
     await assertRevert(constit.spawn(256, user1, {from:user2}));
     // can only spawn class directly below prefix
     await assertRevert(constit.spawn(65536, user1), {from:user1});
-    // spawn child.
+    // spawn child to self, directly
     await constit.spawn(256, user1, {from:user1});
     assert.isTrue(await ships.isOwner(256, user1));
     assert.isTrue(await ships.isActive(256));
-    // can't launch same ship twice.
+    // can't spawn same ship twice.
     await assertRevert(constit.spawn(256, user1, {from:user1}));
-    await constit.spawn(512, user1, {from:user1});
+    // spawn child to other, via withdraw pattern
+    await constit.spawn(512, user2, {from:user1});
+    assert.isTrue(await ships.isOwner(512, user1));
+    assert.isFalse(await ships.isActive(512));
+    assert.isTrue(await ships.isTransferProxy(512, user2));
+    await constit.transferShip(512, user2, true, {from:user2});
+    assert.isTrue(await ships.isOwner(512, user2));
+    assert.isTrue(await ships.isActive(512));
+    await constit.transferShip(512, user1, true, {from:user2});
     // check the spawn limits.
     assert.equal(await constit.getSpawnLimit(0, 0), 255);
     assert.equal(await constit.getSpawnLimit(123455, 0), 0);
@@ -98,20 +106,20 @@ contract('Constitution', function([owner, user1, user2]) {
   });
 
   it('setting spawn proxy', async function() {
-    // should not be launcher by default.
+    // should not be spawner by default.
     assert.isFalse(await ships.isSpawnProxy(0, user2));
     // can't do if not owner.
     await assertRevert(constit.setSpawnProxy(0, user2, {from:user2}));
-    // set up for working launch.
+    // set up for working spawn.
     await constit.setSpawnProxy(0, user2, {from:user1});
     assert.isTrue(await ships.isSpawnProxy(0, user2));
-    // launch as launcher, then test revoking of rights.
+    // spawn as launcher, then test revoking of rights.
     await constit.spawn(768, user1, {from:user2});
     await constit.setSpawnProxy(0, 0, {from:user1});
     assert.isFalse(await ships.isSpawnProxy(0, user2));
   });
 
-  it('transfering ownership', async function() {
+  it('transfering ownership directly', async function() {
     assert.equal(await ships.getContinuityNumber(0), 0);
     // set values that should be cleared on-transfer.
     await constit.setSpawnProxy(0, owner, {from:user1});
@@ -189,7 +197,9 @@ contract('Constitution', function([owner, user1, user2]) {
     // try out peer sponsorship.
     await constit.configureKeys(256, 1, 2, false, {from:user1});
     await constit.spawn(65792, owner, {from:user1});
+    await constit.transferShip(65792, owner, true);
     await constit.spawn(131328, owner, {from:user1});
+    await constit.transferShip(131328, owner, true);
     assert.isFalse(await constit.canEscapeTo(131328, 65792));
     await constit.configureKeys(65792, 1, 2, false);
     assert.isTrue(await constit.canEscapeTo(131328, 65792));
