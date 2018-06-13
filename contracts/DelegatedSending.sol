@@ -21,7 +21,10 @@ contract DelegatedSending is ReadsShips
 {
   //  Sent: :by sent :ship
   //
-  event Sent(uint32 by, uint32 ship);
+  event Sent( uint32 indexed fromPool,
+              uint32 indexed by,
+              uint32 ship,
+              address indexed to);
 
   //  limits: per star, the maximum amount of planets any of its planets may
   //          give away
@@ -84,6 +87,10 @@ contract DelegatedSending is ReadsShips
     //
     require(msg.sender != _to);
 
+    //  recipient must not own or be entitled to any other ships
+    //
+    require( 0 == ships.getOwnedShipCount(_to) &&
+             0 == ships.getTransferringForCount(_to) );
 
     //  increment the sent counter for _as.
     //
@@ -98,7 +105,7 @@ contract DelegatedSending is ReadsShips
     //
     Constitution(ships.owner()).spawn(_ship, _to);
 
-    emit Sent(_as, _ship);
+    emit Sent(pool, _as, _ship, _to);
   }
 
   //  canSend(): check whether current conditions allow _as to send _ship
