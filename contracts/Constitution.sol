@@ -476,6 +476,15 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
           ships.setKeys(_ship, 0, 0);
         }
 
+        //  clear transfer proxy
+        //
+        //    in most cases this is done above, during the ownership transfer,
+        //    but we might not hit that and still be expected to reset the
+        //    transfer proxy.
+        //    doing it a second time is a no-op in Ships.
+        //
+        ships.setTransferProxy(_ship, 0);
+
         //  clear spawning proxy
         //
         ships.setSpawnProxy(_ship, 0);
