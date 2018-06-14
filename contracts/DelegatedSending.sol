@@ -125,9 +125,9 @@ contract DelegatedSending is ReadsShips
              //
              (pools[pool] < limits[prefix]) &&
              //
-             //  _ship needs to be inactive
+             //  _ship needs to not be (in the process of being) spawned
              //
-             !ships.isActive(_ship) &&
+             ships.isOwner(_ship, 0x0) &&
              //
              //  this contract must have permission to spawn ships
              //
