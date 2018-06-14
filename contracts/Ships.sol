@@ -486,7 +486,7 @@ contract Ships is Ownable
 
     function isRequestingEscapeTo(uint32 _ship, uint32 _sponsor)
       view
-      external
+      public
       returns (bool equals)
     {
       Hull storage ship = ships[_ship];
@@ -497,6 +497,10 @@ contract Ships is Ownable
       onlyOwner
       external
     {
+      if (isRequestingEscapeTo(_ship, _sponsor))
+      {
+        return;
+      }
       Hull storage ship = ships[_ship];
       ship.escapeRequestedTo = _sponsor;
       ship.escapeRequested = true;
@@ -508,6 +512,10 @@ contract Ships is Ownable
       external
     {
       Hull storage ship = ships[_ship];
+      if (!ship.escapeRequested)
+      {
+        return;
+      }
       uint32 request = ship.escapeRequestedTo;
       ship.escapeRequestedTo = 0;
       ship.escapeRequested = false;
