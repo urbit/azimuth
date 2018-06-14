@@ -744,6 +744,13 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       ships.setDnsDomains(_primary, _secondary, _tertiary);
     }
 
+    function instantUpgrade(ConstitutionBase _new)
+      external
+      onlyOwner
+    {
+      upgrade(_new);
+    }
+
   //
   //  Function modifiers for this contract
   //
