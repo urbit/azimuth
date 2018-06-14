@@ -21,7 +21,7 @@ contract DelegatedSending is ReadsShips
 {
   //  Sent: :by sent :ship
   //
-  event Sent( uint32 indexed fromPool,
+  event Sent( uint64 indexed fromPool,
               uint32 indexed by,
               uint32 ship,
               address indexed to);
@@ -34,11 +34,11 @@ contract DelegatedSending is ReadsShips
   //  pools: per planet, the amount of planets that have been given away by
   //         the planet itself or the ones it invited
   //
-  mapping(uint32 => uint16) public pools;
+  mapping(uint64 => uint16) public pools;
 
   //  fromPool: per planet, the pool from which they were sent
   //
-  mapping(uint32 => uint32) public fromPool;
+  mapping(uint32 => uint64) public fromPool;
 
   //  constructor(): register the ships contract
   //
@@ -67,7 +67,7 @@ contract DelegatedSending is ReadsShips
     shipOwner(ships.getPrefix(_for))
   {
     fromPool[_for] = 0;
-    pools[_for] = 0;
+    pools[uint64(_for) + 1] = 0;
   }
 
   //  sendShip(): as the ship _as, spawn the ship _ship to _to.
@@ -94,7 +94,7 @@ contract DelegatedSending is ReadsShips
 
     //  increment the sent counter for _as.
     //
-    uint32 pool = getPool(_as);
+    uint64 pool = getPool(_as);
     pools[pool] = pools[pool] + 1;
 
     //  associate the _ship with this pool
@@ -116,7 +116,7 @@ contract DelegatedSending is ReadsShips
     returns (bool result)
   {
     uint16 prefix = ships.getPrefix(_as);
-    uint32 pool = getPool(_as);
+    uint64 pool = getPool(_as);
     return ( //  can only send ships with the same prefix
              //
              (prefix == ships.getPrefix(_ship)) &&
@@ -149,7 +149,7 @@ contract DelegatedSending is ReadsShips
   function getPool(uint32 _ship)
     internal
     view
-    returns (uint32 pool)
+    returns (uint64 pool)
   {
     pool = fromPool[_ship];
 
@@ -157,7 +157,7 @@ contract DelegatedSending is ReadsShips
     //
     if (0 == pool)
     {
-      return _ship;
+      return uint64(_ship) + 1;
     }
   }
 }
