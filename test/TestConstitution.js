@@ -10,7 +10,7 @@ const increaseTime = require('./helpers/increaseTime');
 const seeEvents = require('./helpers/seeEvents');
 
 contract('Constitution', function([owner, user1, user2]) {
-  let ships, polls, claims, ens, resolver, constit, consti2, consti3, pollTime;
+  let ships, polls, claims, ens, resolver, constit, consti2, pollTime;
 
   // https://github.com/ethereum/ens/blob/master/ensutils.js
   function namehash(name) {
@@ -280,11 +280,11 @@ contract('Constitution', function([owner, user1, user2]) {
   });
 
   it('updating constituton poll', async function() {
-    consti3 = await Constitution.new(consti2.address,
-                                     ships.address,
-                                     polls.address,
-                                     ens.address, 'foo', 'sub',
-                                     claims.address);
+    let consti3 = await Constitution.new(consti2.address,
+                                         ships.address,
+                                         polls.address,
+                                         ens.address, 'foo', 'sub',
+                                         claims.address);
     // onUpgrade can only be called by previous constitution
     await assertRevert(consti3.onUpgrade({from:user2}));
     assert.equal(await ships.owner(), consti2.address);
@@ -301,22 +301,5 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ens.owner(namehash('sub.foo.eth')), consti3.address);
     assert.equal(await resolver.addr(namehash('sub.foo.eth')),
                   consti3.address);
-  });
-
-  it('instantly ugprading the constitution', async function() {
-    let consti4 = await Constitution.new(consti3.address,
-                                         ships.address,
-                                         polls.address,
-                                         ens.address, 'foo', 'sub',
-                                         claims.address);
-    // only owner can do this
-    await assertRevert(consti3.instantUpgrade(consti4.address, {from:user2}));
-    await consti3.instantUpgrade(consti4.address);
-    assert.equal(await ships.owner(), consti4.address);
-    assert.equal(await polls.owner(), consti4.address);
-    assert.equal(await ens.owner(namehash('foo.eth')), consti4.address);
-    assert.equal(await ens.owner(namehash('sub.foo.eth')), consti4.address);
-    assert.equal(await resolver.addr(namehash('sub.foo.eth')),
-                  consti4.address);
   });
 });
