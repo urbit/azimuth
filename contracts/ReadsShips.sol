@@ -23,21 +23,13 @@ contract ReadsShips
     ships = _ships;
   }
 
-  //  shipOwner(): require that :msg.sender is the owner of _ship
-  //
-  modifier shipOwner(uint32 _ship)
-  {
-    require(ships.isOwner(_ship, msg.sender));
-    _;
-  }
-
   //  activeShipOwner(): require that :msg.sender is the owner of _ship,
   //                     and that _ship is active
   //
   modifier activeShipOwner(uint32 _ship)
   {
-    require( ships.isActive(_ship) &&
-             ships.isOwner(_ship, msg.sender) );
+    require( ships.isOwner(_ship, msg.sender) &&
+             ships.isActive(_ship) );
     _;
   }
 }

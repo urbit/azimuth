@@ -64,7 +64,7 @@ contract DelegatedSending is ReadsShips
   //
   function resetPool(uint32 _for)
     external
-    shipOwner(ships.getPrefix(_for))
+    activeShipOwner(ships.getPrefix(_for))
   {
     fromPool[_for] = 0;
     pools[uint64(_for) + 1] = 0;

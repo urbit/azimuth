@@ -139,7 +139,7 @@ contract Censures is ReadsShips
   //
   function forgive(uint16 _as, uint32 _who)
     external
-    shipOwner(_as)
+    activeShipOwner(_as)
   {
     //  below, we perform the same logic twice: once on the canonical data,
     //  and once on the reverse lookup
