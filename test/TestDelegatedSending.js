@@ -6,7 +6,7 @@ const DelegatedSending = artifacts.require('../contracts/DelegatedSending.sol');
 
 const assertRevert = require('./helpers/assertRevert');
 
-contract('Delegated Sending', function([owner, user]) {
+contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
   let ships, constit, dese;
   let p1, p2, p3, p4, p5;
 
@@ -38,7 +38,7 @@ contract('Delegated Sending', function([owner, user]) {
     assert.equal(await dese.limits(256), 0);
     assert.isFalse(await dese.canSend(p1, p2));
     // can only be done by star owner.
-    await assertRevert(dese.configureLimit(256, 1, {from:user}));
+    await assertRevert(dese.configureLimit(256, 1, {from:user1}));
     await dese.configureLimit(256, 3);
     assert.equal(await dese.limits(256), 3);
     assert.isTrue(await dese.canSend(p1, p2));
@@ -46,32 +46,36 @@ contract('Delegated Sending', function([owner, user]) {
 
   it('sending', async function() {
     // can only be done by ship owner
-    await assertRevert(dese.sendShip(p1, p2, user, {from:user}));
+    await assertRevert(dese.sendShip(p1, p2, user1, {from:user1}));
     // can't send to self
     await assertRevert(dese.sendShip(p1, p2, owner));
     // send as regular planet
-    await dese.sendShip(p1, p2, user);
-    assert.isTrue(await ships.isTransferProxy(p2, user));
-    await constit.transferShip(p2, user, true);
+    await dese.sendShip(p1, p2, user1);
+    assert.isTrue(await ships.isTransferProxy(p2, user1));
     assert.isFalse(await dese.canSend(p1, p2));
+    // can't send to users with pending transfers
+    await assertRevert(dese.sendShip(p2, p3, user1));
+    await constit.transferShip(p2, user1, true);
+    // can't send to users who own ships
+    await assertRevert(dese.sendShip(p2, p3, user1));
     // send as invited planet
-    await dese.sendShip(p2, p3, owner, {from:user});
-    await constit.transferShip(p3, owner, true);
-    await dese.sendShip(p3, p4, user, {from:owner});
-    await constit.transferShip(p4, user, true);
+    await dese.sendShip(p2, p3, user2, {from:user1});
+    await constit.transferShip(p3, user2, true);
+    await dese.sendShip(p3, p4, user3, {from:user2});
+    await constit.transferShip(p4, user3, true);
     // can't send more than the limit
     assert.isFalse(await dese.canSend(p1, p5));
     assert.isFalse(await dese.canSend(p3, p5));
-    await assertRevert(dese.sendShip(p3, p5, user));
+    await assertRevert(dese.sendShip(p3, p5, user4));
   });
 
   it('resetting a pool', async function() {
     // can only be done by owner of the target's prefix
-    await assertRevert(dese.resetPool(p3, {from:user}));
+    await assertRevert(dese.resetPool(p3, {from:user1}));
     await dese.resetPool(p3);
     assert.isTrue(await dese.canSend(p3, p5));
     // shouldn't affect the pool it came from
     assert.isFalse(await dese.canSend(p1, p5));
-    await dese.sendShip(p3, p5, user);
+    await dese.sendShip(p3, p5, user4, {from:user2});
   });
 });
