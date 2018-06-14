@@ -31,12 +31,23 @@ contract DelegatedSending is ReadsShips
   //
   mapping(uint16 => uint16) public limits;
 
-  //  pools: per planet, the amount of planets that have been given away by
-  //         the planet itself or the ones it invited
+  //  pools: per pool, the amount of planets that have been given away by
+  //         the pool's planet itself or the ones it invited
+  //
+  //    pools are associated with planets by number, pool n belongs to
+  //    planet n - 1.
+  //    pool 0 does not exist, and is used symbolically by :fromPool.
   //
   mapping(uint64 => uint16) public pools;
 
   //  fromPool: per planet, the pool from which they were sent
+  //
+  //    when invited by planet n, the invitee is registered in pool n + 1.
+  //    a pool of 0 means the planet has its own invite pool.
+  //    this is done so that all planets that were born outside of this
+  //    contract start out with their own pool (0, solidity default),
+  //    while we configure planets created through this contract to use
+  //    their inviter's pool.
   //
   mapping(uint32 => uint64) public fromPool;
 
@@ -153,10 +164,14 @@ contract DelegatedSending is ReadsShips
   {
     pool = fromPool[_ship];
 
-    //  no pool explicitly registered means they have their own pool
+    //  no pool explicitly registered means they have their own pool,
+    //  because they either were not invited by this contract, or have
+    //  been granted their own pool by their star.
     //
     if (0 == pool)
     {
+      //  the pool for planet n is n + 1, see also :fromPool
+      //
       return uint64(_ship) + 1;
     }
   }
