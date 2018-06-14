@@ -1,6 +1,7 @@
 const Ships = artifacts.require('../contracts/Ships.sol');
 
 const assertRevert = require('./helpers/assertRevert');
+const seeEvents = require('./helpers/seeEvents');
 
 const web3abi = require('web3-eth-abi');
 const web3 = Ships.web3;
@@ -50,10 +51,11 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getOwner(0), 0);
     // only owner can do this.
     await assertRevert(ships.setOwner(0, user, {from:user}));
-    await ships.setOwner(0, user);
-    // can't set to same owner.
-    assert.equal(await ships.isOwner(0, user), true);
-    assert.equal(await ships.isOwner(0, owner), false);
+    await seeEvents(ships.setOwner(0, user), ['OwnerChanged']);
+    assert.isTrue(await ships.isOwner(0, user), true);
+    assert.isFalse(await ships.isOwner(0, owner), false);
+    // setting to the same owner is a no-op, shouldn't emit event
+    await seeEvents(ships.setOwner(0, user), []);
   });
 
   it('getting owned ships', async function() {
@@ -65,6 +67,7 @@ contract('Ships', function([owner, user]) {
     assert.equal(owned[2], 2);
     assert.equal(owned.length, 3);
     assert.equal(await ships.getOwnedShipAtIndex(user, 2), 2);
+    await assertRevert(ships.getOwnedShipAtIndex(user, 3));
     await ships.setOwner(0, owner);
     owned = await ships.getOwnedShips({from:user});
     assert.equal(owned[0].toNumber(), 2);
@@ -102,19 +105,24 @@ contract('Ships', function([owner, user]) {
     await assertRevert(ships.setEscapeRequest(257, 2, {from:user}));
     // only owner can do this.
     await assertRevert(ships.cancelEscape(257, {from:user}));
-    await ships.setEscapeRequest(257, 2);
+    await seeEvents(ships.setEscapeRequest(257, 2), ['EscapeRequested']);
     assert.isTrue(await ships.isRequestingEscapeTo(257, 2));
     assert.isTrue(await ships.isEscaping(257));
     assert.equal(await ships.getEscapeRequest(257), 2);
-    await ships.cancelEscape(257);
+    // setting to the same owner is a no-op, shouldn't emit event
+    await seeEvents(ships.setEscapeRequest(257, 2), []);
+    // cancelling the escape
+    await seeEvents(ships.cancelEscape(257), ['EscapeCanceled']);
     assert.isFalse(await ships.isRequestingEscapeTo(257, 2));
     assert.isFalse(await ships.isEscaping(257));
+    // cancelling a non-escaping ship is a no-op, shouldn't emit event
+    await seeEvents(ships.cancelEscape(257), []);
     // only owner can do this.
     await assertRevert(ships.doEscape(257, {from:user}));
     // can't do if not escaping.
     await assertRevert(ships.doEscape(257));
     await ships.setEscapeRequest(257, 2);
-    await ships.doEscape(257);
+    await seeEvents(ships.doEscape(257), ['EscapeAccepted']);
     assert.isFalse(await ships.isRequestingEscapeTo(257, 2));
     assert.equal(await ships.getSponsor(257), 2);
   });
@@ -147,9 +155,11 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getSpawnProxy(0), 0);
     // only owner can do this.
     await assertRevert(ships.setSpawnProxy(0, owner, {from:user}));
-    await ships.setSpawnProxy(0, owner);
+    await seeEvents(ships.setSpawnProxy(0, owner), ['ChangedSpawnProxy']);
     assert.isTrue(await ships.isSpawnProxy(0, owner));
     assert.equal(await ships.getSpawnProxy(0), owner);
+    // won't emit event when nothing changes
+    await seeEvents(ships.setSpawnProxy(0, owner), []);
     await ships.setSpawnProxy(0, 0);
     assert.isFalse(await ships.isSpawnProxy(0, owner));
   });
@@ -159,7 +169,9 @@ contract('Ships', function([owner, user]) {
     assert.equal(await ships.getTransferringForCount(owner), 0);
     // only owner can do this.
     await assertRevert(ships.setTransferProxy(0, owner, {from:user}));
-    await ships.setTransferProxy(0, owner);
+    await seeEvents(ships.setTransferProxy(0, owner), ['ChangedTransferProxy']);
+    // won't emit event when nothing changes
+    await seeEvents(ships.setTransferProxy(0, owner), []);
     await ships.setTransferProxy(1, owner);
     await ships.setTransferProxy(2, owner);
     assert.isTrue(await ships.isTransferProxy(0, owner));
