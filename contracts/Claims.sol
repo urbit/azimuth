@@ -102,7 +102,7 @@ contract Claims is ReadsShips
   //
   function removeClaim(uint32 _ship, string _protocol, string _claim)
     external
-    shipOwner(_ship)
+    activeShipOwner(_ship)
   {
     //  i: current index + 1 in _ship's list of claims
     //
