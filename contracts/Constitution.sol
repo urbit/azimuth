@@ -370,17 +370,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     {
       Ships.Class class = ships.getShipClass(_ship);
 
-      if ( class == Ships.Class.Planet )
-      {
-        //  planets can create moons, but moons aren't on the chain
-        //
-        return 0;
-      }
       if ( class == Ships.Class.Galaxy )
       {
         return 255;
       }
-      if ( class == Ships.Class.Star )
+      else if ( class == Ships.Class.Star )
       {
         //  in 2018, stars may spawn at most 1024 planets. this limit doubles
         //  for every subsequent year.
@@ -398,6 +392,13 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         }
         return limit;
       }
+      else  //  class == Ships.Class.Planet
+      {
+        //  planets can create moons, but moons aren't on the chain
+        //
+        return 0;
+      }
+
     }
 
     //  setSpawnProxy(): give _spawnProxy the right to spawn ships
@@ -447,7 +448,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
 
       //  if the owner would actually change, change it
       //
-      //    the only time this would deliberately be the case is when a
+      //    the only time this deliberately wouldn't be the case is when a
       //    parent ship wants to activate a spawned but untransferred child.
       //
       if ( !ships.isOwner(_ship, _target) )

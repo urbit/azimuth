@@ -7,6 +7,7 @@ const PublicResolver = artifacts.require('../contracts/PublicResolver.sol');
 
 const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
+const seeEvents = require('./helpers/seeEvents');
 
 contract('Constitution', function([owner, user1, user2]) {
   let ships, polls, claims, ens, resolver, constit, consti2, consti3, pollTime;
@@ -80,13 +81,16 @@ contract('Constitution', function([owner, user1, user2]) {
     // can only spawn class directly below prefix
     await assertRevert(constit.spawn(65536, user1), {from:user1});
     // spawn child to self, directly
-    await constit.spawn(256, user1, {from:user1});
+    assert.isFalse(await ships.isOwner(256, user1));
+    await seeEvents(constit.spawn(256, user1, {from:user1}),
+                    ['Transfer']);
     assert.isTrue(await ships.isOwner(256, user1));
     assert.isTrue(await ships.isActive(256));
     // can't spawn same ship twice.
     await assertRevert(constit.spawn(256, user1, {from:user1}));
     // spawn child to other, via withdraw pattern
-    await constit.spawn(512, user2, {from:user1});
+    await seeEvents(constit.spawn(512, user2, {from:user1}),
+                    ['Transfer', 'Approval']);
     assert.isTrue(await ships.isOwner(512, user1));
     assert.isFalse(await ships.isActive(512));
     assert.isTrue(await ships.isTransferProxy(512, user2));
@@ -128,7 +132,8 @@ contract('Constitution', function([owner, user1, user2]) {
     // can't do if not owner.
     await assertRevert(constit.transferShip(0, user2, true, {from:user2}));
     // transfer as owner, resetting the ship.
-    await constit.transferShip(0, user2, true, {from:user1});
+    await seeEvents(constit.transferShip(0, user2, true, {from:user1}),
+                    ['Transfer']);
     assert.isTrue(await ships.isOwner(0, user2));
     let [crypt, auth] = await ships.getKeys(0);
     assert.equal(crypt,
@@ -147,13 +152,20 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.transferShip(2, user2, true, {from:user1});
     assert.equal(await ships.getKeyRevisionNumber(2), 0);
     assert.equal(await ships.getContinuityNumber(2), 0);
+    // transfer to self as temporary owner of spawned ship
+    assert.isTrue(await ships.isTransferProxy(768, user1));
+    // this shouldn't have emitted a transfer event
+    await seeEvents(constit.transferShip(768, user1, true, {from:user1}), []);
+    // but still reset proxy because we asked
+    assert.isTrue(await ships.isTransferProxy(768, 0));
   });
 
   it('allowing transfer of ownership', async function() {
     // can't do if not owner.
     await assertRevert(constit.setTransferProxy(0, user1, {from:user1}));
     // allow as owner.
-    await constit.setTransferProxy(0, user1, {from:user2});
+    await seeEvents(constit.setTransferProxy(0, user1, {from:user2}),
+                    ['Approval']);
     await constit.setSpawnProxy(0, user1, {from:user2});
     assert.isTrue(await ships.isTransferProxy(0, user1));
     // transfer as transferrer, but don't reset.
@@ -275,10 +287,14 @@ contract('Constitution', function([owner, user1, user2]) {
                                      claims.address);
     // onUpgrade can only be called by previous constitution
     await assertRevert(consti3.onUpgrade({from:user2}));
+    assert.equal(await ships.owner(), consti2.address);
     await consti2.startConstitutionPoll(0, consti3.address, {from:user1});
     await consti2.castConstitutionVote(0, consti3.address, true, {from:user1});
+    await seeEvents(consti2.updateConstitutionPoll(consti3.address), []);
+    assert.equal(await ships.owner(), consti2.address);
     await increaseTime(pollTime + 5);
-    await consti2.updateConstitutionPoll(consti3.address);
+    await seeEvents(consti2.updateConstitutionPoll(consti3.address),
+                    ['Upgraded', 'OwnershipTransferred']);
     assert.equal(await ships.owner(), consti3.address);
     assert.equal(await polls.owner(), consti3.address);
     assert.equal(await ens.owner(namehash('foo.eth')), consti3.address);

@@ -26,6 +26,10 @@ const overloadedSafeTransferFrom = {
     {
       "name": "_tokenId",
       "type": "uint256"
+    },
+    {
+      "name": "_data",
+      "type": "bytes"
     }
   ],
   "name": "safeTransferFrom",
@@ -36,6 +40,7 @@ const overloadedSafeTransferFrom = {
 };
 
 const assertRevert = require('./helpers/assertRevert');
+const seeEvents = require('./helpers/seeEvents');
 
 contract('NFTokenMock', (accounts) => {
   let ships, polls, claims, nftoken;
@@ -139,9 +144,8 @@ contract('NFTokenMock', (accounts) => {
 
   it('correctly sets an operator', async () => {
     await nftoken.createGalaxy(id2, accounts[0]);
-    const { logs } = await nftoken.setApprovalForAll(accounts[6], true);
-    const approvalForAllEvent = logs.find(e => e.event === 'ApprovalForAll');
-    assert.notEqual(approvalForAllEvent, undefined);
+    await seeEvents(nftoken.setApprovalForAll(accounts[6], true),
+      ['ApprovalForAll']);
     const isApprovedForAll = await nftoken.isApprovedForAll(accounts[0], accounts[6]);
     assert.equal(isApprovedForAll, true);
   });
@@ -164,9 +168,8 @@ contract('NFTokenMock', (accounts) => {
     const recipient = accounts[2];
 
     await nftoken.createGalaxy(id2, sender);
-    const { logs } = await nftoken.transferFrom(sender, recipient, id2, {from: sender});
-    const transferEvent = logs.find(e => e.event === 'Transfer');
-    assert.notEqual(transferEvent, undefined);
+    await seeEvents(nftoken.transferFrom(sender, recipient, id2, {from: sender}),
+      ['Transfer']);
 
     const senderBalance = await nftoken.balanceOf(sender);
     const recipientBalance = await nftoken.balanceOf(recipient);
@@ -184,9 +187,8 @@ contract('NFTokenMock', (accounts) => {
 
     await nftoken.createGalaxy(id2, owner);
     await nftoken.approve(sender, id2, {from: owner});
-    const { logs } = await nftoken.transferFrom(owner, recipient, id2, {from: sender});
-    const transferEvent = logs.find(e => e.event === 'Transfer');
-    assert.notEqual(transferEvent, undefined);
+    await seeEvents(nftoken.transferFrom(owner, recipient, id2, {from: sender}),
+      ['Transfer']);
 
     const ownerBalance = await nftoken.balanceOf(owner);
     const recipientBalance = await nftoken.balanceOf(recipient);
@@ -204,9 +206,8 @@ contract('NFTokenMock', (accounts) => {
 
     await nftoken.createGalaxy(id2, owner);
     await nftoken.setApprovalForAll(sender, true, {from: owner});
-    const { logs } = await nftoken.transferFrom(owner, recipient, id2, {from: sender});
-    const transferEvent = logs.find(e => e.event === 'Transfer');
-    assert.notEqual(transferEvent, undefined);
+    await seeEvents(nftoken.transferFrom(owner, recipient, id2, {from: sender}),
+      ['Transfer']);
 
     const ownerBalance = await nftoken.balanceOf(owner);
     const recipientBalance = await nftoken.balanceOf(recipient);
@@ -246,9 +247,8 @@ contract('NFTokenMock', (accounts) => {
     const recipient = accounts[2];
 
     await nftoken.createGalaxy(id2, sender);
-    const { logs } = await nftoken.safeTransferFrom(sender, recipient, id2, '', {from: sender});
-    const transferEvent = logs.find(e => e.event === 'Transfer');
-    assert.notEqual(transferEvent, undefined);
+    await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, {from:
+       sender}), ['Transfer']);
 
     const senderBalance = await nftoken.balanceOf(sender);
     const recipientBalance = await nftoken.balanceOf(recipient);
@@ -264,19 +264,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = nftoken.address;
 
     await nftoken.createGalaxy(id2, sender);
-    const safeTransferFromData = web3abi.encodeFunctionCall(
-      overloadedSafeTransferFrom, [sender, recipient, id2]);
-    try {
-      web3.eth.call({
-        from: sender,
-        to: nftoken.address,
-        data: safeTransferFromData,
-        value: 0
-      });
-      assert.fail(missed);
-    } catch(err) {
-      assert.isAbove(err.message.search('revert'), -1, 'Revert must be returned, but got ' + err);
-    }
+    await assertRevert(nftoken.safeTransferFrom(sender, recipient, id2, {from: sender}));
   });
 
   it('corectly safe transfers NFT from owner to smart contract that can recieve NFTs', async () => {
@@ -285,9 +273,8 @@ contract('NFTokenMock', (accounts) => {
     const recipient = tokenReceiverMock.address;
 
     await nftoken.createGalaxy(id2, sender);
-    const { logs } = await nftoken.safeTransferFrom(sender, recipient, id2, '', {from: sender});
-    const transferEvent = logs.find(e => e.event === 'Transfer');
-    assert.notEqual(transferEvent, undefined);
+    await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, {from:
+       sender}), ['Transfer']);
 
     const senderBalance = await nftoken.balanceOf(sender);
     const recipientBalance = await nftoken.balanceOf(recipient);
