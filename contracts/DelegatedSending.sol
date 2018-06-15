@@ -98,10 +98,9 @@ contract DelegatedSending is ReadsShips
     //
     require(msg.sender != _to);
 
-    //  recipient must not own or be entitled to any other ships
+    //  recipient must be eligible to receive a planet from this contract
     //
-    require( 0 == ships.getOwnedShipCount(_to) &&
-             0 == ships.getTransferringForCount(_to) );
+    require(canReceive(_to));
 
     //  increment the sent counter for _as.
     //
@@ -174,5 +173,19 @@ contract DelegatedSending is ReadsShips
       //
       return uint64(_ship) + 1;
     }
+  }
+
+  //  canReceive(): wether the _recipient is eligible to receive a planet
+  //                from this contract or not
+  //
+  //    only those who don't own or are entitled to any ships may receive
+  //
+  function canReceive(address _recipient)
+    public
+    view
+    returns (bool result)
+  {
+    return ( 0 == ships.getOwnedShipCount(_recipient) &&
+             0 == ships.getTransferringForCount(_recipient) );
   }
 }
