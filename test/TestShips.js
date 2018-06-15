@@ -167,16 +167,29 @@ contract('Ships', function([owner, user]) {
 
   it('setting spawn proxy', async function() {
     assert.isFalse(await ships.isSpawnProxy(0, owner));
-    assert.equal(await ships.getSpawnProxy(0), 0);
+    assert.equal(await ships.getSpawningForCount(owner), 0);
     // only owner can do this.
     await assertRevert(ships.setSpawnProxy(0, owner, {from:user}));
     await seeEvents(ships.setSpawnProxy(0, owner), ['ChangedSpawnProxy']);
-    assert.isTrue(await ships.isSpawnProxy(0, owner));
-    assert.equal(await ships.getSpawnProxy(0), owner);
     // won't emit event when nothing changes
     await seeEvents(ships.setSpawnProxy(0, owner), []);
+    await ships.setSpawnProxy(1, owner);
+    await ships.setSpawnProxy(2, owner);
+    assert.equal(await ships.getSpawnProxy(0), owner);
+    assert.isTrue(await ships.isSpawnProxy(0, owner));
+    assert.equal(await ships.getSpawningForCount(owner), 3);
+    let stt = await ships.getSpawningFor(owner);
+    assert.equal(stt[0], 0);
+    assert.equal(stt[1], 1);
+    assert.equal(stt[2], 2);
     await ships.setSpawnProxy(0, 0);
     assert.isFalse(await ships.isSpawnProxy(0, owner));
+    assert.equal(await ships.getSpawningForCount(owner), 2);
+    stt = await ships.getSpawningFor(owner);
+    assert.equal(stt[0], 2);
+    assert.equal(stt[1], 1);
+    // can still interact with ships that got shuffled around in array
+    await ships.setSpawnProxy(2, 0);
   });
 
   it('setting transfer proxy', async function() {
@@ -189,6 +202,7 @@ contract('Ships', function([owner, user]) {
     await seeEvents(ships.setTransferProxy(0, owner), []);
     await ships.setTransferProxy(1, owner);
     await ships.setTransferProxy(2, owner);
+    assert.equal(await ships.getTransferProxy(0), owner);
     assert.isTrue(await ships.isTransferProxy(0, owner));
     assert.equal(await ships.getTransferringForCount(owner), 3);
     let stt = await ships.getTransferringFor(owner);
