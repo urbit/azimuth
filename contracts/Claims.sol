@@ -152,6 +152,9 @@ contract Claims is ReadsShips
     view
     returns (uint8 index)
   {
+    //  we use hashes of the string because solidity can't do string
+    //  comparison yet
+    //
     bytes32 protocolHash = keccak256(bytes(_protocol));
     bytes32 claimHash = keccak256(bytes(_claim));
     Claim[maxClaims] storage theirClaims = claims[_whose];
