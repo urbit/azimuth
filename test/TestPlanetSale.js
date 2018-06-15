@@ -63,7 +63,7 @@ contract('Planet Sale', function([owner, user]) {
     await assertRevert(sale.withdraw(0));
     let userBal = web3.eth.getBalance(user).toNumber();
     let saleBal = web3.eth.getBalance(sale.address).toNumber();
-    await sale.withdraw(user);
+    await sale.withdraw(user, {gasPrice:0});
     assert.equal(web3.eth.getBalance(user).toNumber(), userBal + saleBal);
   });
 
@@ -75,7 +75,7 @@ contract('Planet Sale', function([owner, user]) {
     await sale.purchase(131328, {from:user,value:price});
     let userBal = web3.eth.getBalance(user).toNumber();
     let saleBal = web3.eth.getBalance(sale.address).toNumber();
-    await sale.close(user);
+    await sale.close(user, {gasPrice:0});
     assert.equal(web3.eth.getBalance(user).toNumber(), userBal + saleBal);
     // should no longer exist
     try {
