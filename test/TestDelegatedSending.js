@@ -5,6 +5,7 @@ const Constitution = artifacts.require('../contracts/Constitution.sol');
 const DelegatedSending = artifacts.require('../contracts/DelegatedSending.sol');
 
 const assertRevert = require('./helpers/assertRevert');
+const seeEvents = require('./helpers/seeEvents');
 
 contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
   let ships, constit, dese;
@@ -31,6 +32,7 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     await constit.spawn(256, owner);
     await constit.configureKeys(256, 0, 0, 1, false);
     await constit.spawn(p1, owner);
+    await constit.transferShip(p1, owner, false);
     await constit.setSpawnProxy(256, dese.address);
   });
 
@@ -50,15 +52,19 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     // can't send to self
     await assertRevert(dese.sendShip(p1, p2, owner));
     // send as regular planet
-    await dese.sendShip(p1, p2, user1);
+    assert.isTrue(await dese.canReceive(user1));
+    await seeEvents(dese.sendShip(p1, p2, user1), ['Sent']);
     assert.isTrue(await ships.isTransferProxy(p2, user1));
     assert.isFalse(await dese.canSend(p1, p2));
+    await assertRevert(dese.sendShip(p1, p2, user1));
     // can't send to users with pending transfers
+    assert.isFalse(await dese.canReceive(user1));
     await assertRevert(dese.sendShip(p2, p3, user1));
     await constit.transferShip(p2, user1, true);
     assert.isFalse(await dese.canSend(p1, p2));
     // can't send to users who own ships
-    await assertRevert(dese.sendShip(p2, p3, user1));
+    assert.isFalse(await dese.canReceive(user1));
+    await assertRevert(dese.sendShip(p1, p3, user1));
     // send as invited planet
     await dese.sendShip(p2, p3, user2, {from:user1});
     await constit.transferShip(p3, user2, true);
