@@ -263,13 +263,15 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Urbit functions for all ships
   //
 
-    //  configureKeys(): configure _ship with Urbit public keys _encryptionKey
-    //                   and _authenticationKey, incrementing the ship's
+    //  configureKeys(): configure _ship with Urbit public keys _encryptionKey,
+    //                   _authenticationKey, and corresponding
+    //                   _cryptoSuiteVersion, incrementing the ship's
     //                   continuity number if needed
     //
     function configureKeys(uint32 _ship,
                            bytes32 _encryptionKey,
                            bytes32 _authenticationKey,
+                           uint32 _cryptoSuiteVersion,
                            bool _discontinuous)
       external
       activeShipOwner(_ship)
@@ -278,7 +280,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       {
         ships.incrementContinuityNumber(_ship);
       }
-      ships.setKeys(_ship, _encryptionKey, _authenticationKey);
+      ships.setKeys(_ship,
+                    _encryptionKey,
+                    _authenticationKey,
+                    _cryptoSuiteVersion);
     }
 
     //  spawn(): spawn _ship, giving ownership to _target
@@ -474,7 +479,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         if ( ships.hasBeenBooted(_ship) )
         {
           ships.incrementContinuityNumber(_ship);
-          ships.setKeys(_ship, 0, 0);
+          ships.setKeys(_ship, 0, 0, 0);
         }
 
         //  clear transfer proxy

@@ -19,9 +19,9 @@ contract('Planet Sale', function([owner, user]) {
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
     await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 10, 11, false);
+    await constit.configureKeys(0, 10, 11, 1, false);
     await constit.spawn(256, owner);
-    await constit.configureKeys(256, 12, 13, false);
+    await constit.configureKeys(256, 12, 13, 1, false);
     sale = await PlanetSale.new(ships.address, price / 10);
   });
 

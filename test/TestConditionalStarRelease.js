@@ -45,10 +45,10 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
     await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 1, 2, false);
+    await constit.configureKeys(0, 1, 2, 1, false);
     await constit.spawn(256, owner);
     await constit.spawn(2560, owner);
-    await constit.configureKeys(2560, 1, 2, false);
+    await constit.configureKeys(2560, 1, 2, 1, false);
     csr = await CSR.new(ships.address, [0, condit2, "miss me", "too"],
                          [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
     await constit.setSpawnProxy(0, csr.address);

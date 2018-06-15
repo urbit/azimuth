@@ -57,6 +57,7 @@ contract Ships is Ownable
   event ChangedKeys( uint32 indexed ship,
                      bytes32 encryptionKey,
                      bytes32 authenticationKey,
+                     uint32 cryptoSuiteVersion,
                      uint32 keyRevisionNumber );
 
   //  BrokeContinuity: :ship has a new continuity number, :number.
@@ -107,6 +108,10 @@ contract Ships is Ownable
     //  authenticationKey: Urbit ed25519 authentication key, or 0 for none
     //
     bytes32 authenticationKey;
+
+    //  cryptoSuiteNumber: version of the Urbit crypto suite used
+    //
+    uint32 cryptoSuiteVersion;
 
     //  keyRevisionNumber: incremented every time we change the keys
     //
@@ -384,11 +389,13 @@ contract Ships is Ownable
     function getKeys(uint32 _ship)
       view
       external
-      returns (bytes32 crypt, bytes32 auth)
+      returns (bytes32 crypt, bytes32 auth, uint32 revision, uint32 suite)
     {
       Hull storage ship = ships[_ship];
       return (ship.encryptionKey,
-              ship.authenticationKey);
+              ship.authenticationKey,
+              ship.cryptoSuiteVersion,
+              ship.keyRevisionNumber);
     }
 
     function getKeyRevisionNumber(uint32 _ship)
@@ -414,19 +421,28 @@ contract Ships is Ownable
     //
     function setKeys(uint32 _ship,
                      bytes32 _encryptionKey,
-                     bytes32 _authenticationKey)
+                     bytes32 _authenticationKey,
+                     uint32 _cryptoSuiteVersion)
       onlyOwner
       external
     {
       Hull storage ship = ships[_ship];
+      if ( ship.encryptionKey == _encryptionKey &&
+           ship.authenticationKey == _authenticationKey &&
+           ship.cryptoSuiteVersion == _cryptoSuiteVersion )
+      {
+        return;
+      }
 
       ship.encryptionKey = _encryptionKey;
       ship.authenticationKey = _authenticationKey;
+      ship.cryptoSuiteVersion = _cryptoSuiteVersion;
       ship.keyRevisionNumber++;
 
       emit ChangedKeys(_ship,
                        _encryptionKey,
                        _authenticationKey,
+                       _cryptoSuiteVersion,
                        ship.keyRevisionNumber);
     }
 
