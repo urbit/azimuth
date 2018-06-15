@@ -247,7 +247,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = accounts[2];
 
     await nftoken.createGalaxy(id2, sender);
-    await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, {from:
+    await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, '', {from:
        sender}), ['Transfer']);
 
     const senderBalance = await nftoken.balanceOf(sender);
@@ -264,7 +264,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = nftoken.address;
 
     await nftoken.createGalaxy(id2, sender);
-    await assertRevert(nftoken.safeTransferFrom(sender, recipient, id2, {from: sender}));
+    await assertRevert(nftoken.safeTransferFrom(sender, recipient, id2, '', {from: sender}));
   });
 
   it('corectly safe transfers NFT from owner to smart contract that can recieve NFTs', async () => {
@@ -273,7 +273,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = tokenReceiverMock.address;
 
     await nftoken.createGalaxy(id2, sender);
-    await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, {from:
+    await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, '', {from:
        sender}), ['Transfer']);
 
     const senderBalance = await nftoken.balanceOf(sender);

@@ -21,10 +21,10 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
     await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 1, 2, false);
+    await constit.configureKeys(0, 1, 2, 1, false);
     await constit.spawn(256, owner);
     await constit.spawn(2560, owner);
-    await constit.configureKeys(2560, 1, 2, false);
+    await constit.configureKeys(2560, 1, 2, 1, false);
     lsr = await LSR.new(ships.address);
     await constit.setSpawnProxy(0, lsr.address);
     await constit.setTransferProxy(256, lsr.address);

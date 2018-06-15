@@ -27,9 +27,9 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     dese = await DelegatedSending.new(ships.address);
     //
     await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 0, 0, false);
+    await constit.configureKeys(0, 0, 0, 1, false);
     await constit.spawn(256, owner);
-    await constit.configureKeys(256, 0, 0, false);
+    await constit.configureKeys(256, 0, 0, 1, false);
     await constit.spawn(p1, owner);
     await constit.setSpawnProxy(256, dese.address);
   });
@@ -56,6 +56,7 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     // can't send to users with pending transfers
     await assertRevert(dese.sendShip(p2, p3, user1));
     await constit.transferShip(p2, user1, true);
+    assert.isFalse(await dese.canSend(p1, p2));
     // can't send to users who own ships
     await assertRevert(dese.sendShip(p2, p3, user1));
     // send as invited planet

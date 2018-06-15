@@ -138,20 +138,25 @@ contract('Ships', function([owner, user]) {
   });
 
   it('setting keys', async function() {
-    let [crypt, auth] = await ships.getKeys(0);
+    let [crypt, auth, suite, rev] = await ships.getKeys(0);
     assert.equal(crypt,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(auth,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
+    assert.equal(suite, 0);
+    assert.equal(rev, 0);
     assert.equal(await ships.getKeyRevisionNumber(0), 0);
     // only owner can do this.
-    await assertRevert(ships.setKeys(0, 10, 11, {from:user}));
-    await ships.setKeys(0, 10, 11);
-    [crypt, auth] = await ships.getKeys(0);
+    await assertRevert(ships.setKeys(0, 10, 11, 2, {from:user}));
+    await seeEvents(ships.setKeys(0, 10, 11, 2), ['ChangedKeys']);
+    await seeEvents(ships.setKeys(0, 10, 11, 2), []);
+    [crypt, auth, suite, rev] = await ships.getKeys(0);
     assert.equal(crypt,
       '0xa000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(auth,
       '0xb000000000000000000000000000000000000000000000000000000000000000');
+    assert.equal(suite, 2);
+    assert.equal(rev, 1);
     assert.equal(await ships.getKeyRevisionNumber(0), 1);
     assert.equal(await ships.getContinuityNumber(0), 0);
     // only owner can do this
