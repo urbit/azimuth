@@ -233,10 +233,21 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.adopt(1, 256, {from:user1});
     assert.isFalse(await ships.isRequestingEscapeTo(256, 1));
     assert.equal(await ships.getSponsor(256), 1);
+    assert.isTrue(await ships.isSponsor(256, 1));
     // reject as parent owner.
     await constit.reject(1, 512, {from:user1});
     assert.isFalse(await ships.isRequestingEscapeTo(512, 1));
     assert.equal(await ships.getSponsor(512), 0);
+  });
+
+  it('detaching sponsorship', async function() {
+    // can't if not owner of sponsor
+    await assertRevert(constit.detach(1, 256));
+    // can't if not sponsor of ship
+    await assertRevert(constit.detach(1, 512, {from:user1}));
+    await constit.detach(1, 256, {from:user1});
+    assert.isFalse(await ships.isSponsor(256, 1));
+    assert.equal(await ships.getSponsor(256), 1);
   });
 
   it('voting on and updating document poll', async function() {

@@ -630,6 +630,25 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       ships.cancelEscape(_escapee);
     }
 
+    //  detach(): as the _sponsor, stop sponsoring the _ship
+    //
+    //    Requirements:
+    //    - :msg.sender must bo the owner of _sponsor,
+    //    - _ship must currently be sponsored by _sponsor.
+    //
+    function detach(uint32 _sponsor, uint32 _ship)
+      external
+      activeShipOwner(_sponsor)
+    {
+      //  only the current and active sponsor may do this
+      //
+      require(ships.isSponsor(_ship, _sponsor));
+
+      //  signal that _sponsor no longer supports _ship
+      //
+      ships.loseSponsor(_ship);
+    }
+
   //
   //  Poll actions
   //

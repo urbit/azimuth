@@ -48,6 +48,10 @@ contract Ships is Ownable
   //
   event EscapeAccepted(uint32 indexed ship, uint32 indexed sponsor);
 
+  //  LostSponsor: :ship's sponsor is now refusing it service
+  //
+  event LostSponsor(uint32 indexed ship, uint32 indexed sponsor);
+
   //  ChangedKeys: :ship has new Urbit public keys, :crypt and :auth
   //
   event ChangedKeys( uint32 indexed ship,
@@ -120,10 +124,15 @@ contract Ships is Ownable
     //
     uint32[] spawned;
 
-    //  sponsor: ship that supports this one on the network
+    //  sponsor: ship that supports this one on the network, or,
+    //           if :hasSponsor is false, the last ship that supported it.
     //           (by default, the ship's half-width prefix)
     //
     uint32 sponsor;
+
+    //  hasSponsor: true if the sponsor still supports the ship
+    //
+    bool hasSponsor;
 
     //  escapeRequested: true if the ship has requested to change sponsors
     //
@@ -361,6 +370,7 @@ contract Ships is Ownable
       ship.active = true;
       uint32 prefix = getPrefix(_ship);
       ship.sponsor = prefix;
+      ship.hasSponsor = true;
 
       //  register a new spawned ship for the prefix
       //
@@ -468,6 +478,37 @@ contract Ships is Ownable
       return ships[_ship].sponsor;
     }
 
+    function hasSponsor(uint32 _ship)
+      view
+      external
+      returns (bool has)
+    {
+      return ships[_ship].hasSponsor;
+    }
+
+    function isSponsor(uint32 _ship, uint32 _sponsor)
+      view
+      external
+      returns (bool result)
+    {
+      Hull storage ship = ships[_ship];
+      return ( ship.hasSponsor &&
+               (ship.sponsor == _sponsor) );
+    }
+
+    function loseSponsor(uint32 _ship)
+      onlyOwner
+      external
+    {
+      Hull storage ship = ships[_ship];
+      if (!ship.hasSponsor)
+      {
+        return;
+      }
+      ship.hasSponsor = false;
+      LostSponsor(_ship, ship.sponsor);
+    }
+
     function isEscaping(uint32 _ship)
       view
       external
@@ -531,6 +572,7 @@ contract Ships is Ownable
       Hull storage ship = ships[_ship];
       require(ship.escapeRequested);
       ship.sponsor = ship.escapeRequestedTo;
+      ship.hasSponsor = true;
       ship.escapeRequestedTo = 0;
       ship.escapeRequested = false;
       emit EscapeAccepted(_ship, ship.sponsor);
