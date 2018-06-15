@@ -185,6 +185,15 @@ contract Ships is Ownable
   //
   mapping(address => mapping(uint32 => uint256)) public transferringForIndexes;
 
+  //  spawningFor: per address, the ships they are spawn proxy for
+  //
+  mapping(address => uint32[]) public spawningFor;
+
+  //  spawningForIndexes: per address, per ship, (index + 1) in
+  //                      the spawningFor array
+  //
+  mapping(address => mapping(uint32 => uint256)) public spawningForIndexes;
+
   //  dnsDomains: base domains for contacting galaxies in urbit
   //
   //    dnsDomains[0] is primary, the others are used as fallbacks
@@ -614,12 +623,74 @@ contract Ships is Ownable
       onlyOwner
       external
     {
-      if (ships[_ship].spawnProxy == _spawner)
+      Hull storage ship = ships[_ship];
+      address prev = ship.spawnProxy;
+      if (prev == _spawner)
       {
         return;
       }
-      ships[_ship].spawnProxy = _spawner;
+
+      //  if the ship used to have a different spawn proxy, do some
+      //  gymnastics to keep the reverse lookup gappless.  delete the ship
+      //  from the old proxy's list, then fill that gap with the list tail.
+      //
+      if (0x0 != prev)
+      {
+        //  i: current index in previous proxy's list of spawning ships
+        //
+        uint256 i = spawningForIndexes[prev][_ship];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :spawningForIndexes reference
+        //
+        uint32[] storage prevSfor = spawningFor[prev];
+        uint256 last = prevSfor.length - 1;
+        uint32 moved = prevSfor[last];
+        prevSfor[i] = moved;
+        spawningForIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevSfor[last]);
+        prevSfor.length = last;
+        spawningForIndexes[prev][_ship] = 0;
+      }
+
+      if (0x0 != _spawner)
+      {
+        uint32[] storage tfor = spawningFor[_spawner];
+        tfor.push(_ship);
+        spawningForIndexes[_spawner][_ship] = tfor.length;
+      }
+
+      ship.spawnProxy = _spawner;
       emit ChangedSpawnProxy(_ship, _spawner);
+    }
+
+    function getSpawningForCount(address _proxy)
+      view
+      external
+      returns (uint256 count)
+    {
+      return spawningFor[_proxy].length;
+    }
+
+    //  getSpawningFor(): get the ships _proxy is a spawn proxy for
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getSpawningFor(address _proxy)
+      view
+      external
+      returns (uint32[] tfor)
+    {
+      return spawningFor[_proxy];
     }
 
     function isTransferProxy(uint32 _ship, address _transferrer)
