@@ -638,7 +638,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //  detach(): as the _sponsor, stop sponsoring the _ship
     //
     //    Requirements:
-    //    - :msg.sender must bo the owner of _sponsor,
+    //    - :msg.sender must be the owner of _sponsor,
     //    - _ship must currently be sponsored by _sponsor.
     //
     function detach(uint32 _sponsor, uint32 _ship)
