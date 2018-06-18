@@ -531,7 +531,7 @@ contract Ships is Ownable
         return;
       }
       ship.hasSponsor = false;
-      LostSponsor(_ship, ship.sponsor);
+      emit LostSponsor(_ship, ship.sponsor);
     }
 
     function isEscaping(uint32 _ship)
