@@ -398,7 +398,7 @@ contract Ships is Ownable
     function getKeys(uint32 _ship)
       view
       external
-      returns (bytes32 crypt, bytes32 auth, uint32 revision, uint32 suite)
+      returns (bytes32 crypt, bytes32 auth, uint32 suite, uint32 revision)
     {
       Hull storage ship = ships[_ship];
       return (ship.encryptionKey,
