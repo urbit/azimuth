@@ -769,6 +769,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       polls.incrementTotalVoters();
       ships.activateShip(_galaxy);
       ships.setOwner(_galaxy, _target);
+      emit Transfer(0x0, _target, uint256(_galaxy));
     }
 
     function setDnsDomains(string _primary, string _secondary, string _tertiary)
