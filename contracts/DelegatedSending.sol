@@ -151,7 +151,7 @@ contract DelegatedSending is ReadsShips
              //
              //  the prefix must be live
              //
-             ships.hasBeenBooted(prefix) );
+             ships.isLive(prefix) );
   }
 
   //  getPool(): get the invite pool _ship belongs to

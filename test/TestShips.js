@@ -146,6 +146,7 @@ contract('Ships', function([owner, user]) {
     assert.equal(suite, 0);
     assert.equal(rev, 0);
     assert.equal(await ships.getKeyRevisionNumber(0), 0);
+    assert.isFalse(await ships.isLive(0));
     // only owner can do this.
     await assertRevert(ships.setKeys(0, 10, 11, 2, {from:user}));
     await seeEvents(ships.setKeys(0, 10, 11, 2), ['ChangedKeys']);
@@ -159,6 +160,9 @@ contract('Ships', function([owner, user]) {
     assert.equal(rev, 1);
     assert.equal(await ships.getKeyRevisionNumber(0), 1);
     assert.equal(await ships.getContinuityNumber(0), 0);
+    assert.isTrue(await ships.isLive(0));
+    await ships.setKeys(0, 1, 0, 1);
+    assert.isFalse(await ships.isLive(0));
     // only owner can do this
     await assertRevert(ships.incrementContinuityNumber(0, {from:user}));
     await ships.incrementContinuityNumber(0);

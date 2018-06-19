@@ -28,9 +28,9 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     dese = await DelegatedSending.new(ships.address);
     //
     await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 0, 0, 1, false);
+    await constit.configureKeys(0, 1, 1, 1, false);
     await constit.spawn(256, owner);
-    await constit.configureKeys(256, 0, 0, 1, false);
+    await constit.configureKeys(256, 1, 1, 1, false);
     await constit.spawn(p1, owner);
     await constit.transferShip(p1, owner, false);
     await constit.setSpawnProxy(256, dese.address);

@@ -425,6 +425,19 @@ contract Ships is Ownable
       return ( ships[_ship].keyRevisionNumber > 0 );
     }
 
+    //  isLive(): returns true if _ship currently has keys properly configured
+    //
+    function isLive(uint32 _ship)
+      view
+      external
+      returns (bool result)
+    {
+      Hull storage ship = ships[_ship];
+      return ( ship.encryptionKey != 0 &&
+               ship.authenticationKey != 0 &&
+               ship.cryptoSuiteVersion != 0 );
+    }
+
     //  setKeys(): set Urbit public keys of _ship to _encryptionKey and
     //            _authenticationKey
     //
