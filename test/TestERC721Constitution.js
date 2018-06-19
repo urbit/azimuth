@@ -89,7 +89,9 @@ contract('NFTokenMock', (accounts) => {
 
   it('finds the correct amount of NFTs owned by account', async () => {
     await nftoken.createGalaxy(id2, accounts[1]);
+    await nftoken.transferShip(id2, accounts[1], false, {from:accounts[1]});
     await nftoken.createGalaxy(id3, accounts[1]);
+    await nftoken.transferShip(id3, accounts[1], false, {from:accounts[1]});
     const count = await nftoken.balanceOf(accounts[1]);
     assert.equal(count.toNumber(), 2);
   });
@@ -100,6 +102,7 @@ contract('NFTokenMock', (accounts) => {
 
   it('finds the correct owner of NFToken id', async () => {
     await nftoken.createGalaxy(id2, accounts[1]);
+    await nftoken.transferShip(id2, accounts[1], false, {from:accounts[1]});
     const address = await nftoken.ownerOf(id2);
     assert.equal(address, accounts[1]);
   });
@@ -130,6 +133,7 @@ contract('NFTokenMock', (accounts) => {
 
   it('throws when trying to approve NFT ID which it does not own', async () => {
     await nftoken.createGalaxy(id2, accounts[1]);
+    await nftoken.transferShip(id2, accounts[1], false, {from:accounts[1]});
     await assertRevert(nftoken.approve(accounts[2], id2, {from: accounts[2]}));
     const address = await nftoken.getApproved(id2);
     assert.equal(address, 0);
@@ -137,6 +141,7 @@ contract('NFTokenMock', (accounts) => {
 
   it('throws when trying to approve NFT ID which it already owns', async () => {
     await nftoken.createGalaxy(id2, accounts[1]);
+    await nftoken.transferShip(id2, accounts[1], false, {from:accounts[1]});
     await assertRevert(nftoken.approve(accounts[1], id2));
     const address = await nftoken.getApproved(id2);
     assert.equal(address, 0);
@@ -168,6 +173,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = accounts[2];
 
     await nftoken.createGalaxy(id2, sender);
+    await nftoken.transferShip(id2, sender, false, {from:sender});
     await seeEvents(nftoken.transferFrom(sender, recipient, id2, {from: sender}),
       ['Transfer']);
 
@@ -186,6 +192,7 @@ contract('NFTokenMock', (accounts) => {
     const owner = accounts[3];
 
     await nftoken.createGalaxy(id2, owner);
+    await nftoken.transferShip(id2, owner, false, {from:owner});
     await nftoken.approve(sender, id2, {from: owner});
     await seeEvents(nftoken.transferFrom(owner, recipient, id2, {from: sender}),
       ['Transfer']);
@@ -205,6 +212,7 @@ contract('NFTokenMock', (accounts) => {
     const owner = accounts[3];
 
     await nftoken.createGalaxy(id2, owner);
+    await nftoken.transferShip(id2, owner, false, {from:owner});
     await nftoken.setApprovalForAll(sender, true, {from: owner});
     await seeEvents(nftoken.transferFrom(owner, recipient, id2, {from: sender}),
       ['Transfer']);
@@ -224,6 +232,7 @@ contract('NFTokenMock', (accounts) => {
     const owner = accounts[3];
 
     await nftoken.createGalaxy(id2, owner);
+    await nftoken.transferShip(id2, owner, false, {from:owner});
     await assertRevert(nftoken.transferFrom(owner, recipient, id2, {from: sender}));
   });
 
@@ -231,6 +240,7 @@ contract('NFTokenMock', (accounts) => {
     const owner = accounts[3];
 
     await nftoken.createGalaxy(id2, owner);
+    await nftoken.transferShip(id2, owner, false, {from:owner});
     await assertRevert(nftoken.transferFrom(owner, 0, id2, {from: owner}));
   });
 
@@ -239,6 +249,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = accounts[2];
 
     await nftoken.createGalaxy(id2, owner);
+    await nftoken.transferShip(id2, owner, false, {from:owner});
     await assertRevert(nftoken.transferFrom(owner, recipient, id3, {from: owner}));
   });
 
@@ -247,6 +258,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = accounts[2];
 
     await nftoken.createGalaxy(id2, sender);
+    await nftoken.transferShip(id2, sender, false, {from:sender});
     await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, '', {from:
        sender}), ['Transfer']);
 
@@ -264,6 +276,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = nftoken.address;
 
     await nftoken.createGalaxy(id2, sender);
+    await nftoken.transferShip(id2, sender, false, {from:sender});
     await assertRevert(nftoken.safeTransferFrom(sender, recipient, id2, '', {from: sender}));
   });
 
@@ -273,6 +286,7 @@ contract('NFTokenMock', (accounts) => {
     const recipient = tokenReceiverMock.address;
 
     await nftoken.createGalaxy(id2, sender);
+    await nftoken.transferShip(id2, sender, false, {from:sender});
     await seeEvents(nftoken.safeTransferFrom(sender, recipient, id2, '', {from:
        sender}), ['Transfer']);
 
