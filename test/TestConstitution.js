@@ -60,16 +60,22 @@ contract('Constitution', function([owner, user1, user2]) {
   it('creating galaxies', async function() {
     // create.
     await constit.createGalaxy(0, user1);
-    assert.isTrue(await ships.isActive(0));
-    assert.isTrue(await ships.isOwner(0, user1));
+    assert.isFalse(await ships.isActive(0));
+    assert.isTrue(await ships.isOwner(0, owner));
+    assert.isTrue(await ships.isTransferProxy(0, user1));
     // can't create twice.
     await assertRevert(constit.createGalaxy(0, owner));
     // non-owner can't create.
     await assertRevert(constit.createGalaxy(1, user1, {from:user1}));
     // prep for next tests.
+    await constit.transferShip(0, user1, false, {from:user1});
     await constit.createGalaxy(1, user1);
-    await constit.createGalaxy(2, user1);
+    await constit.transferShip(1, user1, false, {from:user1});
+    await constit.createGalaxy(2, owner);
+    assert.isTrue(await ships.isActive(2));
+    assert.isTrue(await ships.isOwner(2, owner));
     assert.equal(await polls.totalVoters(), 3);
+    await constit.transferShip(2, user1, false);
   });
 
   it('spawning ships', async function() {

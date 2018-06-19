@@ -339,6 +339,29 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //
       if (msg.sender == _target)
       {
+        doSpawn(_ship, _target, true, 0x0);
+      }
+      //
+      //  when sending to a "foreign" address, enforce a withdraw pattern
+      //  making the _ship parent's owner the _ship owner in the mean time
+      //
+      else
+      {
+        doSpawn(_ship, _target, false, ships.getOwner(prefix));
+      }
+    }
+
+    function doSpawn( uint32 _ship,
+                      address _target,
+                      bool _direct,
+                      address _holder )
+      internal
+    {
+      //  if the spawn is _direct, assume _target knows what they're doing
+      //  and resolve right away
+      //
+      if (_direct)
+      {
         //  make the ship active and set its new owner
         //
         ships.activateShip(_ship);
@@ -347,21 +370,23 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         emit Transfer(0x0, _target, uint256(_ship));
       }
       //
-      //  when sending to a "foreign" address, enforce a withdraw pattern
-      //  by approving the _target for transfer of the _ship.
-      //  we make the parent's owner the owner of this _ship in the mean time,
+      //  when spawning indirectly, enforce a withdraw pattern by approving
+      //  the _target for transfer of the _ship instead.
+      //  we make the _holder the owner of this _ship in the mean time,
       //  so that it may cancel the transfer (un-approve) if _target flakes.
-      //  we don't make _ship active yet, because it still belongs to its
-      //  parent.
+      //  we don't make _ship active yet, because it still doesn't really
+      //  belong to anyone.
       //
       else
       {
-        address prefixOwner = ships.getOwner(prefix);
-        ships.setOwner(_ship, prefixOwner);
+        //  have _holder hold on to the ship while _target gets to transfer
+        //  ownership of it
+        //
+        ships.setOwner(_ship, _holder);
         ships.setTransferProxy(_ship, _target);
 
-        emit Transfer(0x0, prefixOwner, uint256(_ship));
-        emit Approval(prefixOwner, _target, uint256(_ship));
+        emit Transfer(0x0, _holder, uint256(_ship));
+        emit Approval(_holder, _target, uint256(_ship));
       }
     }
 
@@ -431,7 +456,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     function transferShip(uint32 _ship, address _target, bool _reset)
       public
     {
-
       //  old: current ship owner
       //
       address old = ships.getOwner(_ship);
@@ -764,12 +788,31 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       external
       onlyOwner
     {
-      require( !ships.isActive(_galaxy) &&
+      //  only currently unowned (and thus also inactive) galaxies can be
+      //  created, and only to non-zero addresses
+      //
+      require( ships.isOwner(_galaxy, 0x0) &&
                0x0 != _target );
+
+      //  new galaxy means a new registered voter
+      //
       polls.incrementTotalVoters();
-      ships.activateShip(_galaxy);
-      ships.setOwner(_galaxy, _target);
-      emit Transfer(0x0, _target, uint256(_galaxy));
+
+      //  if the caller is sending the galaxy to themselves,
+      //  assume it knows what it's doing and resolve right away
+      //
+      if (msg.sender == _target)
+      {
+        doSpawn(_galaxy, _target, true, 0x0);
+      }
+      //
+      //  when sending to a "foreign" address, enforce a withdraw pattern,
+      //  making the caller the owner in the mean time
+      //
+      else
+      {
+        doSpawn(_galaxy, _target, false, msg.sender);
+      }
     }
 
     function setDnsDomains(string _primary, string _secondary, string _tertiary)
