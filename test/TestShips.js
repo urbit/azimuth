@@ -80,25 +80,36 @@ contract('Ships', function([owner, user]) {
     assert.equal(owned.length, 1);
   });
 
-  it('activating and spawn count', async function() {
+  it('activating', async function() {
     assert.isFalse(await ships.isActive(0));
-    assert.equal(await ships.getSpawnCount(1), 0);
     assert.isFalse(await ships.isActive(257));
     // only owner can do this.
     await assertRevert(ships.activateShip(0, {from:user}));
     await ships.activateShip(0);
     await ships.activateShip(257);
     assert.isTrue(await ships.isActive(0));
-    assert.equal(await ships.getSpawnCount(1), 1);
-    let spawned = await ships.getSpawned(1);
-    assert.equal(spawned.length, 1);
-    assert.equal(spawned[0], 257);
     assert.isTrue(await ships.isActive(257));
     assert.equal(await ships.getSponsor(257), 1);
     assert.isTrue(await ships.hasSponsor(257));
     assert.isTrue(await ships.isSponsor(257, 1));
     // can't do it twice.
     await assertRevert(ships.activateShip(0));
+  });
+
+  it('spawning and spawn count', async function() {
+    assert.equal(await ships.getSpawnCount(1), 0);
+    // only owner can do this.
+    await assertRevert(ships.registerSpawned(0, {from:user}));
+    await ships.registerSpawned(257);
+    assert.equal(await ships.getSpawnCount(1), 1);
+    let spawned = await ships.getSpawned(1);
+    assert.equal(spawned.length, 1);
+    assert.equal(spawned[0], 257);
+    // registering galaxy spawns is a no-op
+    await ships.registerSpawned(1);
+    assert.equal(await ships.getSpawnCount(1), 1);
+    spawned = await ships.getSpawned(1);
+    assert.equal(spawned.length, 1);
   });
 
   it('losing sponsor, setting, canceling, and doing escape', async function() {

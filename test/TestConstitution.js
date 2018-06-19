@@ -90,6 +90,7 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.isFalse(await ships.isOwner(256, user1));
     await seeEvents(constit.spawn(256, user1, {from:user1}),
                     ['Transfer']);
+    assert.equal(await ships.getSpawnCount(0), 1);
     assert.isTrue(await ships.isOwner(256, user1));
     assert.isTrue(await ships.isActive(256));
     // can't spawn same ship twice.
@@ -97,6 +98,7 @@ contract('Constitution', function([owner, user1, user2]) {
     // spawn child to other, via withdraw pattern
     await seeEvents(constit.spawn(512, user2, {from:user1}),
                     ['Transfer', 'Approval']);
+    assert.equal(await ships.getSpawnCount(0), 2);
     assert.isTrue(await ships.isOwner(512, user1));
     assert.isFalse(await ships.isActive(512));
     assert.isTrue(await ships.isTransferProxy(512, user2));

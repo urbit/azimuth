@@ -382,17 +382,30 @@ contract Ships is Ownable
       Hull storage ship = ships[_ship];
       require(!ship.active);
       ship.active = true;
-      uint32 prefix = getPrefix(_ship);
-      ship.sponsor = prefix;
+      ship.sponsor = getPrefix(_ship);
       ship.hasSponsor = true;
+      emit Activated(_ship);
+    }
+
+    //  registerSpawn(): add a ship to its parent's list of spawned ships
+    //
+    function registerSpawned(uint32 _ship)
+      onlyOwner
+      external
+    {
+      //  if a ship is its own prefix (a galaxy) then don't register it
+      //
+      uint32 prefix = getPrefix(_ship);
+      if (prefix == _ship)
+      {
+        return;
+      }
 
       //  register a new spawned ship for the prefix
       //
       ships[prefix].spawnCount++;
       ships[prefix].spawned.push(_ship);
       emit Spawned(prefix, _ship);
-
-      emit Activated(_ship);
     }
 
     function getKeys(uint32 _ship)

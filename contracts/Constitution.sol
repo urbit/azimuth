@@ -357,6 +357,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                       address _holder )
       internal
     {
+      //  register the spawn for _ship's prefix, incrementing spawn count
+      //
+      ships.registerSpawned(_ship);
+
       //  if the spawn is _direct, assume _target knows what they're doing
       //  and resolve right away
       //
