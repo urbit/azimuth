@@ -11,8 +11,8 @@ import './ReadsShips.sol';
 //    These censures are not permanent, they can be forgiven.
 //
 //    Since the Urbit network provides incentives for good behavior,
-//    making bad behavior is the exception rather than the rule, this
-//    only provides registration of negative reputation.
+//    making bad behavior the exception rather than the rule, this
+//    contract only provides registration of negative reputation.
 //
 contract Censures is ReadsShips
 {
