@@ -203,6 +203,14 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getContinuityNumber(0), 2);
   });
 
+  it('setting manager', async function() {
+    assert.equal(await ships.managers(user1), 0);
+    await constit.setManager(owner, {from:user1});
+    assert.equal(await ships.managers(user1), owner);
+    // manager can do things like configure keys
+    await constit.configureKeys(0, 9, 9, 1, false, {from:owner});
+  });
+
   it('setting and canceling an escape', async function() {
     // can't if chosen parent not active.
     await assertRevert(constit.escape(257, 1, {from:user1}));
@@ -252,7 +260,7 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('detaching sponsorship', async function() {
     // can't if not owner of sponsor
-    await assertRevert(constit.detach(1, 256));
+    await assertRevert(constit.detach(1, 256, {from:user2}));
     // can't if not sponsor of ship
     await assertRevert(constit.detach(1, 512, {from:user1}));
     await constit.detach(1, 256, {from:user1});

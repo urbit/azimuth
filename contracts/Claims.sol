@@ -73,7 +73,7 @@ contract Claims is ReadsShips
                     string _claim,
                     bytes _dossier)
     external
-    activeShipOwner(_ship)
+    activeShipManager(_ship)
   {
     //  cur: index + 1 of the claim if it already exists, 0 otherwise
     //
@@ -102,7 +102,7 @@ contract Claims is ReadsShips
   //
   function removeClaim(uint32 _ship, string _protocol, string _claim)
     external
-    activeShipOwner(_ship)
+    activeShipManager(_ship)
   {
     //  i: current index + 1 in _ship's list of claims
     //
@@ -130,7 +130,7 @@ contract Claims is ReadsShips
   {
     //  both ship owner and constitution may do this
     //
-    require( ships.isOwner(_ship, msg.sender) ||
+    require( ships.canManage(_ship, msg.sender) ||
              ( msg.sender == ships.owner() ) );
 
     Claim[maxClaims] storage currClaims = claims[_ship];

@@ -32,4 +32,11 @@ contract ReadsShips
              ships.isActive(_ship) );
     _;
   }
+
+  modifier activeShipManager(uint32 _ship)
+  {
+    require( ships.canManage(_ship, msg.sender) &&
+             ships.isActive(_ship) );
+    _;
+  }
 }

@@ -14,6 +14,9 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //    ownership of all ships owned by their associated address
 //    (ERC721's approveAll()). A transfer proxy is allowed to transfer
 //    ownership of a single ship (ERC721's approve()).
+//    Separate from ERC721 are managers, assigned per owner address.
+//    They are allowed to perform "low-impact" operations on the owner's
+//    ships, like configuring public keys and making escape requests.
 //
 //    Since data stores are difficult to upgrade, this contract contains
 //    as little actual business logic as possible. Instead, the data stored
@@ -72,6 +75,10 @@ contract Ships is Ownable
   //
   event ChangedTransferProxy( uint32 indexed ship,
                               address indexed transferProxy );
+
+  //  ChangedManager: :owner now allows :manager to manage ships
+  //
+  event ChangedManager(address indexed owner, address indexed manager);
 
   //  ChangedDns: dnsDomains has been updated
   //
@@ -175,6 +182,19 @@ contract Ships is Ownable
   //  operators: per owner, per address, has the right to transfer ownership
   //
   mapping(address => mapping(address => bool)) public operators;
+
+  //  managers: per owner, has the right to perform basic operations on ships
+  //
+  mapping(address => address) public managers;
+
+  //  managingFor: per address, the addresses they are managing ships for
+  //
+  mapping(address => address[]) public managingFor;
+
+  //  managingForIndexes: per address, per owner, (index + 1) in
+  //                      the managingFor array
+  //
+  mapping(address => mapping(address => uint256)) public managingForIndexes;
 
   //  transferringFor: per address, the ships they are transfer proxy for
   //
@@ -359,6 +379,100 @@ contract Ships is Ownable
       shipsOwnedBy[_owner].push(_ship);
       shipOwnerIndexes[_owner][_ship] = shipsOwnedBy[_owner].length;
       emit OwnerChanged(_ship, _owner);
+    }
+
+    function isManager(address _owner, address _manager)
+      view
+      external
+      returns (bool result)
+    {
+      return (managers[_owner] == _manager);
+    }
+
+    //  canManage(): true if _who is the owner of _ship,
+    //               or the manager of _ship's owner
+    //
+    function canManage(uint32 _ship, address _who)
+      view
+      external
+      returns (bool result)
+    {
+      address owner = ships[_ship].owner;
+      return ( (_who == owner) ||
+               (_who == managers[owner]) );
+    }
+
+    function setManager(address _owner, address _manager)
+      onlyOwner
+      external
+    {
+      address prev = managers[_owner];
+      if (prev == _manager)
+      {
+        return;
+      }
+
+      //  if the owner used to have a different manager, do some gymnastics
+      //  to keep the reverse lookup gappless.  delete the owner from the
+      //  old manager's list, then fill that gap with the list tail.
+      //
+      if (0x0 != prev)
+      {
+        //  i: current index in previous proxy's list of managing owners
+        //
+        uint256 i = managingForIndexes[prev][_owner];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :managingForIndexes reference
+        //
+        address[] storage prevMfor = managingFor[prev];
+        uint256 last = prevMfor.length - 1;
+        address moved = prevMfor[last];
+        prevMfor[i] = moved;
+        managingForIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevMfor[last]);
+        prevMfor.length = last;
+        managingForIndexes[prev][_owner] = 0;
+      }
+
+      if (0x0 != _manager)
+      {
+        address[] storage mfor = managingFor[_manager];
+        mfor.push(_owner);
+        managingForIndexes[_manager][_owner] = mfor.length;
+      }
+
+      managers[_owner] = _manager;
+      emit ChangedManager(_owner, _manager);
+    }
+
+    function getManagingForCount(address _manager)
+      view
+      external
+      returns (uint256 count)
+    {
+      return managingFor[_manager].length;
+    }
+
+    //  getManagingFor(): get the owners _manager is a manager for
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getManagingFor(address _manager)
+      view
+      external
+      returns (address[] mfor)
+    {
+      return managingFor[_manager];
     }
 
     //  isActive(): return true if ship is active
