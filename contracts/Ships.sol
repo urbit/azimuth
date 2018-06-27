@@ -303,7 +303,7 @@ contract Ships is Ownable
     //    logic for a transfer; use the constitution contract for a
     //    full transfer.
     //
-    //    Note: _owner must not equal the present owner or the zero address.
+    //    Note: _owner must not be the zero address.
     //
     function setOwner(uint32 _ship, address _owner)
       onlyOwner
@@ -689,9 +689,9 @@ contract Ships is Ownable
 
       if (0x0 != _spawner)
       {
-        uint32[] storage tfor = spawningFor[_spawner];
-        tfor.push(_ship);
-        spawningForIndexes[_spawner][_ship] = tfor.length;
+        uint32[] storage sfor = spawningFor[_spawner];
+        sfor.push(_ship);
+        spawningForIndexes[_spawner][_ship] = sfor.length;
       }
 
       ship.spawnProxy = _spawner;
@@ -714,7 +714,7 @@ contract Ships is Ownable
     function getSpawningFor(address _proxy)
       view
       external
-      returns (uint32[] tfor)
+      returns (uint32[] sfor)
     {
       return spawningFor[_proxy];
     }
