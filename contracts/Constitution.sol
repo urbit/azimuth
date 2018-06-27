@@ -263,6 +263,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Urbit functions for all ships
   //
 
+    //  setManager(): configure the management address for all ships you own
+    //
+    function setManager(address _manager)
+      external
+    {
+      ships.setManager(msg.sender, _manager);
+    }
+
     //  configureKeys(): configure _ship with Urbit public keys _encryptionKey,
     //                   _authenticationKey, and corresponding
     //                   _cryptoSuiteVersion, incrementing the ship's
@@ -274,7 +282,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                            uint32 _cryptoSuiteVersion,
                            bool _discontinuous)
       external
-      activeShipOwner(_ship)
+      activeShipManager(_ship)
     {
       if (_discontinuous)
       {
@@ -613,7 +621,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function escape(uint32 _ship, uint32 _sponsor)
       external
-      activeShipOwner(_ship)
+      activeShipManager(_ship)
     {
       require(canEscapeTo(_ship, _sponsor));
       ships.setEscapeRequest(_ship, _sponsor);
@@ -623,7 +631,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function cancelEscape(uint32 _ship)
       external
-      activeShipOwner(_ship)
+      activeShipManager(_ship)
     {
       ships.cancelEscape(_ship);
     }
@@ -636,7 +644,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function adopt(uint32 _sponsor, uint32 _escapee)
       external
-      activeShipOwner(_sponsor)
+      activeShipManager(_sponsor)
     {
       require(ships.isRequestingEscapeTo(_escapee, _sponsor));
 
@@ -654,7 +662,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function reject(uint32 _sponsor, uint32 _escapee)
       external
-      activeShipOwner(_sponsor)
+      activeShipManager(_sponsor)
     {
       require(ships.isRequestingEscapeTo(_escapee, _sponsor));
 
@@ -671,7 +679,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function detach(uint32 _sponsor, uint32 _ship)
       external
-      activeShipOwner(_sponsor)
+      activeShipManager(_sponsor)
     {
       //  only the current and active sponsor may do this
       //
@@ -696,7 +704,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function startConstitutionPoll(uint8 _galaxy, ConstitutionBase _proposal)
       external
-      activeShipOwner(_galaxy)
+      activeShipManager(_galaxy)
     {
       //  ensure that the upgrade target expects this contract as the source
       //
@@ -708,7 +716,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function startDocumentPoll(uint8 _galaxy, bytes32 _proposal)
       external
-      activeShipOwner(_galaxy)
+      activeShipManager(_galaxy)
     {
       polls.startDocumentPoll(_proposal);
     }
@@ -725,7 +733,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                               ConstitutionBase _proposal,
                               bool _vote)
       external
-      activeShipOwner(_galaxy)
+      activeShipManager(_galaxy)
     {
       //  majority: true if the vote resulted in a majority, false otherwise
       //
@@ -746,7 +754,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function castDocumentVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
       external
-      activeShipOwner(_galaxy)
+      activeShipManager(_galaxy)
     {
       polls.castDocumentVote(_galaxy, _proposal, _vote);
     }

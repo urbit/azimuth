@@ -6,7 +6,7 @@ const seeEvents = require('./helpers/seeEvents');
 const web3abi = require('web3-eth-abi');
 const web3 = Ships.web3;
 
-contract('Ships', function([owner, user]) {
+contract('Ships', function([owner, user, user2, user3]) {
   let ships;
 
   before('setting up for tests', async function() {
@@ -178,6 +178,37 @@ contract('Ships', function([owner, user]) {
     await assertRevert(ships.incrementContinuityNumber(0, {from:user}));
     await ships.incrementContinuityNumber(0);
     assert.equal(await ships.getContinuityNumber(0), 1);
+  });
+
+  it('setting manager', async function() {
+    await ships.setOwner(0, user);
+    assert.isFalse(await ships.canManage(0, owner));
+    assert.isFalse(await ships.isManager(user, owner));
+    assert.equal(await ships.getManagingForCount(owner), 0);
+    // only owner can do this.
+    await assertRevert(ships.setManager(user, owner, {from:user}));
+    await seeEvents(ships.setManager(user, owner), ['ChangedManager']);
+    // won't emit event when nothing changes
+    await seeEvents(ships.setManager(user, owner), []);
+    await ships.setManager(user2, owner);
+    await ships.setManager(user3, owner);
+    assert.equal(await ships.managers(user), owner);
+    assert.isTrue(await ships.canManage(0, owner));
+    assert.isTrue(await ships.isManager(user, owner));
+    assert.equal(await ships.getManagingForCount(owner), 3);
+    let mf = await ships.getManagingFor(owner);
+    assert.equal(mf[0], user);
+    assert.equal(mf[1], user2);
+    assert.equal(mf[2], user3);
+    await ships.setManager(user, 0);
+    assert.isFalse(await ships.canManage(0, owner));
+    assert.equal(await ships.getManagingForCount(owner), 2);
+    mf = await ships.getManagingFor(owner);
+    assert.equal(mf[0], user3);
+    assert.equal(mf[1], user2);
+    // can still interact with ships that got shuffled around in array
+    await ships.setManager(user3, 0);
+    assert.equal(await ships.managers(user3), 0);
   });
 
   it('setting spawn proxy', async function() {
