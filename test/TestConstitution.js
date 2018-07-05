@@ -268,12 +268,19 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getSponsor(256), 1);
   });
 
+  it('setting manager', async function() {
+    assert.equal(await ships.delegates(user1), 0);
+    await constit.setDelegate(owner, {from:user1});
+    assert.equal(await ships.delegates(user1), owner);
+  });
+
   it('voting on and updating document poll', async function() {
     // can't if not galaxy owner.
     await assertRevert(constit.startDocumentPoll(0, 10, {from:user2}));
     await assertRevert(constit.castDocumentVote(0, 10, true, {from:user2}));
     await constit.startDocumentPoll(0, 10, {from:user1});
-    await constit.castDocumentVote(0, 10, true, {from:user1});
+    // can do voting operations as delegate
+    await constit.castDocumentVote(0, 10, true);
     assert.isTrue(await polls.hasVotedOnDocumentPoll(0, 10));
     await increaseTime(pollTime + 5);
     await constit.updateDocumentPoll(10);
