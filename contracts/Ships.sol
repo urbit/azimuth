@@ -418,7 +418,7 @@ contract Ships is Ownable
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous proxy's list of managing owners
+        //  i: current index in previous manager's list of managing owners
         //
         uint256 i = managingForIndexes[prev][_owner];
 
