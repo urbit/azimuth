@@ -196,6 +196,7 @@ contract('Ships', function([owner, user, user2, user3]) {
     assert.isTrue(await ships.canManage(0, owner));
     assert.isTrue(await ships.isManager(user, owner));
     assert.equal(await ships.getManagingForCount(owner), 3);
+    assert.equal(await ships.managingForIndexes(owner, user), 1);
     let mf = await ships.getManagingFor(owner);
     assert.equal(mf[0], user);
     assert.equal(mf[1], user2);
@@ -203,11 +204,15 @@ contract('Ships', function([owner, user, user2, user3]) {
     await ships.setManager(user, 0);
     assert.isFalse(await ships.canManage(0, owner));
     assert.equal(await ships.getManagingForCount(owner), 2);
+    assert.equal(await ships.managingForIndexes(owner, user), 0);
     mf = await ships.getManagingFor(owner);
     assert.equal(mf[0], user3);
     assert.equal(mf[1], user2);
     // can still interact with ships that got shuffled around in array
     await ships.setManager(user3, 0);
+    await ships.setManager(user2, 0);
+    assert.equal(await ships.managingForIndexes(owner, user2), 0);
+    assert.equal(await ships.managingForIndexes(owner, user3), 0);
     assert.equal(await ships.managers(user3), 0);
   });
 
@@ -224,6 +229,7 @@ contract('Ships', function([owner, user, user2, user3]) {
     assert.equal(await ships.getSpawnProxy(0), owner);
     assert.isTrue(await ships.isSpawnProxy(0, owner));
     assert.equal(await ships.getSpawningForCount(owner), 3);
+    assert.equal(await ships.spawningForIndexes(owner, 0), 1);
     let stt = await ships.getSpawningFor(owner);
     assert.equal(stt[0], 0);
     assert.equal(stt[1], 1);
@@ -231,6 +237,7 @@ contract('Ships', function([owner, user, user2, user3]) {
     await ships.setSpawnProxy(0, 0);
     assert.isFalse(await ships.isSpawnProxy(0, owner));
     assert.equal(await ships.getSpawningForCount(owner), 2);
+    assert.equal(await ships.spawningForIndexes(owner, 0), 0);
     stt = await ships.getSpawningFor(owner);
     assert.equal(stt[0], 2);
     assert.equal(stt[1], 1);
@@ -251,6 +258,7 @@ contract('Ships', function([owner, user, user2, user3]) {
     assert.equal(await ships.getTransferProxy(0), owner);
     assert.isTrue(await ships.isTransferProxy(0, owner));
     assert.equal(await ships.getTransferringForCount(owner), 3);
+    assert.equal(await ships.transferringForIndexes(owner, 0), 1);
     let stt = await ships.getTransferringFor(owner);
     assert.equal(stt[0], 0);
     assert.equal(stt[1], 1);
@@ -258,6 +266,7 @@ contract('Ships', function([owner, user, user2, user3]) {
     await ships.setTransferProxy(0, 0);
     assert.isFalse(await ships.isTransferProxy(0, owner));
     assert.equal(await ships.getTransferringForCount(owner), 2);
+    assert.equal(await ships.transferringForIndexes(owner, 0), 0);
     stt = await ships.getTransferringFor(owner);
     assert.equal(stt[0], 2);
     assert.equal(stt[1], 1);
