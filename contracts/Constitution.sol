@@ -694,6 +694,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Poll actions
   //
 
+    //  setDelegate(): configure the delegate address for all ships you own
+    //
+    function setDelegate(address _delegate)
+      external
+    {
+      ships.setDelegate(msg.sender, _delegate);
+    }
+
     //  startConstitutionPoll(): as _galaxy, start a poll for the constitution
     //                       upgrade _proposal
     //
@@ -704,7 +712,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function startConstitutionPoll(uint8 _galaxy, ConstitutionBase _proposal)
       external
-      activeShipManager(_galaxy)
+      activeShipVoter(_galaxy)
     {
       //  ensure that the upgrade target expects this contract as the source
       //
@@ -716,7 +724,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function startDocumentPoll(uint8 _galaxy, bytes32 _proposal)
       external
-      activeShipManager(_galaxy)
+      activeShipVoter(_galaxy)
     {
       polls.startDocumentPoll(_proposal);
     }
@@ -733,7 +741,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                               ConstitutionBase _proposal,
                               bool _vote)
       external
-      activeShipManager(_galaxy)
+      activeShipVoter(_galaxy)
     {
       //  majority: true if the vote resulted in a majority, false otherwise
       //
@@ -754,7 +762,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function castDocumentVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
       external
-      activeShipManager(_galaxy)
+      activeShipVoter(_galaxy)
     {
       polls.castDocumentVote(_galaxy, _proposal, _vote);
     }
@@ -843,6 +851,13 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     modifier validShipId(uint256 _id)
     {
       require(_id < 4294967296);
+      _;
+    }
+
+    modifier activeShipVoter(uint32 _ship)
+    {
+      require( ships.canVoteAs(_ship, msg.sender) &&
+               ships.isActive(_ship) );
       _;
     }
 }

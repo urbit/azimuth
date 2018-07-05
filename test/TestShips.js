@@ -216,6 +216,41 @@ contract('Ships', function([owner, user, user2, user3]) {
     assert.equal(await ships.managers(user3), 0);
   });
 
+  it('setting vote delegate', async function() {
+    assert.isFalse(await ships.canVoteAs(0, owner));
+    assert.isFalse(await ships.isDelegate(user, owner));
+    assert.equal(await ships.getVotingForCount(owner), 0);
+    // only owner can do this.
+    await assertRevert(ships.setDelegate(user, owner, {from:user}));
+    await seeEvents(ships.setDelegate(user, owner), ['ChangedDelegate']);
+    // won't emit event when nothing changes
+    await seeEvents(ships.setDelegate(user, owner), []);
+    await ships.setDelegate(user2, owner);
+    await ships.setDelegate(user3, owner);
+    assert.equal(await ships.delegates(user), owner);
+    assert.isTrue(await ships.canVoteAs(0, owner));
+    assert.isTrue(await ships.isDelegate(user, owner));
+    assert.equal(await ships.getVotingForCount(owner), 3);
+    assert.equal(await ships.votingForIndexes(owner, user), 1);
+    let vf = await ships.getVotingFor(owner);
+    assert.equal(vf[0], user);
+    assert.equal(vf[1], user2);
+    assert.equal(vf[2], user3);
+    await ships.setDelegate(user, 0);
+    assert.isFalse(await ships.canVoteAs(0, owner));
+    assert.equal(await ships.getVotingForCount(owner), 2);
+    assert.equal(await ships.votingForIndexes(owner, user), 0);
+    vf = await ships.getVotingFor(owner);
+    assert.equal(vf[0], user3);
+    assert.equal(vf[1], user2);
+    // can still interact with ships that got shuffled around in array
+    await ships.setDelegate(user3, 0);
+    await ships.setDelegate(user2, 0);
+    assert.equal(await ships.votingForIndexes(owner, user2), 0);
+    assert.equal(await ships.votingForIndexes(owner, user3), 0);
+    assert.equal(await ships.delegates(user3), 0);
+  });
+
   it('setting spawn proxy', async function() {
     assert.isFalse(await ships.isSpawnProxy(0, owner));
     assert.equal(await ships.getSpawningForCount(owner), 0);

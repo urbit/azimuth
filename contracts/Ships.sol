@@ -76,9 +76,13 @@ contract Ships is Ownable
   event ChangedTransferProxy( uint32 indexed ship,
                               address indexed transferProxy );
 
-  //  ChangedManager: :owner now allows :manager to manage ships
+  //  ChangedManager: :owner now allows :manager to manage its ships
   //
   event ChangedManager(address indexed owner, address indexed manager);
+
+  //  ChangedDelegate: :owner now allows :delegate to vote with its ships
+  //
+  event ChangedDelegate(address indexed owner, address indexed delegate);
 
   //  ChangedDns: dnsDomains has been updated
   //
@@ -195,6 +199,19 @@ contract Ships is Ownable
   //                      the managingFor array
   //
   mapping(address => mapping(address => uint256)) public managingForIndexes;
+
+  //  delegated: per owner, has the right to vote on behalf of ships
+  //
+  mapping(address => address) public delegates;
+
+  //  votingFor: per address, the addresses they are managing ships for
+  //
+  mapping(address => address[]) public votingFor;
+
+  //  votingForIndexes: per address, per owner, (index + 1) in
+  //                    the votingFor array
+  //
+  mapping(address => mapping(address => uint256)) public votingForIndexes;
 
   //  transferringFor: per address, the ships they are transfer proxy for
   //
@@ -473,6 +490,101 @@ contract Ships is Ownable
       returns (address[] mfor)
     {
       return managingFor[_manager];
+    }
+
+    function isDelegate(address _owner, address _delegate)
+      view
+      external
+      returns (bool result)
+    {
+      return (delegates[_owner] == _delegate);
+    }
+
+    //  canVoteAs(): true if _who is the owner of _ship,
+    //               or the delegate of _ship's owner
+    //
+    function canVoteAs(uint32 _ship, address _who)
+      view
+      external
+      returns (bool result)
+    {
+      address owner = ships[_ship].owner;
+      return ( (_who == owner) ||
+               (_who == delegates[owner]) );
+    }
+
+    function setDelegate(address _owner, address _delegate)
+      onlyOwner
+      external
+    {
+      address prev = delegates[_owner];
+      if (prev == _delegate)
+      {
+        return;
+      }
+
+      //  if the owner used to have a different delegate, do some gymnastics
+      //  to keep the reverse lookup gappless.  delete the owner from the
+      //  old delegate's list, then fill that gap with the list tail.
+      //
+      if (0x0 != prev)
+      {
+        //  i: current index in previous delegate's list of owners it was
+        //     delegated to by
+        //
+        uint256 i = votingForIndexes[prev][_owner];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :votingForIndexes reference
+        //
+        address[] storage prevVfor = votingFor[prev];
+        uint256 last = prevVfor.length - 1;
+        address moved = prevVfor[last];
+        prevVfor[i] = moved;
+        votingForIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevVfor[last]);
+        prevVfor.length = last;
+        votingForIndexes[prev][_owner] = 0;
+      }
+
+      if (0x0 != _delegate)
+      {
+        address[] storage vfor = votingFor[_delegate];
+        vfor.push(_owner);
+        votingForIndexes[_delegate][_owner] = vfor.length;
+      }
+
+      delegates[_owner] = _delegate;
+      emit ChangedDelegate(_owner, _delegate);
+    }
+
+    function getVotingForCount(address _delegate)
+      view
+      external
+      returns (uint256 count)
+    {
+      return votingFor[_delegate].length;
+    }
+
+    //  getVotingFor(): get the owners _delegate is a voter for
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getVotingFor(address _delegate)
+      view
+      external
+      returns (address[] vfor)
+    {
+      return votingFor[_delegate];
     }
 
     //  isActive(): return true if ship is active
