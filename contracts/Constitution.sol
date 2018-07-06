@@ -5,8 +5,8 @@ pragma solidity 0.4.24;
 import './ConstitutionBase.sol';
 import './Claims.sol';
 import './ERC165Mapping.sol';
+import './interfaces/ERC721Receiver.sol';
 import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
-import 'openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
 import 'openzeppelin-solidity/contracts/AddressUtils.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 
@@ -56,10 +56,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
                        bool _approved);
 
   // erc721Received: equal to:
-  //               bytes4(keccak256("onERC721Received(address,uint256,bytes)"))`
+  //        bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))
   //                 which can be also obtained as:
-  //               ERC721Receiver(0).onERC721Received.selector`
-  bytes4 constant erc721Received = 0xf0b9e5ba;
+  //        ERC721Receiver(0).onERC721Received.selector`
+  bytes4 constant erc721Received = 0x150b7a02;
 
   //  claims: contract reference, for clearing claims on-transfer
   //
@@ -159,7 +159,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       if (_to.isContract())
       {
         bytes4 retval = ERC721Receiver(_to)
-                        .onERC721Received(_from, _tokenId, _data);
+                        .onERC721Received(msg.sender, _from, _tokenId, _data);
         //
         //  standard return idiom to confirm contract semantics
         //
