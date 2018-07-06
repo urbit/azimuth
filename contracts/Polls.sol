@@ -31,7 +31,7 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 //    to the voting itself (that is, determining who is eligible to vote)
 //    is expected to be implemented by this contract's owner.
 //
-//    Initially, this contract will be owned by the Constitution contract.
+//    This contract will be owned by the Constitution contract.
 //
 contract Polls is Ownable
 {
