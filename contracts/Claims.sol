@@ -14,7 +14,7 @@ import './ReadsShips.sol';
 //
 //    For existing claims, the dossier can be updated, or the claim can
 //    be removed entirely. It is recommended to remove any claims associated
-//    with a ship when it is about to be transfered to a new owner.
+//    with a ship when it is about to be transferred to a new owner.
 //    For convenience, the owner of the Ships contract (the Constitution)
 //    is allowed to clear claims for any ship, allowing it to do this for
 //    you on-transfer.
