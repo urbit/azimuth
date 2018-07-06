@@ -184,6 +184,7 @@ contract Ships is Ownable
   mapping(address => mapping(uint32 => uint256)) public shipOwnerIndexes;
 
   //  operators: per owner, per address, has the right to transfer ownership
+  //             of all the owner's ships (ERC721)
   //
   mapping(address => mapping(address => bool)) public operators;
 
@@ -1045,6 +1046,11 @@ contract Ships is Ownable
       return operators[_owner][_operator];
     }
 
+    //  setOperator(): dis/allow _operator to transfer ownership of all ships
+    //                 owned by _owner
+    //
+    //    operators are part of the ERC721 standard
+    //
     function setOperator(address _owner, address _operator, bool _approved)
       onlyOwner
       external

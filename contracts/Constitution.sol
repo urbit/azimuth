@@ -17,6 +17,10 @@ import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 //    responsible for performing all necessary business logic.
 //    Examples of such logic include verifying permissions of the caller
 //    and ensuring a requested change is actually valid.
+//    Ship owners can always operate on their own ships. Ethereum addresses
+//    can also perform specific operations if they've been given the
+//    appropriate permissions. (For example, managers for general management,
+//    spawn proxies for spawning child ships, etc.)
 //
 //    This contract uses external contracts (Ships, Polls) for data storage
 //    so that it itself can easily be replaced in case its logic needs to
@@ -264,6 +268,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //
 
     //  setManager(): configure the management address for all ships you own
+    //
+    //    The management address may perform "reversible" operations on
+    //    behalf of the owner. This includes public key configuration and
+    //    operations relating to sponsorship.
     //
     function setManager(address _manager)
       external
@@ -695,6 +703,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //
 
     //  setDelegate(): configure the delegate address for all ships you own
+    //
+    //    the delegate is allowed to start polls and cast votes
+    //    on the owner's behalf.
     //
     function setDelegate(address _delegate)
       external
