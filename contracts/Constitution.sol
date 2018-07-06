@@ -5,10 +5,10 @@ pragma solidity 0.4.24;
 import './ConstitutionBase.sol';
 import './Claims.sol';
 import './ERC165Mapping.sol';
-import 'zeppelin-solidity/contracts/token/ERC721/ERC721.sol';
-import 'zeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
-import 'zeppelin-solidity/contracts/AddressUtils.sol';
-import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
+import 'openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
+import 'openzeppelin-solidity/contracts/AddressUtils.sol';
+import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 
 //  Constitution: logic for interacting with the Urbit ledger
 //

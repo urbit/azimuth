@@ -4,7 +4,7 @@ pragma solidity 0.4.24;
 
 import './Constitution.sol';
 import './SafeMath16.sol';
-import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  LinearStarRelease: batch transfer over time
 //
