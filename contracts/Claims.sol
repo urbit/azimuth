@@ -139,7 +139,7 @@ contract Claims is ReadsShips
     //
     for (uint8 i = 0; i < maxClaims; i++)
     {
-      currClaims[i] = Claim('', '', '');
+      delete currClaims[i];
     }
   }
 

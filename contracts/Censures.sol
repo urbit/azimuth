@@ -117,6 +117,7 @@ contract Censures is ReadsShips
 
     //  only stars and galaxies may censure, and only galaxies may censure
     //  other galaxies. (enum gets smaller for higher ship classes)
+    //  this function's signature makes sure planets cannot censure.
     //
     Ships.Class asClass = ships.getShipClass(_as);
     Ships.Class whoClass = ships.getShipClass(_who);

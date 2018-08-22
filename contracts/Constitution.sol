@@ -449,7 +449,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         //
         return 0;
       }
-
     }
 
     //  setSpawnProxy(): give _spawnProxy the right to spawn ships
@@ -750,8 +749,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //    be upgraded to immediately.
     //
     function castConstitutionVote(uint8 _galaxy,
-                              ConstitutionBase _proposal,
-                              bool _vote)
+                                  ConstitutionBase _proposal,
+                                  bool _vote)
       external
       activeShipVoter(_galaxy)
     {
