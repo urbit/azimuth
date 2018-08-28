@@ -50,18 +50,21 @@ module.exports = async function(deployer) {
     return Constitution.deployed();
   }).then(async function(instance) {
     constitution = instance;
-    ships.transferOwnership(constitution.address);
-    polls.transferOwnership(constitution.address);
+    console.log('gonna transfer to constitution now');
+    await ships.transferOwnership(constitution.address);
+    await polls.transferOwnership(constitution.address);
     //
     var own = await constitution.owner();
-    await constitution.createGalaxy(0, own);
-    await constitution.configureKeys(0, 123, 456, 1, false);
-    await constitution.spawn(256, own);
-    await constitution.configureKeys(256, 456, 789, 1, false);
-    await constitution.spawn(65792, own);
-    await constitution.spawn(131328, own);
-    await constitution.spawn(512, own);
-    await constitution.createGalaxy(1, own);
+    console.log('remember owner ' + own);
+    console.log('of constitution ' + constitution.address);
+    // await constitution.createGalaxy(0, own);
+    // await constitution.configureKeys(0, 123, 456, 1, false);
+    // await constitution.spawn(256, own);
+    // await constitution.configureKeys(256, 456, 789, 1, false);
+    // await constitution.spawn(65792, own);
+    // await constitution.spawn(131328, own);
+    // await constitution.spawn(512, own);
+    // await constitution.createGalaxy(1, own);
     //
   }).then(function() {
     return deployer.deploy(Pool, ships.address);
