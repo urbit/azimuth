@@ -85,6 +85,10 @@ contract ConditionalStarRelease is Ownable
   //
   bytes32[] public conditions;
 
+  //  livelines: dates before which the conditions cannot be registered as met.
+  //
+  uint256[] public livelines;
+
   //  deadlines: deadlines by which conditions must have been met. if the
   //             polls contract does not contain a majority vote for the
   //             appropriate condition by the time its deadline is hit,
@@ -149,13 +153,17 @@ contract ConditionalStarRelease is Ownable
 
   //  constructor(): configure conditions and deadlines
   //
-  constructor(Ships _ships, bytes32[] _conditions, uint256[] _deadlines)
+  constructor( Ships _ships,
+               bytes32[] _conditions,
+               uint256[] _livelines,
+               uint256[] _deadlines )
     public
   {
     //  sanity check: condition per deadline
     //
     require( _conditions.length > 0 &&
              _conditions.length <= maxConditions &&
+             _livelines.length == _conditions.length &&
              _deadlines.length == _conditions.length );
 
     //  reference ships and polls contracts
@@ -166,8 +174,9 @@ contract ConditionalStarRelease is Ownable
     //  install conditions and deadlines, and prepare timestamps array
     //
     conditions = _conditions;
+    livelines = _livelines;
     deadlines = _deadlines;
-    timestamps.length = _deadlines.length;
+    timestamps.length = _conditions.length;
 
     //  check if the first condition is met. most uses of this contract
     //  will set its condition to 0, clearing it immediately
@@ -467,6 +476,12 @@ contract ConditionalStarRelease is Ownable
       //
       require(0 == timestamps[_condition]);
 
+      //  if the liveline hasn't been passed yet, the condition can't be met.
+      //
+      if (block.timestamp < livelines[_condition])
+      {
+        return;
+      }
 
       //  if the deadline has passed, the condition is missed, and the
       //  deadline becomes the condition's timestamp.
