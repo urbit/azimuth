@@ -50,6 +50,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await constit.spawn(2560, owner);
     await constit.configureKeys(2560, 1, 2, 1, false);
     csr = await CSR.new(ships.address, [0, condit2, "miss me", "too"],
+                         [liveline1, liveline2, liveline3, liveline3],
                          [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
     await constit.setSpawnProxy(0, csr.address);
     await constit.setTransferProxy(256, csr.address);
@@ -57,9 +58,10 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('creation sanity check', async function() {
     // need as many deadlines as conditions
-    await assertRevert(CSR.new(ships.address, [0, condit2], [deadline1]));
+    await assertRevert(CSR.new(ships.address, [0, condit2], [0, 0], [0]));
+    await assertRevert(CSR.new(ships.address, [0, condit2], [0], [0, 0]));
     var many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertRevert(CSR.new(ships.address, many, many));
+    await assertRevert(CSR.new(ships.address, many, many, many));
   });
 
   it('analyzing conditions', async function() {
@@ -75,7 +77,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     assert.isTrue(await polls.documentHasAchievedMajority(condit2));
     await csr.analyzeCondition(1, {from:user1});
     assert.notEqual(await csr.timestamps(1), 0);
-    // can't analyzn twice
+    // can't analyze twice
     await assertRevert(csr.analyzeCondition(1, {from:user1}));
     // miss deadline for condition 3
     await increaseTime((deadlineStep+2) * 2);
