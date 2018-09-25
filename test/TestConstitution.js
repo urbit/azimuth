@@ -203,10 +203,10 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getContinuityNumber(0), 2);
   });
 
-  it('setting manager', async function() {
-    assert.equal(await ships.managers(user1), 0);
-    await constit.setManager(owner, {from:user1});
-    assert.equal(await ships.managers(user1), owner);
+  it('setting management proxy', async function() {
+    assert.equal(await ships.getManagementProxy(0), 0);
+    await constit.setManagementProxy(0, owner, {from:user1});
+    assert.equal(await ships.getManagementProxy(0), owner);
     // manager can do things like configure keys
     await constit.configureKeys(0, 9, 9, 1, false, {from:owner});
   });
@@ -268,10 +268,10 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getSponsor(256), 1);
   });
 
-  it('setting manager', async function() {
-    assert.equal(await ships.delegates(user1), 0);
-    await constit.setDelegate(owner, {from:user1});
-    assert.equal(await ships.delegates(user1), owner);
+  it('setting voting proxy', async function() {
+    assert.equal(await ships.getVotingProxy(0), 0);
+    await constit.setVotingProxy(0, owner, {from:user1});
+    assert.equal(await ships.getVotingProxy(0), owner);
   });
 
   it('voting on and updating document poll', async function() {
