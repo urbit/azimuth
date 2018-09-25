@@ -242,28 +242,26 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('adopting or reject an escaping ship', async function() {
     // can't if not owner of parent.
-    await assertRevert(constit.adopt(1, 256, {from:user2}));
-    await assertRevert(constit.reject(1, 512, {from:user2}));
+    await assertRevert(constit.adopt(256, {from:user2}));
+    await assertRevert(constit.reject(512, {from:user2}));
     // can't if target is not escaping to parent.
-    await assertRevert(constit.adopt(1, 258, {from:user1}));
-    await assertRevert(constit.reject(1, 258, {from:user1}));
+    await assertRevert(constit.adopt(258, {from:user1}));
+    await assertRevert(constit.reject(258, {from:user1}));
     // adopt as parent owner.
-    await constit.adopt(1, 256, {from:user1});
+    await constit.adopt(256, {from:user1});
     assert.isFalse(await ships.isRequestingEscapeTo(256, 1));
     assert.equal(await ships.getSponsor(256), 1);
     assert.isTrue(await ships.isSponsor(256, 1));
     // reject as parent owner.
-    await constit.reject(1, 512, {from:user1});
+    await constit.reject(512, {from:user1});
     assert.isFalse(await ships.isRequestingEscapeTo(512, 1));
     assert.equal(await ships.getSponsor(512), 0);
   });
 
   it('detaching sponsorship', async function() {
     // can't if not owner of sponsor
-    await assertRevert(constit.detach(1, 256, {from:user2}));
-    // can't if not sponsor of ship
-    await assertRevert(constit.detach(1, 512, {from:user1}));
-    await constit.detach(1, 256, {from:user1});
+    await assertRevert(constit.detach(256, {from:user2}));
+    await constit.detach(256, {from:user1});
     assert.isFalse(await ships.isSponsor(256, 1));
     assert.equal(await ships.getSponsor(256), 1);
   });

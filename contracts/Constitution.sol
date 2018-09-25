@@ -645,54 +645,49 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       ships.cancelEscape(_ship);
     }
 
-    //  adopt(): as the _sponsor, accept the _escapee
+    //  adopt(): as the _sponsor, accept the _ship
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _sponsor,
-    //    - _escapee must currently be trying to escape to _sponsor.
+    //    - :msg.sender must be the owner of _ship's requested sponsor.
     //
-    function adopt(uint32 _sponsor, uint32 _escapee)
+    function adopt(uint32 _ship)
       external
-      activeShipManager(_sponsor)
     {
-      require(ships.isRequestingEscapeTo(_escapee, _sponsor));
+      require( ships.isEscaping(_ship) &&
+               ships.canManage(ships.getEscapeRequest(_ship), msg.sender) );
 
-      //  _sponsor becomes _escapee's sponsor
+      //  _sponsor becomes _ship's sponsor
       //  its escape request is reset to "not escaping"
       //
-      ships.doEscape(_escapee);
+      ships.doEscape(_ship);
     }
 
-    //  reject(): as the _sponsor, deny the _escapee's request
+    //  reject(): as the _sponsor, deny the _ship's request
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _sponsor,
-    //    - _escapee must currently be trying to escape to _sponsor.
+    //    - :msg.sender must be the owner of _ship's requested sponsor.
     //
-    function reject(uint32 _sponsor, uint32 _escapee)
+    function reject(uint32 _ship)
       external
-      activeShipManager(_sponsor)
     {
-      require(ships.isRequestingEscapeTo(_escapee, _sponsor));
+      require( ships.isEscaping(_ship) &&
+               ships.canManage(ships.getEscapeRequest(_ship), msg.sender) );
 
-      //  reset the _escapee's escape request to "not escaping"
+      //  reset the _ship's escape request to "not escaping"
       //
-      ships.cancelEscape(_escapee);
+      ships.cancelEscape(_ship);
     }
 
     //  detach(): as the _sponsor, stop sponsoring the _ship
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _sponsor,
-    //    - _ship must currently be sponsored by _sponsor.
+    //    - :msg.sender must be the owner of _ship's current sponsor.
     //
-    function detach(uint32 _sponsor, uint32 _ship)
+    function detach(uint32 _ship)
       external
-      activeShipManager(_sponsor)
     {
-      //  only the current and active sponsor may do this
-      //
-      require(ships.isSponsor(_ship, _sponsor));
+      require( ships.hasSponsor(_ship) &&
+               ships.canManage(ships.getSponsor(_ship), msg.sender) );
 
       //  signal that _sponsor no longer supports _ship
       //
