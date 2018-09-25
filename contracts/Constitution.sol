@@ -711,7 +711,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //    the voting proxy is allowed to start polls and cast votes
     //    on the ship's behalf.
     //
-    function setVotingProxy(uint32 _ship, address _voter)
+    function setVotingProxy(uint8 _ship, address _voter)
       external
       activeShipOwner(_ship)
     {
