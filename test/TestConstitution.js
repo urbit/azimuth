@@ -134,6 +134,8 @@ contract('Constitution', function([owner, user1, user2]) {
   it('transfering ownership directly', async function() {
     assert.equal(await ships.getContinuityNumber(0), 0);
     // set values that should be cleared on-transfer.
+    await constit.setManagementProxy(0, owner, {from:user1});
+    await constit.setVotingProxy(0, owner, {from:user1});
     await constit.setSpawnProxy(0, owner, {from:user1});
     await constit.setTransferProxy(0, owner, {from:user1});
     await claims.addClaim(0, "protocol", "claim", "proof", {from:user1});
@@ -150,8 +152,10 @@ contract('Constitution', function([owner, user1, user2]) {
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(await ships.getKeyRevisionNumber(0), 2);
     assert.equal(await ships.getContinuityNumber(0), 1);
-    assert.isFalse(await ships.isSpawnProxy(0, user2));
-    assert.isFalse(await ships.isTransferProxy(0, user2));
+    assert.isTrue(await ships.isManagementProxy(0, 0));
+    assert.isTrue(await ships.isVotingProxy(0, 0));
+    assert.isTrue(await ships.isSpawnProxy(0, 0));
+    assert.isTrue(await ships.isTransferProxy(0, 0));
     let claim = await claims.claims(0, 0);
     assert.equal(claim[0], "");
     // for unbooted ships, keys/continuity aren't incremented
