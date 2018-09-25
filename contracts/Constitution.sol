@@ -268,16 +268,17 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Urbit functions for all ships
   //
 
-    //  setManager(): configure the management address for all ships you own
+    //  setManagementProxy(): configure the management proxy for _ship
     //
-    //    The management address may perform "reversible" operations on
+    //    The management proxy may perform "reversible" operations on
     //    behalf of the owner. This includes public key configuration and
     //    operations relating to sponsorship.
     //
-    function setManager(address _manager)
+    function setManagementProxy(uint32 _ship, address _manager)
       external
+      activeShipOwner(_ship)
     {
-      ships.setManager(msg.sender, _manager);
+      ships.setManagementProxy(_ship, _manager);
     }
 
     //  configureKeys(): configure _ship with Urbit public keys _encryptionKey,
@@ -702,15 +703,16 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Poll actions
   //
 
-    //  setDelegate(): configure the delegate address for all ships you own
+    //  setVotingProxy(): configure the voting proxy for _ship
     //
-    //    the delegate is allowed to start polls and cast votes
-    //    on the owner's behalf.
+    //    the voting proxy is allowed to start polls and cast votes
+    //    on the ship's behalf.
     //
-    function setDelegate(address _delegate)
+    function setVotingProxy(uint32 _ship, address _voter)
       external
+      activeShipOwner(_ship)
     {
-      ships.setDelegate(msg.sender, _delegate);
+      ships.setVotingProxy(_ship, _voter);
     }
 
     //  startConstitutionPoll(): as _galaxy, start a poll for the constitution

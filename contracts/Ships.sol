@@ -76,13 +76,13 @@ contract Ships is Ownable
   event ChangedTransferProxy( uint32 indexed ship,
                               address indexed transferProxy );
 
-  //  ChangedManager: :owner now allows :manager to manage its ships
+  //  ChangedManagementProxy: :manager can now manage :ship
   //
-  event ChangedManager(address indexed owner, address indexed manager);
+  event ChangedManagementProxy(uint32 indexed ship, address indexed manager);
 
-  //  ChangedDelegate: :owner now allows :delegate to vote with its ships
+  //  ChangedVotingProxy: :voter can now vote using :ship
   //
-  event ChangedDelegate(address indexed owner, address indexed delegate);
+  event ChangedVotingProxy(uint32 indexed ship, address indexed voter);
 
   //  ChangedDns: dnsDomains has been updated
   //
@@ -101,10 +101,6 @@ contract Ships is Ownable
   //
   struct Hull
   {
-    //  owner: address that owns this ship
-    //
-    address owner;
-
     //  active: whether ship can be run
     //
     //    false: ship belongs to parent, cannot be booted
@@ -157,6 +153,21 @@ contract Ships is Ownable
     //  escapeRequestedTo: if :escapeRequested is set, new sponsor requested
     //
     uint32 escapeRequestedTo;
+  }
+
+  struct Deed
+  {
+    //  owner: address that owns this ship
+    //
+    address owner;
+
+    //  managementProxy: 0, or another address with the right to perform
+    //                   low-impact, managerial tasks
+    address managementProxy;
+
+    //  votingProxy: 0, or another address with the right to vote as this ship
+    //
+    address votingProxy;
 
     //  spawnProxy: 0, or another address with the right to spawn children
     //
@@ -167,9 +178,13 @@ contract Ships is Ownable
     address transferProxy;
   }
 
-  //  ships: all Urbit ship state
+  //  ships: per ship, general Urbit-network ship state
   //
   mapping(uint32 => Hull) public ships;
+
+  //  rights: per ship, on-chain ownership and permissions
+  //
+  mapping(uint32 => Deed) public rights;
 
   //  shipsOwnedBy: per address, list of ships owned
   //
@@ -188,31 +203,23 @@ contract Ships is Ownable
   //
   mapping(address => mapping(address => bool)) public operators;
 
-  //  managers: per owner, has the right to perform basic operations on ships
+  //  managerFor: per address, the ships they are managing
   //
-  mapping(address => address) public managers;
+  mapping(address => uint32[]) public managerFor;
 
-  //  managingFor: per address, the addresses they are managing ships for
+  //  managerForIndexes: per address, per ship, (index + 1) in
+  //                      the managerFor array
   //
-  mapping(address => address[]) public managingFor;
+  mapping(address => mapping(uint32 => uint256)) public managerForIndexes;
 
-  //  managingForIndexes: per address, per owner, (index + 1) in
-  //                      the managingFor array
+  //  votingFor: per address, the ships they can vote with
   //
-  mapping(address => mapping(address => uint256)) public managingForIndexes;
+  mapping(address => uint32[]) public votingFor;
 
-  //  delegated: per owner, has the right to vote on behalf of ships
-  //
-  mapping(address => address) public delegates;
-
-  //  votingFor: per address, the addresses they are managing ships for
-  //
-  mapping(address => address[]) public votingFor;
-
-  //  votingForIndexes: per address, per owner, (index + 1) in
+  //  votingForIndexes: per address, per ship, (index + 1) in
   //                    the votingFor array
   //
-  mapping(address => mapping(address => uint256)) public votingForIndexes;
+  mapping(address => mapping(uint32 => uint256)) public votingForIndexes;
 
   //  transferringFor: per address, the ships they are transfer proxy for
   //
@@ -322,7 +329,7 @@ contract Ships is Ownable
       external
       returns (bool result)
     {
-      return (ships[_ship].owner == _address);
+      return (rights[_ship].owner == _address);
     }
 
     //  getOwner(): return owner of _ship
@@ -332,7 +339,7 @@ contract Ships is Ownable
       external
       returns (address owner)
     {
-      return ships[_ship].owner;
+      return rights[_ship].owner;
     }
 
     //  setOwner(): set owner of _ship to _owner
@@ -353,7 +360,7 @@ contract Ships is Ownable
 
       //  prev: previous owner, if any
       //
-      address prev = ships[_ship].owner;
+      address prev = rights[_ship].owner;
 
       if (prev == _owner)
       {
@@ -393,18 +400,26 @@ contract Ships is Ownable
 
       //  update the owner list and the owner's index list
       //
-      ships[_ship].owner = _owner;
+      rights[_ship].owner = _owner;
       shipsOwnedBy[_owner].push(_ship);
       shipOwnerIndexes[_owner][_ship] = shipsOwnedBy[_owner].length;
       emit OwnerChanged(_ship, _owner);
     }
 
-    function isManager(address _owner, address _manager)
+    function isManagementProxy(uint32 _ship, address _manager)
       view
       external
       returns (bool result)
     {
-      return (managers[_owner] == _manager);
+      return (rights[_ship].managementProxy == _manager);
+    }
+
+    function getManagementProxy(uint32 _ship)
+      view
+      external
+      returns (address manager)
+    {
+      return rights[_ship].managementProxy;
     }
 
     //  canManage(): true if _who is the owner of _ship,
@@ -415,30 +430,31 @@ contract Ships is Ownable
       external
       returns (bool result)
     {
-      address owner = ships[_ship].owner;
-      return ( (_who == owner) ||
-               (_who == managers[owner]) );
+      Deed storage deed = rights[_ship];
+      return ( (_who == deed.owner) ||
+               (_who == deed.managementProxy) );
     }
 
-    function setManager(address _owner, address _manager)
+    function setManagementProxy(uint32 _ship, address _manager)
       onlyOwner
       external
     {
-      address prev = managers[_owner];
+      Deed storage deed = rights[_ship];
+      address prev = deed.managementProxy;
       if (prev == _manager)
       {
         return;
       }
 
-      //  if the owner used to have a different manager, do some gymnastics
-      //  to keep the reverse lookup gappless.  delete the owner from the
+      //  if the ship used to have a different manager, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the ship from the
       //  old manager's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous manager's list of managing owners
+        //  i: current index in previous manager's list of managed ships
         //
-        uint256 i = managingForIndexes[prev][_owner];
+        uint256 i = managerForIndexes[prev][_ship];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -446,94 +462,103 @@ contract Ships is Ownable
         i--;
 
         //  copy the last item in the list into the now-unused slot,
-        //  making sure to update its :managingForIndexes reference
+        //  making sure to update its :managerForIndexes reference
         //
-        address[] storage prevMfor = managingFor[prev];
+        uint32[] storage prevMfor = managerFor[prev];
         uint256 last = prevMfor.length - 1;
-        address moved = prevMfor[last];
+        uint32 moved = prevMfor[last];
         prevMfor[i] = moved;
-        managingForIndexes[prev][moved] = i + 1;
+        managerForIndexes[prev][moved] = i + 1;
 
         //  delete the last item
         //
         delete(prevMfor[last]);
         prevMfor.length = last;
-        managingForIndexes[prev][_owner] = 0;
+        managerForIndexes[prev][_ship] = 0;
       }
 
       if (0x0 != _manager)
       {
-        address[] storage mfor = managingFor[_manager];
-        mfor.push(_owner);
-        managingForIndexes[_manager][_owner] = mfor.length;
+        uint32[] storage mfor = managerFor[_manager];
+        mfor.push(_ship);
+        managerForIndexes[_manager][_ship] = mfor.length;
       }
 
-      managers[_owner] = _manager;
-      emit ChangedManager(_owner, _manager);
+      deed.managementProxy = _manager;
+      emit ChangedManagementProxy(_ship, _manager);
     }
 
-    function getManagingForCount(address _manager)
+    function getManagerForCount(address _manager)
       view
       external
       returns (uint256 count)
     {
-      return managingFor[_manager].length;
+      return managerFor[_manager].length;
     }
 
-    //  getManagingFor(): get the owners _manager is a manager for
+    //  getManagerFor(): get the owners _manager is a manager for
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getManagingFor(address _manager)
+    function getManagerFor(address _manager)
       view
       external
-      returns (address[] mfor)
+      returns (uint32[] mfor)
     {
-      return managingFor[_manager];
+      return managerFor[_manager];
     }
 
-    function isDelegate(address _owner, address _delegate)
+    function isVotingProxy(uint32 _ship, address _voter)
       view
       external
       returns (bool result)
     {
-      return (delegates[_owner] == _delegate);
+      return (rights[_ship].votingProxy == _voter);
+    }
+
+    function getVotingProxy(uint32 _ship)
+      view
+      external
+      returns (address voter)
+    {
+      return rights[_ship].votingProxy;
     }
 
     //  canVoteAs(): true if _who is the owner of _ship,
-    //               or the delegate of _ship's owner
+    //               or the voting proxy of _ship's owner
     //
     function canVoteAs(uint32 _ship, address _who)
       view
       external
       returns (bool result)
     {
-      address owner = ships[_ship].owner;
-      return ( (_who == owner) ||
-               (_who == delegates[owner]) );
+      Deed storage deed = rights[_ship];
+      return ( (_who == deed.owner) ||
+               (_who == deed.votingProxy) );
     }
 
-    function setDelegate(address _owner, address _delegate)
+    function setVotingProxy(uint32 _ship, address _voter)
       onlyOwner
       external
     {
-      address prev = delegates[_owner];
-      if (prev == _delegate)
+      Deed storage deed = rights[_ship];
+      address prev = deed.votingProxy;
+      if (prev == _voter)
       {
         return;
       }
 
-      //  if the owner used to have a different delegate, do some gymnastics
-      //  to keep the reverse lookup gappless.  delete the owner from the
-      //  old delegate's list, then fill that gap with the list tail.
+      //  if the ship used to have a different voter, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the ship from the
+      //  old voter's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous delegate's list of owners it was
-        //     delegated to by
+        //  i: current index in previous voter's list of ships it was
+        //     voting for
         //
-        uint256 i = votingForIndexes[prev][_owner];
+        uint256 i = votingForIndexes[prev][_ship];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -543,9 +568,9 @@ contract Ships is Ownable
         //  copy the last item in the list into the now-unused slot,
         //  making sure to update its :votingForIndexes reference
         //
-        address[] storage prevVfor = votingFor[prev];
+        uint32[] storage prevVfor = votingFor[prev];
         uint256 last = prevVfor.length - 1;
-        address moved = prevVfor[last];
+        uint32 moved = prevVfor[last];
         prevVfor[i] = moved;
         votingForIndexes[prev][moved] = i + 1;
 
@@ -553,39 +578,39 @@ contract Ships is Ownable
         //
         delete(prevVfor[last]);
         prevVfor.length = last;
-        votingForIndexes[prev][_owner] = 0;
+        votingForIndexes[prev][_ship] = 0;
       }
 
-      if (0x0 != _delegate)
+      if (0x0 != _voter)
       {
-        address[] storage vfor = votingFor[_delegate];
-        vfor.push(_owner);
-        votingForIndexes[_delegate][_owner] = vfor.length;
+        uint32[] storage vfor = votingFor[_voter];
+        vfor.push(_ship);
+        votingForIndexes[_voter][_ship] = vfor.length;
       }
 
-      delegates[_owner] = _delegate;
-      emit ChangedDelegate(_owner, _delegate);
+      deed.votingProxy = _voter;
+      emit ChangedVotingProxy(_ship, _voter);
     }
 
-    function getVotingForCount(address _delegate)
+    function getVotingForCount(address _voter)
       view
       external
       returns (uint256 count)
     {
-      return votingFor[_delegate].length;
+      return votingFor[_voter].length;
     }
 
-    //  getVotingFor(): get the owners _delegate is a voter for
+    //  getVotingFor(): get the owners _voter is a voter for
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getVotingFor(address _delegate)
+    function getVotingFor(address _voter)
       view
       external
-      returns (address[] vfor)
+      returns (uint32[] vfor)
     {
-      return votingFor[_delegate];
+      return votingFor[_voter];
     }
 
     //  isActive(): return true if ship is active
@@ -861,7 +886,7 @@ contract Ships is Ownable
       external
       returns (bool result)
     {
-      return (ships[_ship].spawnProxy == _spawner);
+      return (rights[_ship].spawnProxy == _spawner);
     }
 
     function getSpawnProxy(uint32 _ship)
@@ -869,22 +894,22 @@ contract Ships is Ownable
       external
       returns (address spawnProxy)
     {
-      return ships[_ship].spawnProxy;
+      return rights[_ship].spawnProxy;
     }
 
     function setSpawnProxy(uint32 _ship, address _spawner)
       onlyOwner
       external
     {
-      Hull storage ship = ships[_ship];
-      address prev = ship.spawnProxy;
+      Deed storage deed = rights[_ship];
+      address prev = deed.spawnProxy;
       if (prev == _spawner)
       {
         return;
       }
 
       //  if the ship used to have a different spawn proxy, do some
-      //  gymnastics to keep the reverse lookup gappless.  delete the ship
+      //  gymnastics to keep the reverse lookup gapless.  delete the ship
       //  from the old proxy's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
@@ -921,7 +946,7 @@ contract Ships is Ownable
         spawningForIndexes[_spawner][_ship] = sfor.length;
       }
 
-      ship.spawnProxy = _spawner;
+      deed.spawnProxy = _spawner;
       emit ChangedSpawnProxy(_ship, _spawner);
     }
 
@@ -951,7 +976,7 @@ contract Ships is Ownable
       external
       returns (bool result)
     {
-      return (ships[_ship].transferProxy == _transferrer);
+      return (rights[_ship].transferProxy == _transferrer);
     }
 
     function getTransferProxy(uint32 _ship)
@@ -959,7 +984,7 @@ contract Ships is Ownable
       external
       returns (address transferProxy)
     {
-      return ships[_ship].transferProxy;
+      return rights[_ship].transferProxy;
     }
 
     //  setTransferProxy(): configure _transferrer as transfer proxy for _ship
@@ -968,15 +993,15 @@ contract Ships is Ownable
       onlyOwner
       external
     {
-      Hull storage ship = ships[_ship];
-      address prev = ship.transferProxy;
+      Deed storage deed = rights[_ship];
+      address prev = deed.transferProxy;
       if (prev == _transferrer)
       {
         return;
       }
 
       //  if the ship used to have a different transfer proxy, do some
-      //  gymnastics to keep the reverse lookup gappless.  delete the ship
+      //  gymnastics to keep the reverse lookup gapless.  delete the ship
       //  from the old proxy's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
@@ -1013,7 +1038,7 @@ contract Ships is Ownable
         transferringForIndexes[_transferrer][_ship] = tfor.length;
       }
 
-      ship.transferProxy = _transferrer;
+      deed.transferProxy = _transferrer;
       emit ChangedTransferProxy(_ship, _transferrer);
     }
 
