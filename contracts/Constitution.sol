@@ -527,6 +527,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
           ships.setKeys(_ship, 0, 0, 0);
         }
 
+        //  clear management proxy
+        //
+        ships.setManagementProxy(_ship, 0);
+
+        //  clear voting proxy
+        //
+        ships.setVotingProxy(_ship, 0);
+
         //  clear transfer proxy
         //
         //    in most cases this is done above, during the ownership transfer,
