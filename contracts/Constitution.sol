@@ -309,12 +309,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //    Requirements:
     //    - _ship must not be active,
     //    - _ship must not be a planet with a galaxy prefix,
-    //    - _ship's prefix must be active and under its spawn limit,
+    //    - _ship's prefix must be booted and under its spawn limit,
     //    - :msg.sender must be either the owner of _ship's prefix,
     //      or an authorized spawn proxy for it.
     //
-    function spawn(uint32 _ship,
-                   address _target)
+    function spawn(uint32 _ship, address _target)
       external
     {
       //  only currently unowned (and thus also inactive) ships can be spawned
