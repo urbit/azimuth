@@ -632,4 +632,20 @@ contract ConditionalStarRelease is Ownable
     {
       return commitments[_participant].stars;
     }
+
+    //  getConditionsState(): get the condition configurations and state
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getConditionsState()
+      external
+      view
+      returns (bytes32[] conds,
+               uint256[] lives,
+               uint256[] deads,
+               uint256[] times)
+    {
+      return (conditions, livelines, deadlines, timestamps);
+    }
 }
