@@ -134,6 +134,8 @@ contract('Constitution', function([owner, user1, user2]) {
   it('transfering ownership directly', async function() {
     assert.equal(await ships.getContinuityNumber(0), 0);
     // set values that should be cleared on-transfer.
+    await constit.setManagementProxy(0, owner, {from:user1});
+    await constit.setVotingProxy(0, owner, {from:user1});
     await constit.setSpawnProxy(0, owner, {from:user1});
     await constit.setTransferProxy(0, owner, {from:user1});
     await claims.addClaim(0, "protocol", "claim", "proof", {from:user1});
@@ -150,8 +152,10 @@ contract('Constitution', function([owner, user1, user2]) {
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(await ships.getKeyRevisionNumber(0), 2);
     assert.equal(await ships.getContinuityNumber(0), 1);
-    assert.isFalse(await ships.isSpawnProxy(0, user2));
-    assert.isFalse(await ships.isTransferProxy(0, user2));
+    assert.isTrue(await ships.isManagementProxy(0, 0));
+    assert.isTrue(await ships.isVotingProxy(0, 0));
+    assert.isTrue(await ships.isSpawnProxy(0, 0));
+    assert.isTrue(await ships.isTransferProxy(0, 0));
     let claim = await claims.claims(0, 0);
     assert.equal(claim[0], "");
     // for unbooted ships, keys/continuity aren't incremented
@@ -203,10 +207,10 @@ contract('Constitution', function([owner, user1, user2]) {
     assert.equal(await ships.getContinuityNumber(0), 2);
   });
 
-  it('setting manager', async function() {
-    assert.equal(await ships.managers(user1), 0);
-    await constit.setManager(owner, {from:user1});
-    assert.equal(await ships.managers(user1), owner);
+  it('setting management proxy', async function() {
+    assert.equal(await ships.getManagementProxy(0), 0);
+    await constit.setManagementProxy(0, owner, {from:user1});
+    assert.equal(await ships.getManagementProxy(0), owner);
     // manager can do things like configure keys
     await constit.configureKeys(0, 9, 9, 1, false, {from:owner});
   });
@@ -242,36 +246,34 @@ contract('Constitution', function([owner, user1, user2]) {
 
   it('adopting or reject an escaping ship', async function() {
     // can't if not owner of parent.
-    await assertRevert(constit.adopt(1, 256, {from:user2}));
-    await assertRevert(constit.reject(1, 512, {from:user2}));
+    await assertRevert(constit.adopt(256, {from:user2}));
+    await assertRevert(constit.reject(512, {from:user2}));
     // can't if target is not escaping to parent.
-    await assertRevert(constit.adopt(1, 258, {from:user1}));
-    await assertRevert(constit.reject(1, 258, {from:user1}));
+    await assertRevert(constit.adopt(258, {from:user1}));
+    await assertRevert(constit.reject(258, {from:user1}));
     // adopt as parent owner.
-    await constit.adopt(1, 256, {from:user1});
+    await constit.adopt(256, {from:user1});
     assert.isFalse(await ships.isRequestingEscapeTo(256, 1));
     assert.equal(await ships.getSponsor(256), 1);
     assert.isTrue(await ships.isSponsor(256, 1));
     // reject as parent owner.
-    await constit.reject(1, 512, {from:user1});
+    await constit.reject(512, {from:user1});
     assert.isFalse(await ships.isRequestingEscapeTo(512, 1));
     assert.equal(await ships.getSponsor(512), 0);
   });
 
   it('detaching sponsorship', async function() {
     // can't if not owner of sponsor
-    await assertRevert(constit.detach(1, 256, {from:user2}));
-    // can't if not sponsor of ship
-    await assertRevert(constit.detach(1, 512, {from:user1}));
-    await constit.detach(1, 256, {from:user1});
+    await assertRevert(constit.detach(256, {from:user2}));
+    await constit.detach(256, {from:user1});
     assert.isFalse(await ships.isSponsor(256, 1));
     assert.equal(await ships.getSponsor(256), 1);
   });
 
-  it('setting manager', async function() {
-    assert.equal(await ships.delegates(user1), 0);
-    await constit.setDelegate(owner, {from:user1});
-    assert.equal(await ships.delegates(user1), owner);
+  it('setting voting proxy', async function() {
+    assert.equal(await ships.getVotingProxy(0), 0);
+    await constit.setVotingProxy(0, owner, {from:user1});
+    assert.equal(await ships.getVotingProxy(0), owner);
   });
 
   it('voting on and updating document poll', async function() {
