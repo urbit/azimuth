@@ -268,16 +268,17 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Urbit functions for all ships
   //
 
-    //  setManager(): configure the management address for all ships you own
+    //  setManagementProxy(): configure the management proxy for _ship
     //
-    //    The management address may perform "reversible" operations on
+    //    The management proxy may perform "reversible" operations on
     //    behalf of the owner. This includes public key configuration and
     //    operations relating to sponsorship.
     //
-    function setManager(address _manager)
+    function setManagementProxy(uint32 _ship, address _manager)
       external
+      activeShipOwner(_ship)
     {
-      ships.setManager(msg.sender, _manager);
+      ships.setManagementProxy(_ship, _manager);
     }
 
     //  configureKeys(): configure _ship with Urbit public keys _encryptionKey,
@@ -308,12 +309,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //    Requirements:
     //    - _ship must not be active,
     //    - _ship must not be a planet with a galaxy prefix,
-    //    - _ship's prefix must be active and under its spawn limit,
+    //    - _ship's prefix must be booted and under its spawn limit,
     //    - :msg.sender must be either the owner of _ship's prefix,
     //      or an authorized spawn proxy for it.
     //
-    function spawn(uint32 _ship,
-                   address _target)
+    function spawn(uint32 _ship, address _target)
       external
     {
       //  only currently unowned (and thus also inactive) ships can be spawned
@@ -526,6 +526,14 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
           ships.setKeys(_ship, 0, 0, 0);
         }
 
+        //  clear management proxy
+        //
+        ships.setManagementProxy(_ship, 0);
+
+        //  clear voting proxy
+        //
+        ships.setVotingProxy(_ship, 0);
+
         //  clear transfer proxy
         //
         //    in most cases this is done above, during the ownership transfer,
@@ -644,54 +652,49 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       ships.cancelEscape(_ship);
     }
 
-    //  adopt(): as the _sponsor, accept the _escapee
+    //  adopt(): as the _sponsor, accept the _ship
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _sponsor,
-    //    - _escapee must currently be trying to escape to _sponsor.
+    //    - :msg.sender must be the owner of _ship's requested sponsor.
     //
-    function adopt(uint32 _sponsor, uint32 _escapee)
+    function adopt(uint32 _ship)
       external
-      activeShipManager(_sponsor)
     {
-      require(ships.isRequestingEscapeTo(_escapee, _sponsor));
+      require( ships.isEscaping(_ship) &&
+               ships.canManage(ships.getEscapeRequest(_ship), msg.sender) );
 
-      //  _sponsor becomes _escapee's sponsor
+      //  _sponsor becomes _ship's sponsor
       //  its escape request is reset to "not escaping"
       //
-      ships.doEscape(_escapee);
+      ships.doEscape(_ship);
     }
 
-    //  reject(): as the _sponsor, deny the _escapee's request
+    //  reject(): as the _sponsor, deny the _ship's request
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _sponsor,
-    //    - _escapee must currently be trying to escape to _sponsor.
+    //    - :msg.sender must be the owner of _ship's requested sponsor.
     //
-    function reject(uint32 _sponsor, uint32 _escapee)
+    function reject(uint32 _ship)
       external
-      activeShipManager(_sponsor)
     {
-      require(ships.isRequestingEscapeTo(_escapee, _sponsor));
+      require( ships.isEscaping(_ship) &&
+               ships.canManage(ships.getEscapeRequest(_ship), msg.sender) );
 
-      //  reset the _escapee's escape request to "not escaping"
+      //  reset the _ship's escape request to "not escaping"
       //
-      ships.cancelEscape(_escapee);
+      ships.cancelEscape(_ship);
     }
 
     //  detach(): as the _sponsor, stop sponsoring the _ship
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _sponsor,
-    //    - _ship must currently be sponsored by _sponsor.
+    //    - :msg.sender must be the owner of _ship's current sponsor.
     //
-    function detach(uint32 _sponsor, uint32 _ship)
+    function detach(uint32 _ship)
       external
-      activeShipManager(_sponsor)
     {
-      //  only the current and active sponsor may do this
-      //
-      require(ships.isSponsor(_ship, _sponsor));
+      require( ships.hasSponsor(_ship) &&
+               ships.canManage(ships.getSponsor(_ship), msg.sender) );
 
       //  signal that _sponsor no longer supports _ship
       //
@@ -702,15 +705,16 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  Poll actions
   //
 
-    //  setDelegate(): configure the delegate address for all ships you own
+    //  setVotingProxy(): configure the voting proxy for _ship
     //
-    //    the delegate is allowed to start polls and cast votes
-    //    on the owner's behalf.
+    //    the voting proxy is allowed to start polls and cast votes
+    //    on the ship's behalf.
     //
-    function setDelegate(address _delegate)
+    function setVotingProxy(uint8 _ship, address _voter)
       external
+      activeShipOwner(_ship)
     {
-      ships.setDelegate(msg.sender, _delegate);
+      ships.setVotingProxy(_ship, _voter);
     }
 
     //  startConstitutionPoll(): as _galaxy, start a poll for the constitution
