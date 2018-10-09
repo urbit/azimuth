@@ -94,6 +94,8 @@ contract('Ships', function([owner, user, user2, user3]) {
     assert.isTrue(await ships.isSponsor(257, 1));
     // can't do it twice.
     await assertRevert(ships.activateShip(0));
+    await ships.activateShip(513);
+    await ships.activateShip(769);
   });
 
   it('spawning and spawn count', async function() {
@@ -113,6 +115,13 @@ contract('Ships', function([owner, user, user2, user3]) {
   });
 
   it('losing sponsor, setting, canceling, and doing escape', async function() {
+    // reverse lookup is being kept correctly
+    assert.equal(await ships.getSponsoringCount(1), 3);
+    assert.equal(await ships.sponsoringIndexes(1, 257), 1);
+    let spo = await ships.getSponsoring(1);
+    assert.equal(spo[0], 257);
+    assert.equal(spo[1], 513);
+    assert.equal(spo[2], 769);
     // only owner can do this.
     await assertRevert(ships.loseSponsor(257, {from:user}));
     await seeEvents(ships.loseSponsor(257), ['LostSponsor']);
@@ -122,6 +131,15 @@ contract('Ships', function([owner, user, user2, user3]) {
     // won't emit events for subsequent calls.
     await seeEvents(ships.loseSponsor(257), []);
     assert.isFalse(await ships.isEscaping(257));
+    // reverse lookup is being kept correctly
+    assert.equal(await ships.getSponsoringCount(1), 2);
+    assert.equal(await ships.sponsoringIndexes(1, 257), 0);
+    spo = await ships.getSponsoring(1);
+    assert.equal(spo[0], 769);
+    assert.equal(spo[1], 513);
+    // can still interact with ships that got shuffled around in array
+    await ships.loseSponsor(769);
+    //
     // only owner can do this.
     await assertRevert(ships.setEscapeRequest(257, 2, {from:user}));
     // only owner can do this.
@@ -130,14 +148,32 @@ contract('Ships', function([owner, user, user2, user3]) {
     assert.isTrue(await ships.isRequestingEscapeTo(257, 2));
     assert.isTrue(await ships.isEscaping(257));
     assert.equal(await ships.getEscapeRequest(257), 2);
-    // setting to the same owner is a no-op, shouldn't emit event
+    // setting to the same request is a no-op, shouldn't emit event
     await seeEvents(ships.setEscapeRequest(257, 2), []);
+    // reverse lookup is being kept correctly
+    await ships.setEscapeRequest(513, 2);
+    await ships.setEscapeRequest(769, 2);
+    assert.equal(await ships.getEscapeRequestsCount(2), 3);
+    assert.equal(await ships.escapeRequestsIndexes(2, 257), 1);
+    let esr = await ships.getEscapeRequests(2);
+    assert.equal(esr[0], 257);
+    assert.equal(esr[1], 513);
+    assert.equal(esr[2], 769);
     // cancelling the escape
     await seeEvents(ships.cancelEscape(257), ['EscapeCanceled']);
     assert.isFalse(await ships.isRequestingEscapeTo(257, 2));
     assert.isFalse(await ships.isEscaping(257));
     // cancelling a non-escaping ship is a no-op, shouldn't emit event
     await seeEvents(ships.cancelEscape(257), []);
+    // reverse lookup is being kept correctly
+    assert.equal(await ships.getEscapeRequestsCount(2), 2);
+    assert.equal(await ships.escapeRequestsIndexes(2, 257), 0);
+    esr = await ships.getEscapeRequests(2);
+    assert.equal(esr[0], 769);
+    assert.equal(esr[1], 513);
+    // can still interact with ships that got shuffled around in array
+    await ships.cancelEscape(769);
+    //
     // only owner can do this.
     await assertRevert(ships.doEscape(257, {from:user}));
     // can't do if not escaping.

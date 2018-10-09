@@ -239,6 +239,24 @@ contract Ships is Ownable
   //
   mapping(address => mapping(uint32 => uint256)) public spawningForIndexes;
 
+  //  sponsoring: per ship, the ships they are sponsoring
+  //
+  mapping(uint32 => uint32[]) public sponsoring;
+
+  //  sponsoringIndexes: per ship, per ship, (index + 1) in
+  //                     the sponsoring array
+  //
+  mapping(uint32 => mapping(uint32 => uint256)) public sponsoringIndexes;
+
+  //  escapeRequests: per ship, the ships they have open escape requests from
+  //
+  mapping(uint32 => uint32[]) public escapeRequests;
+
+  //  escapeRequestsIndexes: per ship, per ship, (index + 1) in
+  //                         the escapeRequests array
+  //
+  mapping(uint32 => mapping(uint32 => uint256)) public escapeRequestsIndexes;
+
   //  dnsDomains: base domains for contacting galaxies in urbit
   //
   //    dnsDomains[0] is primary, the others are used as fallbacks
@@ -634,8 +652,7 @@ contract Ships is Ownable
       Hull storage ship = ships[_ship];
       require(!ship.active);
       ship.active = true;
-      ship.sponsor = getPrefix(_ship);
-      ship.hasSponsor = true;
+      registerSponsor(_ship, true, getPrefix(_ship));
       emit Activated(_ship);
     }
 
@@ -808,7 +825,7 @@ contract Ships is Ownable
       {
         return;
       }
-      ship.hasSponsor = false;
+      registerSponsor(_ship, false, ship.sponsor);
       emit LostSponsor(_ship, ship.sponsor);
     }
 
@@ -846,8 +863,7 @@ contract Ships is Ownable
         return;
       }
       Hull storage ship = ships[_ship];
-      ship.escapeRequestedTo = _sponsor;
-      ship.escapeRequested = true;
+      registerEscapeRequest(_ship, true, _sponsor);
       emit EscapeRequested(_ship, _sponsor);
     }
 
@@ -861,8 +877,7 @@ contract Ships is Ownable
         return;
       }
       uint32 request = ship.escapeRequestedTo;
-      ship.escapeRequestedTo = 0;
-      ship.escapeRequested = false;
+      registerEscapeRequest(_ship, false, 0);
       emit EscapeCanceled(_ship, request);
     }
 
@@ -874,11 +889,52 @@ contract Ships is Ownable
     {
       Hull storage ship = ships[_ship];
       require(ship.escapeRequested);
-      ship.sponsor = ship.escapeRequestedTo;
-      ship.hasSponsor = true;
-      ship.escapeRequestedTo = 0;
-      ship.escapeRequested = false;
+      registerSponsor(_ship, true, ship.escapeRequestedTo);
+      registerEscapeRequest(_ship, false, 0);
       emit EscapeAccepted(_ship, ship.sponsor);
+    }
+
+    function getSponsoringCount(uint32 _sponsor)
+      view
+      external
+      returns (uint256 count)
+    {
+      return sponsoring[_sponsor].length;
+    }
+
+    //  getSponsoring(): get the ships _sponsor is a sponsor for
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getSponsoring(uint32 _sponsor)
+      view
+      external
+      returns (uint32[] sponsees)
+    {
+      return sponsoring[_sponsor];
+    }
+
+    function getEscapeRequestsCount(uint32 _sponsor)
+      view
+      external
+      returns (uint256 count)
+    {
+      return escapeRequests[_sponsor].length;
+    }
+
+    //  getEscapeRequests(): get the ships _sponsor has received escape
+    //                       requests from
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getEscapeRequests(uint32 _sponsor)
+      view
+      external
+      returns (uint32[] requests)
+    {
+      return escapeRequests[_sponsor];
     }
 
     function isSpawnProxy(uint32 _ship, address _spawner)
@@ -1086,6 +1142,121 @@ contract Ships is Ownable
   //
   //  Utility functions
   //
+
+    //  registerSponsor(): set the sponsorship state of _ship and update the
+    //                reverse lookup for sponsors
+    //
+    function registerSponsor(uint32 _ship, bool _hasSponsor, uint32 _sponsor)
+      internal
+    {
+      Hull storage ship = ships[_ship];
+      bool had = ship.hasSponsor;
+      uint32 prev = ship.sponsor;
+      if ( (!had && !_hasSponsor) ||
+           (had && _hasSponsor && prev == _sponsor) )
+      {
+        return;
+      }
+
+      //  if the ship used to have a different sponsor, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the ship from the old
+      //  sponsor's list, then fill that gap with the list tail.
+      //
+      if (had)
+      {
+        //  i: current index in previous sponsor's list of sponsored ships
+        //
+        uint256 i = sponsoringIndexes[prev][_ship];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :sponsoringIndexes reference
+        //
+        uint32[] storage prevSponsoring = sponsoring[prev];
+        uint256 last = prevSponsoring.length - 1;
+        uint32 moved = prevSponsoring[last];
+        prevSponsoring[i] = moved;
+        sponsoringIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevSponsoring[last]);
+        prevSponsoring.length = last;
+        sponsoringIndexes[prev][_ship] = 0;
+      }
+
+      if (_hasSponsor)
+      {
+        uint32[] storage newSponsoring = sponsoring[_sponsor];
+        newSponsoring.push(_ship);
+        sponsoringIndexes[_sponsor][_ship] = newSponsoring.length;
+      }
+
+      ship.sponsor = _sponsor;
+      ship.hasSponsor = _hasSponsor;
+    }
+
+    //  registerEscapeRequest(): set the escape state of _ship and update the
+    //                           reverse lookup for sponsors
+    //
+    function registerEscapeRequest( uint32 _ship,
+                                    bool _isEscaping, uint32 _sponsor )
+      internal
+    {
+      Hull storage ship = ships[_ship];
+      bool was = ship.escapeRequested;
+      uint32 prev = ship.escapeRequestedTo;
+      if ( (!was && !_isEscaping) ||
+           (was && _isEscaping && prev == _sponsor) )
+      {
+        return;
+      }
+
+      //  if the ship used to have a different request, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the ship from the old
+      //  sponsor's list, then fill that gap with the list tail.
+      //
+      if (was)
+      {
+        //  i: current index in previous sponsor's list of sponsored ships
+        //
+        uint256 i = escapeRequestsIndexes[prev][_ship];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :escapeRequestsIndexes reference
+        //
+        uint32[] storage prevRequests = escapeRequests[prev];
+        uint256 last = prevRequests.length - 1;
+        uint32 moved = prevRequests[last];
+        prevRequests[i] = moved;
+        escapeRequestsIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevRequests[last]);
+        prevRequests.length = last;
+        escapeRequestsIndexes[prev][_ship] = 0;
+      }
+
+      if (_isEscaping)
+      {
+        uint32[] storage newRequests = escapeRequests[_sponsor];
+        newRequests.push(_ship);
+        escapeRequestsIndexes[_sponsor][_ship] = newRequests.length;
+      }
+
+      ship.escapeRequestedTo = _sponsor;
+      ship.escapeRequested = _isEscaping;
+    }
 
     //  getPrefix(): compute prefix parent of _ship
     //
