@@ -14,9 +14,9 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    ownership of all ships owned by their associated address
 //    (ERC721's approveAll()). A transfer proxy is allowed to transfer
 //    ownership of a single ship (ERC721's approve()).
-//    Separate from ERC721 are managers, assigned per owner address.
-//    They are allowed to perform "low-impact" operations on the owner's
-//    ships, like configuring public keys and making escape requests.
+//    Separate from ERC721 are managers, assigned per ship. They are
+//    allowed to perform "low-impact" operations on the owner's ships,
+//    like configuring public keys and making escape requests.
 //
 //    Since data stores are difficult to upgrade, this contract contains
 //    as little actual business logic as possible. Instead, the data stored
@@ -116,11 +116,11 @@ contract Ships is Ownable
     //
     bytes32 authenticationKey;
 
-    //  cryptoSuiteNumber: version of the Urbit crypto suite used
+    //  cryptoSuiteVersion: version of the Urbit crypto suite used
     //
     uint32 cryptoSuiteVersion;
 
-    //  keyRevisionNumber: incremented every time we change the keys
+    //  keyRevisionNumber: incremented every time we change the Urbit keys
     //
     uint32 keyRevisionNumber;
 
