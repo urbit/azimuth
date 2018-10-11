@@ -49,9 +49,23 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   using SafeMath for uint256;
   using AddressUtils for address;
 
+  //  Transfer: This emits when ownership of any NFT changes by any mechanism.
+  //            This event emits when NFTs are created (`from` == 0) and
+  //            destroyed (`to` == 0). At the time of any transfer, the approved
+  //            address for that NFT (if any) is reset to none.
+  //
   event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
+
+  //  Approval: This emits when the approved address for an NFT is changed or
+  //            reaffirmed. The zero address indicates there is no approved
+  //            address. When a Transfer event emits, this also indicates that
+  //            the approved address for that NFT (if any) is reset to none.
   event Approval(address indexed _owner, address indexed _approved,
                  uint256 _tokenId);
+
+  //  ApprovalForAll: This emits when an operator is enabled or disabled for an
+  //                  owner. The operator can manage all NFTs of the owner.
+  //
   event ApprovalForAll(address indexed _owner, address indexed _operator,
                        bool _approved);
 
@@ -557,7 +571,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     //    Requirements:
     //    - :msg.sender must be either _ship's current owner, or be
-    //      allowed to manage the current owner's ships.
+    //      allowed to operate the current owner's ships.
     //
     function setTransferProxy(uint32 _ship, address _transferProxy)
       public

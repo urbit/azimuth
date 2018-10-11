@@ -12,7 +12,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    recipient (also "participant") gradually over time, assuming
 //    the specified conditions are met.
 //
-//    This contract represents a single set of conditions and corrosponding
+//    This contract represents a single set of conditions and corresponding
 //    deadlines (up to eight) which get configured during contract creation.
 //    The conditions take the form of hashes, and they are checked for
 //    by looking at the Polls contract. A condition is met if it has
