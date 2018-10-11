@@ -88,11 +88,8 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   constructor(address _previous,
               Ships _ships,
               Polls _polls,
-              ENS _ensRegistry,
-              string _baseEns,
-              string _subEns,
               Claims _claims)
-    ConstitutionBase(_previous, _ships, _polls, _ensRegistry, _baseEns, _subEns)
+    ConstitutionBase(_previous, _ships, _polls)
     public
   {
     claims = _claims;

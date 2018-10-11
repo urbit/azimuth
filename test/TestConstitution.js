@@ -12,42 +12,15 @@ const seeEvents = require('./helpers/seeEvents');
 contract('Constitution', function([owner, user1, user2]) {
   let ships, polls, claims, ens, resolver, constit, consti2, pollTime;
 
-  // https://github.com/ethereum/ens/blob/master/ensutils.js
-  function namehash(name) {
-    var node =
-      '0x0000000000000000000000000000000000000000000000000000000000000000';
-    if (name != '') {
-      var labels = name.split(".");
-      for(var i = labels.length - 1; i >= 0; i--) {
-        node = web3.sha3(node + web3.sha3(labels[i]).slice(2), {encoding: 'hex'});
-      }
-    }
-    return node.toString();
-  }
-
   before('setting up for tests', async function() {
     pollTime = 432000;
     ships = await Ships.new();
     polls = await Polls.new(pollTime, pollTime);
     claims = await Claims.new(ships.address);
-    ens = await ENSRegistry.new();
-    resolver = await PublicResolver.new(ens.address);
-    await ens.setSubnodeOwner(0, web3.sha3('eth'), owner);
     constit = await Constitution.new(0, ships.address, polls.address,
-                                     ens.address, 'foo', 'sub',
                                      claims.address);
-    assert.equal(await constit.baseNode(), namehash('foo.eth'));
-    assert.equal(await constit.subNode(), namehash('sub.foo.eth'));
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
-    await ens.setSubnodeOwner(namehash('eth'), web3.sha3('foo'), owner);
-    await ens.setSubnodeOwner(namehash('foo.eth'),
-                              web3.sha3('sub'),
-                              owner);
-    await ens.setResolver(namehash('foo.eth'), resolver.address);
-    await resolver.setAddr(namehash('sub.foo.eth'), constit.address);
-    await ens.setOwner(namehash('foo.eth'), constit.address);
-    await ens.setOwner(namehash('sub.foo.eth'), constit.address);
   });
 
   it('setting dns domains', async function() {
@@ -293,12 +266,10 @@ contract('Constitution', function([owner, user1, user2]) {
     constix = await Constitution.new('0x0',
                                      ships.address,
                                      polls.address,
-                                     ens.address, 'foo', 'sub',
                                      claims.address);
     consti2 = await Constitution.new(constit.address,
                                      ships.address,
                                      polls.address,
-                                     ens.address, 'foo', 'sub',
                                      claims.address);
     // can't if upgrade path not correct
     await assertRevert(constit.startConstitutionPoll(0, constix.address, {from:user1}));
@@ -311,17 +282,12 @@ contract('Constitution', function([owner, user1, user2]) {
     await constit.castConstitutionVote(1, consti2.address, true, {from:user1});
     assert.equal(await ships.owner(), consti2.address);
     assert.equal(await polls.owner(), consti2.address);
-    assert.equal(await ens.owner(namehash('foo.eth')), consti2.address);
-    assert.equal(await ens.owner(namehash('sub.foo.eth')), consti2.address);
-    assert.equal(await resolver.addr(namehash('sub.foo.eth')),
-                  consti2.address);
   });
 
   it('updating constituton poll', async function() {
     let consti3 = await Constitution.new(consti2.address,
                                          ships.address,
                                          polls.address,
-                                         ens.address, 'foo', 'sub',
                                          claims.address);
     // onUpgrade can only be called by previous constitution
     await assertRevert(consti3.onUpgrade({from:user2}));
@@ -335,9 +301,5 @@ contract('Constitution', function([owner, user1, user2]) {
                     ['Upgraded', 'OwnershipTransferred']);
     assert.equal(await ships.owner(), consti3.address);
     assert.equal(await polls.owner(), consti3.address);
-    assert.equal(await ens.owner(namehash('foo.eth')), consti3.address);
-    assert.equal(await ens.owner(namehash('sub.foo.eth')), consti3.address);
-    assert.equal(await resolver.addr(namehash('sub.foo.eth')),
-                  consti3.address);
   });
 });

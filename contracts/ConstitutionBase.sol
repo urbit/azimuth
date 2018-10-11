@@ -8,9 +8,6 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 import './ReadsShips.sol';
 import './Polls.sol';
 
-import './interfaces/ENS.sol';
-import './interfaces/ResolverInterface.sol';
-
 //  ConstitutionBase: upgradable constitution
 //
 //    This contract implements the upgrade logic for the Constitution.
@@ -31,10 +28,6 @@ contract ConstitutionBase is Ownable, ReadsShips
   //
   Polls public polls;
 
-  //  ens: ENS registry where ownership of the urbit domain is registered
-  //
-  ENS public ens;
-
   //  previousConstitution: address of the previous constitution this
   //                        instance expects to upgrade from, stored and
   //                        checked for to prevent unexpected upgrade paths
@@ -49,23 +42,14 @@ contract ConstitutionBase is Ownable, ReadsShips
   bytes32 public subLabel;
   bytes32 public subNode;
 
-  constructor(address _previous,
-              Ships _ships,
-              Polls _polls,
-              ENS _ensRegistry,
-              string _baseEns,
-              string _subEns)
+  constructor( address _previous,
+               Ships _ships,
+               Polls _polls )
     ReadsShips(_ships)
     internal
   {
     previousConstitution = _previous;
     polls = _polls;
-    ens = _ensRegistry;
-    subLabel = keccak256(abi.encodePacked(_subEns));
-    baseNode = keccak256(abi.encodePacked(
-                 keccak256(abi.encodePacked( bytes32(0), keccak256('eth') )),
-                 keccak256(abi.encodePacked( _baseEns )) ));
-    subNode = keccak256(abi.encodePacked( baseNode, subLabel ));
   }
 
   //  onUpgrade(): called by previous constitution when upgrading
@@ -82,9 +66,7 @@ contract ConstitutionBase is Ownable, ReadsShips
     //
     require( msg.sender == previousConstitution &&
              this == ships.owner() &&
-             this == polls.owner() &&
-             this == ens.owner(baseNode) &&
-             this == ens.owner(subNode) );
+             this == polls.owner() );
   }
 
   //  upgrade(): transfer ownership of the constitution data to the new
@@ -100,17 +82,6 @@ contract ConstitutionBase is Ownable, ReadsShips
     //
     ships.transferOwnership(_new);
     polls.transferOwnership(_new);
-
-    //  make the ens resolver point to the new address, then transfer
-    //  ownership of the urbit & constitution nodes to the new constitution.
-    //
-    //    Note: we're assuming we only register a resolver for the base node
-    //          and don't have one registered for subnodes.
-    //
-    ResolverInterface resolver = ResolverInterface(ens.resolver(baseNode));
-    resolver.setAddr(subNode, _new);
-    ens.setSubnodeOwner(baseNode, subLabel, _new);
-    ens.setOwner(baseNode, _new);
 
     //  trigger upgrade logic on the target contract
     //
