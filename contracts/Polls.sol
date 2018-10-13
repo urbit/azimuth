@@ -155,7 +155,7 @@ contract Polls is Ownable
     external
     onlyOwner
   {
-    require(totalVoters < 255);
+    require(totalVoters < 256);
     totalVoters = totalVoters.add(1);
   }
 
