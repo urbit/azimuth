@@ -3,6 +3,7 @@
 pragma solidity 0.4.24;
 
 import './SafeMath8.sol';
+import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -36,6 +37,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 contract Polls is Ownable
 {
   using SafeMath for uint256;
+  using SafeMath16 for uint16;
   using SafeMath8 for uint8;
 
   //  ConstitutionPollStarted: a poll on :proposal has opened
@@ -68,11 +70,11 @@ contract Polls is Ownable
 
     //  yesVotes: amount of votes in favor of the proposal
     //
-    uint8 yesVotes;
+    uint16 yesVotes;
 
     //  noVotes: amount of votes against the proposal
     //
-    uint8 noVotes;
+    uint16 noVotes;
 
     //  duration: amount of time during which the poll can be voted on
     //
@@ -93,7 +95,7 @@ contract Polls is Ownable
 
   //  totalVoters: amount of active galaxies
   //
-  uint8 public totalVoters;
+  uint16 public totalVoters;
 
   //  constitutionPolls: per address, poll held to determine if that address
   //                 will become the new constitution
@@ -378,8 +380,8 @@ contract Polls is Ownable
   {
     //  remainingVotes: amount of votes that can still be cast
     //
-    uint8 remainingVotes = totalVoters.sub( _poll.yesVotes.add(_poll.noVotes) );
-    int16 score = int16(_poll.yesVotes) - _poll.noVotes;
+    int16 remainingVotes = int16(totalVoters.sub( _poll.yesVotes.add(_poll.noVotes) ));
+    int16 score = int16(_poll.yesVotes) - int16(_poll.noVotes);
 
     return ( //  poll must have at least the minimum required yes-votes
              //
