@@ -17,7 +17,7 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
     constit = await Constitution.new(0, ships.address, polls.address,
-                                     0, '', '', claims.address);
+                                     claims.address);
     await ships.transferOwnership(constit.address);
     await polls.transferOwnership(constit.address);
     await constit.createGalaxy(0, owner);

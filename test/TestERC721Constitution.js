@@ -53,7 +53,7 @@ contract('NFTokenMock', (accounts) => {
     ships = await Ships.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
-    nftoken = await Constitution.new(0, ships.address, polls.address, 0, '', '', claims.address);
+    nftoken = await Constitution.new(0, ships.address, polls.address, claims.address);
     ships.transferOwnership(nftoken.address);
     polls.transferOwnership(nftoken.address);
   });

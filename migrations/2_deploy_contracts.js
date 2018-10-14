@@ -45,7 +45,7 @@ module.exports = async function(deployer) {
     //NOTE  for real deployment, we'll want to use a real ENS registry
     //      and node names
     return deployer.deploy(Constitution, 0, ships.address, polls.address,
-                                         0, '', '', claims.address);
+                                         claims.address);
   }).then(function() {
     return Constitution.deployed();
   }).then(async function(instance) {
