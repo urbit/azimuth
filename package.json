@@ -15,9 +15,16 @@
     "truffle": "4.1.11",
     "web3-eth-abi": "^1.0.0-beta.34"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "ganache-cli": "^6.1.8",
+    "mocha": "^5.2.0"
+  },
   "scripts": {
-    "test": "mocha"
+    "build": "truffle compile",
+    "ganache": "ganache-cli --gasLimit 6000000 > /dev/null &",
+    "pretest": "npm run build && npm run ganache",
+    "test": "truffle test",
+    "posttest": "pkill -f ganache-cli"
   },
   "repository": {
     "type": "git",
