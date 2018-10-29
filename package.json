@@ -1,6 +1,6 @@
 {
-  "name": "urb-constitution",
-  "version": "1.0.0",
+  "name": "urbit-constitution",
+  "version": "0.9.0",
   "description": "The Urbit PKI on the Ethereum blockchain.",
   "main": "truffle.js",
   "directories": {
