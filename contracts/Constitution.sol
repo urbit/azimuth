@@ -379,6 +379,11 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       }
     }
 
+    //  doSpawn(): actual spawning logic, used in spawn(). creates _ship,
+    //             making the _target its own if _direct, or making the
+    //             _holder the owner and the _target the transfer proxy
+    //             if not _direct.
+    //
     function doSpawn( uint32 _ship,
                       address _target,
                       bool _direct,

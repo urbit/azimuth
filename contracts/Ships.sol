@@ -163,6 +163,7 @@ contract Ships is Ownable
 
     //  managementProxy: 0, or another address with the right to perform
     //                   low-impact, managerial tasks
+    //
     address managementProxy;
 
     //  votingProxy: 0, or another address with the right to vote as this ship
