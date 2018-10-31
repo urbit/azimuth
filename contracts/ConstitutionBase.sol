@@ -34,14 +34,6 @@ contract ConstitutionBase is Ownable, ReadsShips
   //
   address public previousConstitution;
 
-  //  baseNode: namehash of the urbit ens node
-  //  subLabel: hash of the constitution's subdomain (without base domain)
-  //  subNode:  namehash of the constitution's subnode
-  //
-  bytes32 public baseNode;
-  bytes32 public subLabel;
-  bytes32 public subNode;
-
   constructor( address _previous,
                Ships _ships,
                Polls _polls )
