@@ -140,15 +140,15 @@ contract ConditionalStarRelease is Ownable, TakesShips
     //             the contract owner
     //
     uint16 forfeited;
+
+    //  approvedTransferTo: batch can be transferred to this address
+    //
+    address approvedTransferTo;
   }
 
   //  commitments: per participant, the registered purchase agreement
   //
   mapping(address => Commitment) public commitments;
-
-  //  transfers: per participant, the approved commitment transfer
-  //
-  mapping(address => address) public transfers;
 
   //  constructor(): configure conditions and deadlines
   //
@@ -314,7 +314,7 @@ contract ConditionalStarRelease is Ownable, TakesShips
       //
       require( 0 != commitments[msg.sender].total &&
                0 == commitments[_to].total );
-      transfers[msg.sender] = _to;
+      commitments[msg.sender].approvedTransferTo = _to;
     }
 
     //  transferCommitment(): make an approved transfer of _from's commitment
@@ -325,7 +325,7 @@ contract ConditionalStarRelease is Ownable, TakesShips
     {
       //  make sure the :msg.sender is authorized to make this transfer
       //
-      require(transfers[_from] == msg.sender);
+      require(commitments[_from].approvedTransferTo == msg.sender);
 
       //  make sure the target isn't also a participant again,
       //  this could have changed since approveCommitmentTransfer
@@ -337,8 +337,7 @@ contract ConditionalStarRelease is Ownable, TakesShips
       Commitment storage com = commitments[_from];
       commitments[msg.sender] = com;
       commitments[_from] = Commitment(new uint16[](0), 0, 0, 0,
-                                      new uint16[](0), 0, false, 0);
-      transfers[_from] = 0;
+                                      new uint16[](0), 0, false, 0, 0x0);
     }
 
     //  withdraw(): withdraw one star to the sender's address

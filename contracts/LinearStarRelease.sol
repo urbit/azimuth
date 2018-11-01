@@ -65,15 +65,15 @@ contract LinearStarRelease is Ownable, TakesShips
     //  withdrawn: number of stars withdrawn by this batch
     //
     uint16 withdrawn;
+
+    //  approvedTransferTo: batch can be transferred to this address
+    //
+    address approvedTransferTo;
   }
 
   //  batches: per participant, the registered star release
   //
   mapping(address => Batch) public batches;
-
-  //  transfers: approved batch transfers
-  //
-  mapping(address => address) public transfers;
 
   //  constructor(): configure ships contract and set starting date
   //
@@ -177,7 +177,7 @@ contract LinearStarRelease is Ownable, TakesShips
       //
       require( 0 != batches[msg.sender].amount &&
                0 == batches[_to].amount );
-      transfers[msg.sender] = _to;
+      batches[msg.sender].approvedTransferTo = _to;
     }
 
     //  transferBatch(): make an approved transfer of _from's batch
@@ -188,7 +188,7 @@ contract LinearStarRelease is Ownable, TakesShips
     {
       //  make sure the :msg.sender is authorized to make this transfer
       //
-      require(transfers[_from] == msg.sender);
+      require(batches[_from].approvedTransferTo == msg.sender);
 
       //  make sure the target isn't also a participant
       //
@@ -198,8 +198,7 @@ contract LinearStarRelease is Ownable, TakesShips
       //
       Batch storage com = batches[_from];
       batches[msg.sender] = com;
-      batches[_from] = Batch(0, 0, 0, 0, new uint16[](0), 0);
-      transfers[_from] = 0;
+      batches[_from] = Batch(0, 0, 0, 0, new uint16[](0), 0, 0x0);
     }
 
     //  withdraw(): withdraw one star to the sender's address
