@@ -88,14 +88,14 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
   });
 
   it('transferring batch', async function() {
-    assert.equal(await lsr.transfers(user1), 0);
+    assert.equal((await lsr.batches(user1))[5], 0);
     // can't transfer to other participant
     await assertRevert(lsr.approveBatchTransfer(user3, {from:user1}));
     // can't transfer without permission
     await assertRevert(lsr.transferBatch(user1, {from:user2}));
     await lsr.approveBatchTransfer(user2, {from:user1});
     await lsr.approveBatchTransfer(user2, {from:user3});
-    assert.equal(await lsr.transfers(user1), user2);
+    assert.equal((await lsr.batches(user1))[5], user2);
     await lsr.transferBatch(user1, {from:user2});
     // can't if we became a participant in the mean time
     await assertRevert(lsr.transferBatch(user3, {from:user2}));

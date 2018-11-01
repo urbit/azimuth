@@ -161,14 +161,14 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   });
 
   it('transferring commitment', async function() {
-    assert.equal(await csr.transfers(user1), 0);
+    assert.equal((await csr.commitments(user1))[6], 0);
     // can't transfer to other participant
     await assertRevert(csr.approveCommitmentTransfer(user3, {from:user1}));
     // can't transfer without permission
     await assertRevert(csr.transferCommitment(user1, {from:user2}));
     await csr.approveCommitmentTransfer(user2, {from:user1});
     await csr.approveCommitmentTransfer(user2, {from:user3});
-    assert.equal(await csr.transfers(user1), user2);
+    assert.equal((await csr.commitments(user1))[6], user2);
     await csr.transferCommitment(user1, {from:user2});
     // can't if we became a participant in the mean time
     await assertRevert(csr.transferCommitment(user3, {from:user2}));
