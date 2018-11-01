@@ -3,6 +3,7 @@
 pragma solidity 0.4.24;
 
 import './Constitution.sol';
+import './TakesShips.sol';
 import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -54,7 +55,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    them. This saves address space from being lost forever in case of
 //    key loss by participants.
 //
-contract ConditionalStarRelease is Ownable
+contract ConditionalStarRelease is Ownable, TakesShips
 {
   using SafeMath for uint256;
   using SafeMath16 for uint16;
@@ -74,10 +75,8 @@ contract ConditionalStarRelease is Ownable
   uint8 constant maxConditions = 8;
   uint256 constant escapeHatchTime = 10 * 365 days;
 
-  //  ships: public contract which stores ship state
   //  polls: public contract which registers polls
   //
-  Ships public ships;
   Polls public polls;
 
   //  conditions: hashes for document proposals that must achieve majority
@@ -157,6 +156,7 @@ contract ConditionalStarRelease is Ownable
                bytes32[] _conditions,
                uint256[] _livelines,
                uint256[] _deadlines )
+    TakesShips(_ships)
     public
   {
     //  sanity check: condition per deadline
@@ -168,7 +168,6 @@ contract ConditionalStarRelease is Ownable
 
     //  reference ships and polls contracts
     //
-    ships = _ships;
     polls = Constitution(ships.owner()).polls();
 
     //  install conditions and deadlines, and prepare timestamps array
@@ -239,40 +238,11 @@ contract ConditionalStarRelease is Ownable
                ( com.stars.length <
                  com.total.sub( com.withdrawn.add(com.forfeited) ) ) );
 
-      //  There are two ways to deposit a star.  One way is for a galaxy to
-      //  grant the CSR contract permission to spawn its stars.  The CSR
-      //  contract will spawn the star directly to itself.
+      //  have the contract take ownership of the star if possible,
+      //  reverting if that fails.
       //
-      //  The CSR contract can also accept existing stars, as long as their
-      //  Urbit key revision number is 0, indicating that they have not yet
-      //  been started.  To deposit a star this way, grant the CSR contract
-      //  permission to transfer ownership of the star; the contract will
-      //  transfer the star to itself.
-      //
-      uint16 prefix = ships.getPrefix(_star);
-      if ( ships.isOwner(prefix, msg.sender) &&
-           ships.isSpawnProxy(prefix, this) &&
-           !ships.isActive(_star) )
-      {
-        //  first model: spawn _star to :this contract
-        //
-        Constitution(ships.owner()).spawn(_star, this);
-      }
-      else if ( ships.isOwner(_star, msg.sender) &&
-                ships.isTransferProxy(_star, this) &&
-                ships.isActive(_star) &&
-                !ships.hasBeenBooted(_star) )
-      {
-        //  second model: transfer active, unused _star to :this contract
-        //
-        Constitution(ships.owner()).transferShip(_star, this, true);
-      }
-      else
-      {
-        //  star is not eligible for deposit
-        //
-        revert();
-      }
+      require( takeShip(_star, true) );
+
       //  add _star to the participant's star balance
       //
       com.stars.push(_star);
@@ -458,7 +428,7 @@ contract ConditionalStarRelease is Ownable
 
       //  then transfer the star
       //
-      Constitution(ships.owner()).transferShip(star, _to, _reset);
+      require( giveShip(star, _to, _reset) );
     }
 
   //

@@ -3,6 +3,7 @@
 pragma solidity 0.4.24;
 
 import './Constitution.sol';
+import './TakesShips.sol';
 import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -20,7 +21,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    owner is able to withdraw them. This saves address space from
 //    being lost forever in case of key loss by participants.
 //
-contract LinearStarRelease is Ownable
+contract LinearStarRelease is Ownable, TakesShips
 {
   using SafeMath for uint256;
   using SafeMath16 for uint16;
@@ -29,10 +30,6 @@ contract LinearStarRelease is Ownable
   //                   which the contract owner can withdraw arbitrary stars
   //
   uint256 constant escapeHatchTime = 10 * 365 days;
-
-  //  ships: public contract which stores ship state
-  //
-  Ships public ships;
 
   //  start: time of contract launch
   //
@@ -81,6 +78,7 @@ contract LinearStarRelease is Ownable
   //  constructor(): configure ships contract and set starting date
   //
   constructor(Ships _ships)
+    TakesShips(_ships)
     public
   {
     ships = _ships;
@@ -132,39 +130,11 @@ contract LinearStarRelease is Ownable
       //
       require( batch.stars.length < batch.amount.sub(batch.withdrawn) );
 
-      //  There are two ways to deposit a star.  One way is for a galaxy to
-      //  grant the LSR contract permission to spawn its stars.  The LSR
-      //  contract will spawn the star directly to itself.
+      //  have the contract take ownership of the star if possible,
+      //  reverting if that fails.
       //
-      //  The LSR contract can also accept existing stars, as long as their
-      //  Urbit key revision number is 0, indicating that they have not yet
-      //  been started.  To deposit a star this way, grant the LSR contract
-      //  permission to transfer ownership of the star; the contract will
-      //  transfer the star to itself.
-      //
-      if ( ships.isOwner(ships.getPrefix(_star), msg.sender) &&
-           ships.isSpawnProxy(ships.getPrefix(_star), this) &&
-           !ships.isActive(_star) )
-      {
-        //  first model: spawn _star to :this contract
-        //
-        Constitution(ships.owner()).spawn(_star, this);
-      }
-      else if ( ships.isOwner(_star, msg.sender) &&
-                ships.isTransferProxy(_star, this) &&
-                ships.isActive(_star) &&
-                !ships.hasBeenBooted(_star) )
-      {
-        //  second model: transfer active, unused _star to :this contract
-        //
-        Constitution(ships.owner()).transferShip(_star, this, true);
-      }
-      else
-      {
-        //  star is not eligible for deposit
-        //
-        revert();
-      }
+      require( takeShip(_star, true) );
+
       //  add _star to the participant's star balance
       //
       batch.stars.push(_star);
@@ -281,7 +251,7 @@ contract LinearStarRelease is Ownable
 
       //  transfer :star
       //
-      Constitution(ships.owner()).transferShip(star, _to, _reset);
+      require( giveShip(star, _to, _reset) );
     }
 
   //
