@@ -1,6 +1,6 @@
 # The Urbit Constitution
 
-The Urbit PKI on the Ethereum blockchain.  
+The Urbit PKI on the Ethereum blockchain.
 
 This is a work in progress nearing completion. Feel free to poke around and open issues or ask questions. The [Urbit fora](https://urbit.org/fora) is also a good place for open-ended discussion related to this repo.
 
@@ -25,29 +25,31 @@ Install dependencies. Most notable inclusion is [Zeppelin-Solidity](https://open
 npm install
 ```
 
-Build, deploy and test using [Truffle](http://truffleframework.com/).
+Build, deploy and test via [Truffle](http://truffleframework.com/) using the following commands:
 
 ```
-npm install -g truffle
-```
-
-Use any of the following commands.
-
-```
-truffle compile
-truffle deploy
-truffle test
+npx truffle compile
+npx truffle deploy
+npx truffle test
 ```
 
 When verifying deployed contracts on services like Etherscan, be sure to use [truffle-flattener](https://github.com/alcuadrado/truffle-flattener) for flattening contracts into single files.
 
 ## Tests
 
-To successfully run the tests, make sure [Ganache](https://github.com/trufflesuite/ganache-cli) (or any other RPC enabled node) is running locally.
+To run the test suite automatically, use a simple:
 
 ```
-ganache-cli --gasLimit 6000000
+npm test
 ```
+
+This will spin up a local [Ganache](https://github.com/trufflesuite/ganache-cli) node in the background.  If you'd like to use a persistent node, you can run
+
+```
+npx ganache-cli --gasLimit 6000000
+```
+
+and then test via `npx truffle test`.
 
 The Planet Sale's test relating to withdrawing ETH from the contract are known to be finicky during tests, and may not always complete successfully.
 
