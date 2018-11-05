@@ -863,7 +863,6 @@ contract Ships is Ownable
       {
         return;
       }
-      Hull storage ship = ships[_ship];
       registerEscapeRequest(_ship, true, _sponsor);
       emit EscapeRequested(_ship, _sponsor);
     }
