@@ -128,10 +128,6 @@ contract Ships is Ownable
     //
     uint32 continuityNumber;
 
-    //  spawnCount: for stars and galaxies, number of :active children
-    //
-    uint32 spawnCount;
-
     //  spawned: for stars and galaxies, all :active children
     //
     uint32[] spawned;
@@ -673,7 +669,6 @@ contract Ships is Ownable
 
       //  register a new spawned ship for the prefix
       //
-      ships[prefix].spawnCount++;
       ships[prefix].spawned.push(_ship);
       emit Spawned(prefix, _ship);
     }
@@ -775,7 +770,9 @@ contract Ships is Ownable
       external
       returns (uint32 spawnCount)
     {
-      return ships[_ship].spawnCount;
+      uint256 len = ships[_ship].spawned.length;
+      assert(len < 2**32);
+      return uint32(len);
     }
 
     //  getSpawned(): return array ships spawned under _ship
@@ -863,7 +860,6 @@ contract Ships is Ownable
       {
         return;
       }
-      Hull storage ship = ships[_ship];
       registerEscapeRequest(_ship, true, _sponsor);
       emit EscapeRequested(_ship, _sponsor);
     }
