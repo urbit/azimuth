@@ -8,7 +8,7 @@ const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
 
 contract('Conditional Star Release', function([owner, user1, user2, user3]) {
-  let ships, polls, constit, csr,
+  let ships, ships2, polls, constit, constit2, csr, csr2,
       deadline1, deadline2, deadline3, condit2, rateUnit,
       deadlineStep;
 
@@ -32,24 +32,31 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   before('setting up for tests', async function() {
     deadlineStep = 100;
-    deadline1 = web3.toDecimal(await getChainTime()) + 2;
-    deadline2 = deadline1 + deadlineStep;
-    deadline3 = deadline2 + deadlineStep;
     condit2 = 123456789;
     rateUnit = deadlineStep * 10;
     ships = await Ships.new();
+    ships2 = await Ships.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(ships.address);
-    constit = await Constitution.new(0, ships.address, polls.address,
+    constit = await Constitution.new(0x1, ships.address, polls.address,
                                      claims.address);
+    constit2 = await Constitution.new(0x0, ships2.address,
+                                      polls.address, claims.address)
     await ships.transferOwnership(constit.address);
+    await ships2.transferOwnership(constit2.address);
     await polls.transferOwnership(constit.address);
     await constit.createGalaxy(0, owner);
     await constit.configureKeys(0, 1, 2, 1, false);
     await constit.spawn(256, owner);
     await constit.spawn(2560, owner);
     await constit.configureKeys(2560, 1, 2, 1, false);
+    deadline1 = web3.toDecimal(await getChainTime()) + 10;
+    deadline2 = deadline1 + deadlineStep;
+    deadline3 = deadline2 + deadlineStep;
     csr = await CSR.new(ships.address, [0, condit2, "miss me", "too"],
+                         [0, 0, 0, 0],
+                         [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
+    csr2 = await CSR.new(ships2.address, [0, condit2, "miss me", "too"],
                          [0, 0, 0, 0],
                          [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
     await constit.setSpawnProxy(0, csr.address);
@@ -65,8 +72,9 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   });
 
   it('analyzing conditions', async function() {
-    // first condition is zero, so automatically unlocked on-construct.
+    // first condition is zero, so might get automatically unlocked on-construct
     assert.notEqual(await csr.timestamps(0), 0);
+    assert.equal(await csr2.timestamps(0), 0);
     // other conditions should not have timestamps yet.
     assert.equal(await csr.timestamps(3), 0);
     await csr.analyzeCondition(1);
@@ -80,7 +88,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     // can't analyze twice
     await assertRevert(csr.analyzeCondition(1, {from:user1}));
     // miss deadline for condition 3
-    await increaseTime((deadlineStep+2) * 2);
+    await increaseTime((deadlineStep * 2) + 10);
     await csr.analyzeCondition(2);
     assert.equal(await csr.timestamps(2), deadline3);
   });

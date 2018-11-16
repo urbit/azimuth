@@ -177,8 +177,7 @@ contract ConditionalStarRelease is Ownable, TakesShips
     deadlines = _deadlines;
     timestamps.length = _conditions.length;
 
-    //  check if the first condition is met. most uses of this contract
-    //  will set its condition to 0, clearing it immediately
+    //  check if the first condition is met, it might get cleared immediately
     //
     analyzeCondition(0);
   }
@@ -466,17 +465,30 @@ contract ConditionalStarRelease is Ownable, TakesShips
       //  check if the condition has been met
       //
       bytes32 condition = conditions[_condition];
-      if ( //  if there is no condition, it is always met
-           //
-           (bytes32(0) == condition) ||
-           //
-           //  a real condition is met when it has achieved a majority vote
-           //
-           polls.documentHasAchievedMajority(condition) )
+      bool met = false;
+
+      //  if there is no condition, it is our special case
+      //
+      if (bytes32(0) == condition)
       {
-        //  if the condition is met, set :timestamps[_condition] to the
-        //  timestamp of the current eth block
+        //  condition is met if the Constitution has been upgraded
+        //  at least once.
         //
+        met = (0x0 != Constitution(ships.owner()).previousConstitution());
+      }
+      //
+      //  a real condition is met when it has achieved a majority vote
+      //
+      else
+      {
+        met = polls.documentHasAchievedMajority(condition);
+      }
+
+      //  if the condition is met, set :timestamps[_condition] to the
+      //  timestamp of the current eth block
+      //
+      if (met)
+      {
         timestamps[_condition] = block.timestamp;
         emit ConditionCompleted(_condition, block.timestamp);
       }
