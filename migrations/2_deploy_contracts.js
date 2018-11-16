@@ -3,7 +3,6 @@ var Polls = artifacts.require("./Polls.sol");
 var Claims = artifacts.require("./Claims.sol");
 var Censures = artifacts.require("./Censures.sol");
 var Constitution = artifacts.require("./Constitution.sol");
-var Pool = artifacts.require("./Pool.sol");
 
 module.exports = async function(deployer) {
   // deployer.deploy([Ships, Polls]);
@@ -17,7 +16,7 @@ module.exports = async function(deployer) {
   // polls.transferOwnership(constitution.address);
 
   //TODO the above is more consise and should be the same, but... doesn't work?
-  var ships, polls, claims, censures, constitution, pool;
+  var ships, polls, claims, censures, constitution;
   deployer.then(function() {
   }).then(function() {
     return deployer.deploy(Ships);
@@ -66,11 +65,5 @@ module.exports = async function(deployer) {
     // await constitution.spawn(512, own);
     // await constitution.createGalaxy(1, own);
     //
-  }).then(function() {
-    return deployer.deploy(Pool, ships.address);
-  }).then(function() {
-    return Pool.deployed();
-  }).then(function(instance) {
-    pool = instance;
   });
 };
