@@ -1,4 +1,4 @@
-//  base contract for the urbit constitution
+//  base contract for the azimuth logic contract
 //  encapsulates dependencies all constitutions need.
 
 pragma solidity 0.4.24;

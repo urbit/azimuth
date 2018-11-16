@@ -1,7 +1,7 @@
 {
-  "name": "urbit-constitution",
+  "name": "azimuth",
   "version": "0.9.0",
-  "description": "The Urbit PKI on the Ethereum blockchain.",
+  "description": "A general-purpose PKI on the Ethereum blockchain.",
   "main": "truffle.js",
   "directories": {
     "doc": "docs",
@@ -30,12 +30,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/urbit/constitution.git"
+    "url": "git+https://github.com/urbit/azimuth.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/urbit/constitution/issues"
+    "url": "https://github.com/urbit/azimuth/issues"
   },
-  "homepage": "https://github.com/urbit/constitution#readme"
+  "homepage": "https://github.com/urbit/azimuth#readme"
 }

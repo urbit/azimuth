@@ -1,4 +1,4 @@
-//  the urbit ethereum constitution
+//  the azimuth logic contract
 
 pragma solidity 0.4.24;
 
@@ -10,9 +10,9 @@ import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
 import 'openzeppelin-solidity/contracts/AddressUtils.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 
-//  Constitution: logic for interacting with the Urbit ledger
+//  Constitution: logic for interacting with the Azimuth ledger
 //
-//    This contract is the point of entry for all operations on the Urbit
+//    This contract is the point of entry for all operations on the Azimuth
 //    ledger as stored in the Ships contract. The functions herein are
 //    responsible for performing all necessary business logic.
 //    Examples of such logic include verifying permissions of the caller
@@ -79,11 +79,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //
   Claims public claims;
 
-  //  constructor(): set Urbit data addresses and signal interface support
+  //  constructor(): set data contract addresses and signal interface support
   //
-  //    Note: during first deploy, ownership of these contracts must be
-  //    manually transferred to this contract after it's on the chain and
-  //    its address is known.
+  //    Note: during first deploy, ownership of these data contracts must
+  //    be manually transferred to this contract.
   //
   constructor(address _previous,
               Ships _ships,
@@ -276,7 +275,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     }
 
   //
-  //  Urbit functions for all ships
+  //  Azimuth functions for all ships
   //
 
     //  setManagementProxy(): configure the management proxy for _ship
@@ -292,10 +291,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       ships.setManagementProxy(_ship, _manager);
     }
 
-    //  configureKeys(): configure _ship with Urbit public keys _encryptionKey,
-    //                   _authenticationKey, and corresponding
-    //                   _cryptoSuiteVersion, incrementing the ship's
-    //                   continuity number if needed
+    //  configureKeys(): configure _ship with network public keys
+    //                   _encryptionKey, _authenticationKey,
+    //                   and corresponding _cryptoSuiteVersion,
+    //                   incrementing the ship's continuity number if needed
     //
     function configureKeys(uint32 _ship,
                            bytes32 _encryptionKey,
@@ -533,7 +532,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //
       if ( _reset )
       {
-        //  clear the Urbit public keys and break continuity,
+        //  clear the network public keys and break continuity,
         //  but only if the ship has already been used
         //
         if ( ships.hasBeenBooted(_ship) )
@@ -614,8 +613,9 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //  the same class, to support lightweight invitation chains.
       //
       //  The use case for lightweight invitations is that a planet
-      //  owner should be able to invite their friends to Urbit in
-      //  a two-party transaction, without a new star relationship.
+      //  owner should be able to invite their friends onto an
+      //  Azimuth network in a two-party transaction, without a new
+      //  star relationship.
       //  The lightweight invitation process works by escaping
       //  your own active, but never booted, ship, to yourself,
       //  then transferring it to your friend.
