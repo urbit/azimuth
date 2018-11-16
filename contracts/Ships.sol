@@ -1,4 +1,4 @@
-//  the urbit ship data store
+//  the azimuth ship data store
 
 pragma solidity 0.4.24;
 
@@ -6,8 +6,8 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  Ships: ship state data contract
 //
-//    This contract is used for storing all data related to Urbit addresses
-//    and their ownership. Consider this contract the Urbit ledger.
+//    This contract is used for storing all data related to Azimuth addresses
+//    and their ownership. Consider this contract the Azimuth ledger.
 //
 //    It also contains permissions data, which ties in to ERC721
 //    functionality. Operators of an address are allowed to transfer
@@ -55,7 +55,7 @@ contract Ships is Ownable
   //
   event LostSponsor(uint32 indexed ship, uint32 indexed sponsor);
 
-  //  ChangedKeys: :ship has new Urbit public keys, :crypt and :auth
+  //  ChangedKeys: :ship has new network public keys, :crypt and :auth
   //
   event ChangedKeys( uint32 indexed ship,
                      bytes32 encryptionKey,
@@ -108,23 +108,23 @@ contract Ships is Ownable
     //
     bool active;
 
-    //  encryptionKey: Urbit curve25519 encryption key, or 0 for none
+    //  encryptionKey: curve25519 encryption key, or 0 for none
     //
     bytes32 encryptionKey;
 
-    //  authenticationKey: Urbit ed25519 authentication key, or 0 for none
+    //  authenticationKey: ed25519 authentication key, or 0 for none
     //
     bytes32 authenticationKey;
 
-    //  cryptoSuiteVersion: version of the Urbit crypto suite used
+    //  cryptoSuiteVersion: version of the crypto suite used for the pubkeys
     //
     uint32 cryptoSuiteVersion;
 
-    //  keyRevisionNumber: incremented every time we change the Urbit keys
+    //  keyRevisionNumber: incremented every time we change the public keys
     //
     uint32 keyRevisionNumber;
 
-    //  continuityNumber: incremented to indicate Urbit-side state loss
+    //  continuityNumber: incremented to indicate network-side state loss
     //
     uint32 continuityNumber;
 
@@ -175,7 +175,7 @@ contract Ships is Ownable
     address transferProxy;
   }
 
-  //  ships: per ship, general Urbit-network ship state
+  //  ships: per ship, general network-relevant ship state
   //
   mapping(uint32 => Hull) public ships;
 
@@ -254,7 +254,7 @@ contract Ships is Ownable
   //
   mapping(uint32 => mapping(uint32 => uint256)) public escapeRequestsIndexes;
 
-  //  dnsDomains: base domains for contacting galaxies in urbit
+  //  dnsDomains: base domains for contacting galaxies
   //
   //    dnsDomains[0] is primary, the others are used as fallbacks
   //
@@ -265,7 +265,7 @@ contract Ships is Ownable
   constructor()
     public
   {
-    setDnsDomains("urbit.org", "urbit.org", "urbit.org");
+    setDnsDomains("example.com", "example.com", "example.com");
   }
 
   //
@@ -716,7 +716,7 @@ contract Ships is Ownable
                ship.cryptoSuiteVersion != 0 );
     }
 
-    //  setKeys(): set Urbit public keys of _ship to _encryptionKey and
+    //  setKeys(): set network public keys of _ship to _encryptionKey and
     //            _authenticationKey
     //
     function setKeys(uint32 _ship,

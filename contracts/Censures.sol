@@ -10,7 +10,7 @@ import './ReadsShips.sol';
 //    reputation (censure) to other ships of the same or lower rank.
 //    These censures are not permanent, they can be forgiven.
 //
-//    Since the Urbit network provides incentives for good behavior,
+//    Since Azimuth-based networks provide incentives for good behavior,
 //    making bad behavior the exception rather than the rule, this
 //    contract only provides registration of negative reputation.
 //
