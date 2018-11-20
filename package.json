@@ -1,5 +1,5 @@
 {
-  "name": "azimuth",
+  "name": "urbit-azimuth",
   "version": "0.9.0",
   "description": "A general-purpose PKI on the Ethereum blockchain.",
   "main": "truffle.js",
