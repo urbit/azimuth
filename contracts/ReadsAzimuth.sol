@@ -1,42 +1,42 @@
-//  contract that uses the Ships contract
+//  contract that uses the Azimuth data contract
 
 pragma solidity 0.4.24;
 
-import './Ships.sol';
+import './Azimuth.sol';
 
-//  ReadsShips: referring to and testing against the Ships contract
+//  ReadsAzimuth: referring to and testing against the Azimuth data contract
 //
 //    To avoid needless repetition, this contract provides common
-//    checks and operations using the Ships contract.
+//    checks and operations using the Azimuth contract.
 //
-contract ReadsShips
+contract ReadsAzimuth
 {
-  //  ships: ships state data storage contract.
+  //  azimuth: points data storage contract.
   //
-  Ships public ships;
+  Azimuth public azimuth;
 
-  //  constructor(): set the Ships contract's address
+  //  constructor(): set the Azimuth data contract's address
   //
-  constructor(Ships _ships)
+  constructor(Azimuth _azimuth)
     public
   {
-    ships = _ships;
+    azimuth = _azimuth;
   }
 
-  //  activeShipOwner(): require that :msg.sender is the owner of _ship,
-  //                     and that _ship is active
+  //  activePointOwner(): require that :msg.sender is the owner of _point,
+  //                     and that _point is active
   //
-  modifier activeShipOwner(uint32 _ship)
+  modifier activePointOwner(uint32 _point)
   {
-    require( ships.isOwner(_ship, msg.sender) &&
-             ships.isActive(_ship) );
+    require( azimuth.isOwner(_point, msg.sender) &&
+             azimuth.isActive(_point) );
     _;
   }
 
-  modifier activeShipManager(uint32 _ship)
+  modifier activePointManager(uint32 _point)
   {
-    require( ships.canManage(_ship, msg.sender) &&
-             ships.isActive(_ship) );
+    require( azimuth.canManage(_point, msg.sender) &&
+             azimuth.isActive(_point) );
     _;
   }
 }

@@ -2,7 +2,7 @@
 
 pragma solidity 0.4.24;
 
-import './ConstitutionBase.sol';
+import './EclipticBase.sol';
 import './Claims.sol';
 import './ERC165Mapping.sol';
 import './interfaces/ERC721Receiver.sol';
@@ -10,41 +10,43 @@ import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
 import 'openzeppelin-solidity/contracts/AddressUtils.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 
-//  Constitution: logic for interacting with the Azimuth ledger
+//  Ecliptic: logic for interacting with the Azimuth ledger
 //
 //    This contract is the point of entry for all operations on the Azimuth
-//    ledger as stored in the Ships contract. The functions herein are
-//    responsible for performing all necessary business logic.
+//    ledger as stored in the Azimuth data contract. The functions herein
+//    are responsible for performing all necessary business logic.
 //    Examples of such logic include verifying permissions of the caller
 //    and ensuring a requested change is actually valid.
-//    Ship owners can always operate on their own ships. Ethereum addresses
+//    Point owners can always operate on their own points. Ethereum addresses
 //    can also perform specific operations if they've been given the
 //    appropriate permissions. (For example, managers for general management,
-//    spawn proxies for spawning child ships, etc.)
+//    spawn proxies for spawning child points, etc.)
 //
-//    This contract uses external contracts (Ships, Polls) for data storage
+//    This contract uses external contracts (Azimuth, Polls) for data storage
 //    so that it itself can easily be replaced in case its logic needs to
 //    be changed. In other words, it can be upgraded. It does this by passing
-//    ownership of the data contracts to a new Constitution contract.
+//    ownership of the data contracts to a new Ecliptic contract.
 //
 //    Because of this, it is advised for clients to not store this contract's
-//    address directly, but rather ask the Ships contract for its owner
-//    attribute to ensure transactions get sent to the latest Constitution.
+//    address directly, but rather ask the Azimuth contract for its owner
+//    attribute to ensure transactions get sent to the latest Ecliptic.
+//    Alternatively, the ENS name ecliptic.eth will resolve to the latest
+//    Ecliptic as well.
 //
 //    Upgrading happens based on polls held by the senate (galaxy owners).
 //    Through this contract, the senate can submit proposals, opening polls
 //    for the senate to cast votes on. These proposals can be either hashes
-//    of documents or addresses of new Constitutions.
-//    If a constitution proposal gains majority, this contract will transfer
+//    of documents or addresses of new Ecliptics.
+//    If an ecliptic proposal gains majority, this contract will transfer
 //    ownership of the data storage contracts to that address, so that it may
-//    operate on the date they contain. This contract will selfdestruct at
+//    operate on the data they contain. This contract will selfdestruct at
 //    the end of the upgrade process.
 //
 //    This contract implements the ERC721 interface for non-fungible tokens,
-//    allowing ships to be managed using generic clients that support the
+//    allowing points to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
-contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
+contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
 {
   using SafeMath for uint256;
   using AddressUtils for address;
@@ -85,10 +87,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //    be manually transferred to this contract.
   //
   constructor(address _previous,
-              Ships _ships,
+              Azimuth _azimuth,
               Polls _polls,
               Claims _claims)
-    ConstitutionBase(_previous, _ships, _polls)
+    EclipticBase(_previous, _azimuth, _polls)
     public
   {
     claims = _claims;
@@ -104,7 +106,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
   //  ERC721 interface
   //
 
-    //  balanceOf(): get the amount of ships owned by _owner
+    //  balanceOf(): get the amount of points owned by _owner
     //
     function balanceOf(address _owner)
       public
@@ -112,28 +114,28 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       returns (uint256 balance)
     {
       require(0x0 != _owner);
-      return ships.getOwnedShipCount(_owner);
+      return azimuth.getOwnedPointCount(_owner);
     }
 
-    //  ownerOf(): get the current owner of ship _tokenId
+    //  ownerOf(): get the current owner of point _tokenId
     //
     function ownerOf(uint256 _tokenId)
       public
       view
-      validShipId(_tokenId)
+      validPointId(_tokenId)
       returns (address owner)
     {
       uint32 id = uint32(_tokenId);
 
       //  this will throw if the owner is the zero address,
-      //  active ships always have a valid owner.
+      //  active points always have a valid owner.
       //
-      require(ships.isActive(id));
+      require(azimuth.isActive(id));
 
-      owner = ships.getOwner(id);
+      owner = azimuth.getOwner(id);
     }
 
-    //  exists(): returns true if ship _tokenId is active
+    //  exists(): returns true if point _tokenId is active
     //
     function exists(uint256 _tokenId)
       public
@@ -141,10 +143,10 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       returns (bool doesExist)
     {
       return ( (_tokenId < 4294967296) &&
-               ships.isActive(uint32(_tokenId)) );
+               azimuth.isActive(uint32(_tokenId)) );
     }
 
-    //  safeTransferFrom(): transfer ship _tokenId from _from to _to
+    //  safeTransferFrom(): transfer point _tokenId from _from to _to
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId)
       public
@@ -154,7 +156,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       safeTransferFrom(_from, _to, _tokenId, "");
     }
 
-    //  safeTransferFrom(): transfer ship _tokenId from _from to _to,
+    //  safeTransferFrom(): transfer point _tokenId from _from to _to,
     //                      and call recipient if it's a contract
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId,
@@ -178,48 +180,48 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       }
     }
 
-    //  transferFrom(): transfer ship _tokenId from _from to _to,
+    //  transferFrom(): transfer point _tokenId from _from to _to,
     //                  WITHOUT notifying recipient contract
     //
     function transferFrom(address _from, address _to, uint256 _tokenId)
       public
-      validShipId(_tokenId)
+      validPointId(_tokenId)
     {
       uint32 id = uint32(_tokenId);
-      require(ships.isOwner(id, _from));
-      transferShip(id, _to, true);
+      require(azimuth.isOwner(id, _from));
+      transferPoint(id, _to, true);
     }
 
-    //  approve(): allow _approved to transfer ownership of ship _tokenId
+    //  approve(): allow _approved to transfer ownership of point _tokenId
     //
     function approve(address _approved, uint256 _tokenId)
       public
-      validShipId(_tokenId)
+      validPointId(_tokenId)
     {
       setTransferProxy(uint32(_tokenId), _approved);
     }
 
     //  setApprovalForAll(): allow or disallow _operator to transfer ownership
-    //                       of ALL ships owned by :msg.sender
+    //                       of ALL points owned by :msg.sender
     //
     function setApprovalForAll(address _operator, bool _approved)
       public
     {
       require(0x0 != _operator);
-      ships.setOperator(msg.sender, _operator, _approved);
+      azimuth.setOperator(msg.sender, _operator, _approved);
       emit ApprovalForAll(msg.sender, _operator, _approved);
     }
 
-    //  getApproved(): get the transfer proxy for ship _tokenId
+    //  getApproved(): get the transfer proxy for point _tokenId
     //
     function getApproved(uint256 _tokenId)
       public
       view
-      validShipId(_tokenId)
+      validPointId(_tokenId)
       returns (address approved)
     {
-      require(ships.isActive(uint32(_tokenId)));
-      return ships.getTransferProxy(uint32(_tokenId));
+      require(azimuth.isActive(uint32(_tokenId)));
+      return azimuth.getTransferProxy(uint32(_tokenId));
     }
 
     //  isApprovedForAll(): returns true if _operator is an operator for _owner
@@ -229,7 +231,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       view
       returns (bool result)
     {
-      return ships.isOperator(_owner, _operator);
+      return azimuth.isOperator(_owner, _operator);
     }
 
   //
@@ -241,7 +243,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       view
       returns (string)
     {
-      return "Urbit Ship";
+      return "Azimuth Point";
     }
 
     function symbol()
@@ -249,7 +251,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       view
       returns (string)
     {
-      return "URS";
+      return "AZP";
     }
 
     //  tokenURI(): produce a URL to a standard JSON file
@@ -257,84 +259,84 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     function tokenURI(uint256 _tokenId)
       public
       view
-      validShipId(_tokenId)
+      validPointId(_tokenId)
       returns (string _tokenURI)
     {
-      _tokenURI = "https://eth.urbit.org/erc721/0000000000.json";
+      _tokenURI = "https://azimuth.network/erc721/0000000000.json";
       bytes memory _tokenURIBytes = bytes(_tokenURI);
-      _tokenURIBytes[29] = byte(48+(_tokenId / 1000000000) % 10);
-      _tokenURIBytes[30] = byte(48+(_tokenId / 100000000) % 10);
-      _tokenURIBytes[31] = byte(48+(_tokenId / 10000000) % 10);
-      _tokenURIBytes[32] = byte(48+(_tokenId / 1000000) % 10);
-      _tokenURIBytes[33] = byte(48+(_tokenId / 100000) % 10);
-      _tokenURIBytes[34] = byte(48+(_tokenId / 10000) % 10);
-      _tokenURIBytes[35] = byte(48+(_tokenId / 1000) % 10);
-      _tokenURIBytes[36] = byte(48+(_tokenId / 100) % 10);
-      _tokenURIBytes[37] = byte(48+(_tokenId / 10) % 10);
-      _tokenURIBytes[38] = byte(48+(_tokenId / 1) % 10);
+      _tokenURIBytes[31] = byte(48+(_tokenId / 1000000000) % 10);
+      _tokenURIBytes[32] = byte(48+(_tokenId / 100000000) % 10);
+      _tokenURIBytes[33] = byte(48+(_tokenId / 10000000) % 10);
+      _tokenURIBytes[34] = byte(48+(_tokenId / 1000000) % 10);
+      _tokenURIBytes[35] = byte(48+(_tokenId / 100000) % 10);
+      _tokenURIBytes[36] = byte(48+(_tokenId / 10000) % 10);
+      _tokenURIBytes[37] = byte(48+(_tokenId / 1000) % 10);
+      _tokenURIBytes[38] = byte(48+(_tokenId / 100) % 10);
+      _tokenURIBytes[39] = byte(48+(_tokenId / 10) % 10);
+      _tokenURIBytes[40] = byte(48+(_tokenId / 1) % 10);
     }
 
   //
-  //  Azimuth functions for all ships
+  //  Azimuth functions for all points
   //
 
-    //  setManagementProxy(): configure the management proxy for _ship
+    //  setManagementProxy(): configure the management proxy for _point
     //
     //    The management proxy may perform "reversible" operations on
     //    behalf of the owner. This includes public key configuration and
     //    operations relating to sponsorship.
     //
-    function setManagementProxy(uint32 _ship, address _manager)
+    function setManagementProxy(uint32 _point, address _manager)
       external
-      activeShipOwner(_ship)
+      activePointOwner(_point)
     {
-      ships.setManagementProxy(_ship, _manager);
+      azimuth.setManagementProxy(_point, _manager);
     }
 
-    //  configureKeys(): configure _ship with network public keys
+    //  configureKeys(): configure _point with network public keys
     //                   _encryptionKey, _authenticationKey,
     //                   and corresponding _cryptoSuiteVersion,
-    //                   incrementing the ship's continuity number if needed
+    //                   incrementing the point's continuity number if needed
     //
-    function configureKeys(uint32 _ship,
+    function configureKeys(uint32 _point,
                            bytes32 _encryptionKey,
                            bytes32 _authenticationKey,
                            uint32 _cryptoSuiteVersion,
                            bool _discontinuous)
       external
-      activeShipManager(_ship)
+      activePointManager(_point)
     {
       if (_discontinuous)
       {
-        ships.incrementContinuityNumber(_ship);
+        azimuth.incrementContinuityNumber(_point);
       }
-      ships.setKeys(_ship,
-                    _encryptionKey,
-                    _authenticationKey,
-                    _cryptoSuiteVersion);
+      azimuth.setKeys(_point,
+                      _encryptionKey,
+                      _authenticationKey,
+                      _cryptoSuiteVersion);
     }
 
-    //  spawn(): spawn _ship, giving ownership to _target
+    //  spawn(): spawn _point, giving ownership to _target
     //
     //    Requirements:
-    //    - _ship must not be active,
-    //    - _ship must not be a planet with a galaxy prefix,
-    //    - _ship's prefix must be booted and under its spawn limit,
-    //    - :msg.sender must be either the owner of _ship's prefix,
+    //    - _point must not be active,
+    //    - _point must not be a planet with a galaxy prefix,
+    //    - _point's prefix must be used and under its spawn limit,
+    //    - :msg.sender must be either the owner of _point's prefix,
     //      or an authorized spawn proxy for it.
     //
-    function spawn(uint32 _ship, address _target)
+    function spawn(uint32 _point, address _target)
       external
     {
-      //  only currently unowned (and thus also inactive) ships can be spawned
+      //  only currently unowned (and thus also inactive) points can be spawned
       //
-      require(ships.isOwner(_ship, 0x0));
+      require(azimuth.isOwner(_point, 0x0));
 
-      //  prefix: half-width prefix of _ship
+      //  prefix: half-width prefix of _point
       //
-      uint16 prefix = ships.getPrefix(_ship);
+      uint16 prefix = azimuth.getPrefix(_point);
 
-      //  only allow spawning of ships of the class directly below the prefix
+      //  only allow spawning of points of the size directly below the prefix
       //
       //    this is possible because of how the address space works,
       //    but supporting it introduces complexity through broken assumptions.
@@ -345,102 +347,102 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //    0x0001.0100 - the first planet of the first star
       //    0x0001.0000 - the first planet of galaxy zero
       //
-      require( (uint8(ships.getShipClass(prefix)) + 1) ==
-               uint8(ships.getShipClass(_ship)) );
+      require( (uint8(azimuth.getPointSize(prefix)) + 1) ==
+               uint8(azimuth.getPointSize(_point)) );
 
-      //  prefix ship must be live and able to spawn
+      //  prefix point must be live and able to spawn
       //
-      require( (ships.hasBeenBooted(prefix)) &&
-               ( ships.getSpawnCount(prefix) <
+      require( (azimuth.hasBeenUsed(prefix)) &&
+               ( azimuth.getSpawnCount(prefix) <
                  getSpawnLimit(prefix, block.timestamp) ) );
 
       //  the owner of a prefix can always spawn its children;
       //  other addresses need explicit permission (the role
-      //  of "spawnProxy" in the Ships contract)
+      //  of "spawnProxy" in the Azimuth contract)
       //
-      require( ships.isOwner(prefix, msg.sender) ||
-               ships.isSpawnProxy(prefix, msg.sender) );
+      require( azimuth.isOwner(prefix, msg.sender) ||
+               azimuth.isSpawnProxy(prefix, msg.sender) );
 
-      //  if the caller is spawning the ship to themselves,
+      //  if the caller is spawning the point to themselves,
       //  assume it knows what it's doing and resolve right away
       //
       if (msg.sender == _target)
       {
-        doSpawn(_ship, _target, true, 0x0);
+        doSpawn(_point, _target, true, 0x0);
       }
       //
       //  when sending to a "foreign" address, enforce a withdraw pattern
-      //  making the _ship parent's owner the _ship owner in the mean time
+      //  making the _point parent's owner the _point owner in the mean time
       //
       else
       {
-        doSpawn(_ship, _target, false, ships.getOwner(prefix));
+        doSpawn(_point, _target, false, azimuth.getOwner(prefix));
       }
     }
 
-    //  doSpawn(): actual spawning logic, used in spawn(). creates _ship,
+    //  doSpawn(): actual spawning logic, used in spawn(). creates _point,
     //             making the _target its own if _direct, or making the
     //             _holder the owner and the _target the transfer proxy
     //             if not _direct.
     //
-    function doSpawn( uint32 _ship,
+    function doSpawn( uint32 _point,
                       address _target,
                       bool _direct,
                       address _holder )
       internal
     {
-      //  register the spawn for _ship's prefix, incrementing spawn count
+      //  register the spawn for _point's prefix, incrementing spawn count
       //
-      ships.registerSpawned(_ship);
+      azimuth.registerSpawned(_point);
 
       //  if the spawn is _direct, assume _target knows what they're doing
       //  and resolve right away
       //
       if (_direct)
       {
-        //  make the ship active and set its new owner
+        //  make the point active and set its new owner
         //
-        ships.activateShip(_ship);
-        ships.setOwner(_ship, _target);
+        azimuth.activatePoint(_point);
+        azimuth.setOwner(_point, _target);
 
-        emit Transfer(0x0, _target, uint256(_ship));
+        emit Transfer(0x0, _target, uint256(_point));
       }
       //
       //  when spawning indirectly, enforce a withdraw pattern by approving
-      //  the _target for transfer of the _ship instead.
-      //  we make the _holder the owner of this _ship in the mean time,
+      //  the _target for transfer of the _point instead.
+      //  we make the _holder the owner of this _point in the mean time,
       //  so that it may cancel the transfer (un-approve) if _target flakes.
-      //  we don't make _ship active yet, because it still doesn't really
+      //  we don't make _point active yet, because it still doesn't really
       //  belong to anyone.
       //
       else
       {
-        //  have _holder hold on to the ship while _target gets to transfer
+        //  have _holder hold on to the point while _target gets to transfer
         //  ownership of it
         //
-        ships.setOwner(_ship, _holder);
-        ships.setTransferProxy(_ship, _target);
+        azimuth.setOwner(_point, _holder);
+        azimuth.setTransferProxy(_point, _target);
 
-        emit Transfer(0x0, _holder, uint256(_ship));
-        emit Approval(_holder, _target, uint256(_ship));
+        emit Transfer(0x0, _holder, uint256(_point));
+        emit Approval(_holder, _target, uint256(_point));
       }
     }
 
-    //  getSpawnLimit(): returns the total number of children the ship _ship
+    //  getSpawnLimit(): returns the total number of children the point _point
     //                   is allowed to spawn at datetime _time.
     //
-    function getSpawnLimit(uint32 _ship, uint256 _time)
+    function getSpawnLimit(uint32 _point, uint256 _time)
       public
       view
       returns (uint32 limit)
     {
-      Ships.Class class = ships.getShipClass(_ship);
+      Azimuth.Size size = azimuth.getPointSize(_point);
 
-      if ( class == Ships.Class.Galaxy )
+      if ( size == Azimuth.Size.Galaxy )
       {
         return 255;
       }
-      else if ( class == Ships.Class.Star )
+      else if ( size == Azimuth.Size.Star )
       {
         //  in 2018, stars may spawn at most 1024 planets. this limit doubles
         //  for every subsequent year.
@@ -458,7 +460,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
         }
         return limit;
       }
-      else  //  class == Ships.Class.Planet
+      else  //  size == Azimuth.Size.Planet
       {
         //  planets can create moons, but moons aren't on the chain
         //
@@ -466,301 +468,303 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       }
     }
 
-    //  setSpawnProxy(): give _spawnProxy the right to spawn ships
+    //  setSpawnProxy(): give _spawnProxy the right to spawn points
     //                   with the prefix _prefix
     //
     function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
-      activeShipOwner(_prefix)
+      activePointOwner(_prefix)
     {
-      ships.setSpawnProxy(_prefix, _spawnProxy);
+      azimuth.setSpawnProxy(_prefix, _spawnProxy);
     }
 
-    //  transferShip(): transfer _ship to _target, clearing all permissions
+    //  transferPoint(): transfer _point to _target, clearing all permissions
     //                  data and keys if _reset is true
     //
-    //    Note: the _reset flag is useful when transferring the ship to
+    //    Note: the _reset flag is useful when transferring the point to
     //    a recipient who doesn't trust the previous owner.
     //
     //    Requirements:
-    //    - :msg.sender must be either _ship's current owner, authorized
-    //      to transfer _ship, or authorized to transfer the current
-    //      owner's ships.
+    //    - :msg.sender must be either _point's current owner, authorized
+    //      to transfer _point, or authorized to transfer the current
+    //      owner's points.
     //    - _target must not be the zero address.
     //
-    function transferShip(uint32 _ship, address _target, bool _reset)
+    function transferPoint(uint32 _point, address _target, bool _reset)
       public
     {
-      //  old: current ship owner
+      //  old: current point owner
       //
-      address old = ships.getOwner(_ship);
+      address old = azimuth.getOwner(_point);
 
       //  transfer is legitimate if the caller is the old owner, or
       //  has operator or transfer rights
       //
       require((old == msg.sender)
-              || ships.isOperator(old, msg.sender)
-              || ships.isTransferProxy(_ship, msg.sender));
+              || azimuth.isOperator(old, msg.sender)
+              || azimuth.isTransferProxy(_point, msg.sender));
 
-      //  if the ship wasn't active yet, that means transferring it
+      //  if the point wasn't active yet, that means transferring it
       //  is part of the "spawn" flow, so we need to activate it
       //
-      if ( !ships.isActive(_ship) )
+      if ( !azimuth.isActive(_point) )
       {
-        ships.activateShip(_ship);
+        azimuth.activatePoint(_point);
       }
 
       //  if the owner would actually change, change it
       //
       //    the only time this deliberately wouldn't be the case is when a
-      //    parent ship wants to activate a spawned but untransferred child.
+      //    parent point wants to activate a spawned but untransferred child.
       //
-      if ( !ships.isOwner(_ship, _target) )
+      if ( !azimuth.isOwner(_point, _target) )
       {
-        ships.setOwner(_ship, _target);
+        azimuth.setOwner(_point, _target);
 
         //  according to ERC721, the transferrer gets cleared during every
         //  Transfer event
         //
-        ships.setTransferProxy(_ship, 0);
+        azimuth.setTransferProxy(_point, 0);
 
-        emit Transfer(old, _target, uint256(_ship));
+        emit Transfer(old, _target, uint256(_point));
       }
 
-      //  reset sensitive data -- are transferring the
-      //  ship to a new owner
+      //  reset sensitive data
+      //  used when transferring the point to a new owner
       //
       if ( _reset )
       {
         //  clear the network public keys and break continuity,
-        //  but only if the ship has already been used
+        //  but only if the point has already been used
         //
-        if ( ships.hasBeenBooted(_ship) )
+        if ( azimuth.hasBeenUsed(_point) )
         {
-          ships.incrementContinuityNumber(_ship);
-          ships.setKeys(_ship, 0, 0, 0);
+          azimuth.incrementContinuityNumber(_point);
+          azimuth.setKeys(_point, 0, 0, 0);
         }
 
         //  clear management proxy
         //
-        ships.setManagementProxy(_ship, 0);
+        azimuth.setManagementProxy(_point, 0);
 
         //  clear voting proxy
         //
-        ships.setVotingProxy(_ship, 0);
+        azimuth.setVotingProxy(_point, 0);
 
         //  clear transfer proxy
         //
         //    in most cases this is done above, during the ownership transfer,
         //    but we might not hit that and still be expected to reset the
         //    transfer proxy.
-        //    doing it a second time is a no-op in Ships.
+        //    doing it a second time is a no-op in Azimuth.
         //
-        ships.setTransferProxy(_ship, 0);
+        azimuth.setTransferProxy(_point, 0);
 
         //  clear spawning proxy
         //
-        ships.setSpawnProxy(_ship, 0);
+        azimuth.setSpawnProxy(_point, 0);
 
         //  clear claims
         //
-        claims.clearClaims(_ship);
+        claims.clearClaims(_point);
       }
     }
 
-    //  setTransferProxy(): give _transferProxy the right to transfer _ship
+    //  setTransferProxy(): give _transferProxy the right to transfer _point
     //
     //    Requirements:
-    //    - :msg.sender must be either _ship's current owner, or be
-    //      allowed to operate the current owner's ships.
+    //    - :msg.sender must be either _point's current owner, or be
+    //      allowed to operate the current owner's points.
     //
-    function setTransferProxy(uint32 _ship, address _transferProxy)
+    function setTransferProxy(uint32 _point, address _transferProxy)
       public
     {
-      //  owner: owner of _ship
+      //  owner: owner of _point
       //
-      address owner = ships.getOwner(_ship);
+      address owner = azimuth.getOwner(_point);
 
       //  caller must be :owner, or an operator designated by the owner.
       //
-      require((owner == msg.sender) || ships.isOperator(owner, msg.sender));
+      require((owner == msg.sender) || azimuth.isOperator(owner, msg.sender));
 
-      //  set transferrer field in Ships contract
+      //  set transferrer field in Azimuth contract
       //
-      ships.setTransferProxy(_ship, _transferProxy);
+      azimuth.setTransferProxy(_point, _transferProxy);
 
       //  emit Approval event
       //
-      emit Approval(owner, _transferProxy, uint256(_ship));
+      emit Approval(owner, _transferProxy, uint256(_point));
     }
 
-    //  canEscapeTo(): true if _ship could try to escape to _sponsor
+    //  canEscapeTo(): true if _point could try to escape to _sponsor
     //
     //    Note: public to help with clients
     //
-    function canEscapeTo(uint32 _ship, uint32 _sponsor)
+    function canEscapeTo(uint32 _point, uint32 _sponsor)
       public
       view
       returns (bool canEscape)
     {
       //  can't escape to a sponsor that hasn't been born
       //
-      if ( !ships.hasBeenBooted(_sponsor) ) return false;
+      if ( !azimuth.hasBeenUsed(_sponsor) ) return false;
 
-      //  Can only escape to a ship one class higher than ourselves,
-      //  except in the special case where the escaping ship hasn't
-      //  been booted yet -- in that case we may escape to ships of
-      //  the same class, to support lightweight invitation chains.
+      //  Can only escape to a point one size higher than ourselves,
+      //  except in the special case where the escaping point hasn't
+      //  been used yet -- in that case we may escape to points of
+      //  the same size, to support lightweight invitation chains.
       //
       //  The use case for lightweight invitations is that a planet
       //  owner should be able to invite their friends onto an
       //  Azimuth network in a two-party transaction, without a new
       //  star relationship.
       //  The lightweight invitation process works by escaping
-      //  your own active, but never booted, ship, to yourself,
+      //  your own active, but never used, point, to yourself,
       //  then transferring it to your friend.
       //
-      //  These planets can, in turn, sponsor other unbooted planets,
+      //  These planets can, in turn, sponsor other unused planets,
       //  so the "planet sponsorship chain" can grow to arbitrary
       //  length. Most users, especially deep down the chain, will
       //  want to improve their performance by switching to direct
       //  star sponsors eventually.
       //
-      Ships.Class shipClass = ships.getShipClass(_ship);
-      Ships.Class sponsorClass = ships.getShipClass(_sponsor);
+      Azimuth.Size pointSize = azimuth.getPointSize(_point);
+      Azimuth.Size sponsorSize = azimuth.getPointSize(_sponsor);
       return ( //  normal hierarchical escape structure
                //
-               ( (uint8(sponsorClass) + 1) == uint8(shipClass) ) ||
+               ( (uint8(sponsorSize) + 1) == uint8(pointSize) ) ||
                //
                //  special peer escape
                //
-               ( (sponsorClass == shipClass) &&
+               ( (sponsorSize == pointSize) &&
                  //
-                 //  peer escape is only for ships that haven't been booted yet,
+                 //  peer escape is only for points that haven't been used yet,
                  //  because it's only for lightweight invitation chains
                  //
-                 !ships.hasBeenBooted(_ship) ) );
+                 !azimuth.hasBeenUsed(_point) ) );
     }
 
-    //  escape(): request escape from _ship to _sponsor
+    //  escape(): request escape from _point to _sponsor
     //
     //    if an escape request is already active, this overwrites
     //    the existing request
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _ship,
-    //    - _ship must be able to escape to _sponsor according to canEscapeTo().
+    //    - :msg.sender must be the owner of _point,
+    //    - _point must be able to escape to _sponsor as per to canEscapeTo().
     //
-    function escape(uint32 _ship, uint32 _sponsor)
+    function escape(uint32 _point, uint32 _sponsor)
       external
-      activeShipManager(_ship)
+      activePointManager(_point)
     {
-      require(canEscapeTo(_ship, _sponsor));
-      ships.setEscapeRequest(_ship, _sponsor);
+      require(canEscapeTo(_point, _sponsor));
+      azimuth.setEscapeRequest(_point, _sponsor);
     }
 
-    //  cancelEscape(): cancel the currently set escape for _ship
+    //  cancelEscape(): cancel the currently set escape for _point
     //
-    function cancelEscape(uint32 _ship)
+    function cancelEscape(uint32 _point)
       external
-      activeShipManager(_ship)
+      activePointManager(_point)
     {
-      ships.cancelEscape(_ship);
+      azimuth.cancelEscape(_point);
     }
 
-    //  adopt(): as the _sponsor, accept the _ship
+    //  adopt(): as the _sponsor, accept the _point
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _ship's requested sponsor.
+    //    - :msg.sender must be the owner of _point's requested sponsor.
     //
-    function adopt(uint32 _ship)
+    function adopt(uint32 _point)
       external
     {
-      require( ships.isEscaping(_ship) &&
-               ships.canManage(ships.getEscapeRequest(_ship), msg.sender) );
+      require( azimuth.isEscaping(_point) &&
+               azimuth.canManage( azimuth.getEscapeRequest(_point),
+                                  msg.sender ) );
 
-      //  _sponsor becomes _ship's sponsor
+      //  _sponsor becomes _point's sponsor
       //  its escape request is reset to "not escaping"
       //
-      ships.doEscape(_ship);
+      azimuth.doEscape(_point);
     }
 
-    //  reject(): as the _sponsor, deny the _ship's request
+    //  reject(): as the _sponsor, deny the _point's request
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _ship's requested sponsor.
+    //    - :msg.sender must be the owner of _point's requested sponsor.
     //
-    function reject(uint32 _ship)
+    function reject(uint32 _point)
       external
     {
-      require( ships.isEscaping(_ship) &&
-               ships.canManage(ships.getEscapeRequest(_ship), msg.sender) );
+      require( azimuth.isEscaping(_point) &&
+               azimuth.canManage( azimuth.getEscapeRequest(_point),
+                                  msg.sender ) );
 
-      //  reset the _ship's escape request to "not escaping"
+      //  reset the _point's escape request to "not escaping"
       //
-      ships.cancelEscape(_ship);
+      azimuth.cancelEscape(_point);
     }
 
-    //  detach(): as the _sponsor, stop sponsoring the _ship
+    //  detach(): as the _sponsor, stop sponsoring the _point
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _ship's current sponsor.
+    //    - :msg.sender must be the owner of _point's current sponsor.
     //
-    function detach(uint32 _ship)
+    function detach(uint32 _point)
       external
     {
-      require( ships.hasSponsor(_ship) &&
-               ships.canManage(ships.getSponsor(_ship), msg.sender) );
+      require( azimuth.hasSponsor(_point) &&
+               azimuth.canManage(azimuth.getSponsor(_point), msg.sender) );
 
-      //  signal that _sponsor no longer supports _ship
+      //  signal that _sponsor no longer supports _point
       //
-      ships.loseSponsor(_ship);
+      azimuth.loseSponsor(_point);
     }
 
   //
   //  Poll actions
   //
 
-    //  setVotingProxy(): configure the voting proxy for _ship
+    //  setVotingProxy(): configure the voting proxy for _galaxy
     //
     //    the voting proxy is allowed to start polls and cast votes
-    //    on the ship's behalf.
+    //    on the point's behalf.
     //
-    function setVotingProxy(uint8 _ship, address _voter)
+    function setVotingProxy(uint8 _galaxy, address _voter)
       external
-      activeShipOwner(_ship)
+      activePointOwner(_galaxy)
     {
-      ships.setVotingProxy(_ship, _voter);
+      azimuth.setVotingProxy(_galaxy, _voter);
     }
 
-    //  startConstitutionPoll(): as _galaxy, start a poll for the constitution
+    //  startEclipticPoll(): as _galaxy, start a poll for the ecliptic
     //                       upgrade _proposal
     //
     //    Requirements:
     //    - :msg.sender must be the owner of _galaxy,
     //    - the _proposal must expect to be upgraded from this specific
-    //      contract, as indicated by its previousConstitution attribute.
+    //      contract, as indicated by its previousEcliptic attribute.
     //
-    function startConstitutionPoll(uint8 _galaxy, ConstitutionBase _proposal)
+    function startEclipticPoll(uint8 _galaxy, EclipticBase _proposal)
       external
-      activeShipVoter(_galaxy)
+      activePointVoter(_galaxy)
     {
       //  ensure that the upgrade target expects this contract as the source
       //
-      require(_proposal.previousConstitution() == address(this));
-      polls.startConstitutionPoll(_proposal);
+      require(_proposal.previousEcliptic() == address(this));
+      polls.startEclipticPoll(_proposal);
     }
 
     //  startDocumentPoll(): as _galaxy, start a poll for the _proposal
     //
     function startDocumentPoll(uint8 _galaxy, bytes32 _proposal)
       external
-      activeShipVoter(_galaxy)
+      activePointVoter(_galaxy)
     {
       polls.startDocumentPoll(_proposal);
     }
 
-    //  castConstitutionVote(): as _galaxy, cast a _vote on the constitution
+    //  castEclipticVote(): as _galaxy, cast a _vote on the ecliptic
     //                          upgrade _proposal
     //
     //    _vote is true when in favor of the proposal, false otherwise
@@ -768,18 +772,18 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //    If this vote results in a majority for the _proposal, it will
     //    be upgraded to immediately.
     //
-    function castConstitutionVote(uint8 _galaxy,
-                                  ConstitutionBase _proposal,
-                                  bool _vote)
+    function castEclipticVote(uint8 _galaxy,
+                              EclipticBase _proposal,
+                              bool _vote)
       external
-      activeShipVoter(_galaxy)
+      activePointVoter(_galaxy)
     {
       //  majority: true if the vote resulted in a majority, false otherwise
       //
-      bool majority = polls.castConstitutionVote(_galaxy, _proposal, _vote);
+      bool majority = polls.castEclipticVote(_galaxy, _proposal, _vote);
 
       //  if a majority is in favor of the upgrade, it happens as defined
-      //  in the constitution base contract
+      //  in the ecliptic base contract
       //
       if (majority)
       {
@@ -793,23 +797,23 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     function castDocumentVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
       external
-      activeShipVoter(_galaxy)
+      activePointVoter(_galaxy)
     {
       polls.castDocumentVote(_galaxy, _proposal, _vote);
     }
 
-    //  updateConstitutionPoll(): check whether the _proposal has achieved
-    //                            majority, upgrading to it if it has
+    //  updateEclipticPoll(): check whether the _proposal has achieved
+    //                        majority, upgrading to it if it has
     //
-    function updateConstitutionPoll(ConstitutionBase _proposal)
+    function updateEclipticPoll(EclipticBase _proposal)
       external
     {
       //  majority: true if the poll ended in a majority, false otherwise
       //
-      bool majority = polls.updateConstitutionPoll(_proposal);
+      bool majority = polls.updateEclipticPoll(_proposal);
 
       //  if a majority is in favor of the upgrade, it happens as defined
-      //  in the constitution base contract
+      //  in the ecliptic base contract
       //
       if (majority)
       {
@@ -820,7 +824,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //  updateDocumentPoll(): check whether the _proposal has achieved majority
     //
     //    Note: the polls contract publicly exposes the function this calls,
-    //    but we offer it in the constitution interface as a convenience
+    //    but we offer it in the ecliptic interface as a convenience
     //
     function updateDocumentPoll(bytes32 _proposal)
       external
@@ -842,7 +846,7 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //  only currently unowned (and thus also inactive) galaxies can be
       //  created, and only to non-zero addresses
       //
-      require( ships.isOwner(_galaxy, 0x0) &&
+      require( azimuth.isOwner(_galaxy, 0x0) &&
                0x0 != _target );
 
       //  new galaxy means a new registered voter
@@ -870,25 +874,25 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       external
       onlyOwner
     {
-      ships.setDnsDomains(_primary, _secondary, _tertiary);
+      azimuth.setDnsDomains(_primary, _secondary, _tertiary);
     }
 
   //
   //  Function modifiers for this contract
   //
 
-    //  validShipId(): require that _id is a valid ship
+    //  validPointId(): require that _id is a valid point
     //
-    modifier validShipId(uint256 _id)
+    modifier validPointId(uint256 _id)
     {
       require(_id < 4294967296);
       _;
     }
 
-    modifier activeShipVoter(uint32 _ship)
+    modifier activePointVoter(uint32 _point)
     {
-      require( ships.canVoteAs(_ship, msg.sender) &&
-               ships.isActive(_ship) );
+      require( azimuth.canVoteAs(_point, msg.sender) &&
+               azimuth.isActive(_point) );
       _;
     }
 }

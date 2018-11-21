@@ -1,28 +1,28 @@
-const Ships = artifacts.require('../contracts/Ships.sol');
+const Azimuth = artifacts.require('../contracts/Azimuth.sol');
 const Polls = artifacts.require('../contracts/Polls.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
-const Constitution = artifacts.require('../contracts/Constitution.sol');
+const Ecliptic = artifacts.require('../contracts/Ecliptic.sol');
 const PlanetSale = artifacts.require('../contracts/PlanetSale.sol');
 
 const assertRevert = require('./helpers/assertRevert');
 
 contract('Planet Sale', function([owner, user]) {
-  let ships, polls, constit, sale, price;
+  let azimuth, polls, eclipt, sale, price;
 
   before('setting up for tests', async function() {
     price = 100000000;
-    ships = await Ships.new();
+    azimuth = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
-    claims = await Claims.new(ships.address);
-    constit = await Constitution.new(0, ships.address, polls.address,
+    claims = await Claims.new(azimuth.address);
+    eclipt = await Ecliptic.new(0, azimuth.address, polls.address,
                                      claims.address);
-    await ships.transferOwnership(constit.address);
-    await polls.transferOwnership(constit.address);
-    await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 10, 11, 1, false);
-    await constit.spawn(256, owner);
-    await constit.configureKeys(256, 12, 13, 1, false);
-    sale = await PlanetSale.new(ships.address, price / 10);
+    await azimuth.transferOwnership(eclipt.address);
+    await polls.transferOwnership(eclipt.address);
+    await eclipt.createGalaxy(0, owner);
+    await eclipt.configureKeys(0, 10, 11, 1, false);
+    await eclipt.spawn(256, owner);
+    await eclipt.configureKeys(256, 12, 13, 1, false);
+    sale = await PlanetSale.new(azimuth.address, price / 10);
   });
 
   it('configuring price', async function() {
@@ -30,7 +30,7 @@ contract('Planet Sale', function([owner, user]) {
     // only owner can do this.
     await assertRevert(sale.setPrice(price, {from:user}));
     // must be more than zero
-    await assertRevert(PlanetSale.new(ships.address, 0));
+    await assertRevert(PlanetSale.new(azimuth.address, 0));
     await assertRevert(sale.setPrice(0));
     await sale.setPrice(price);
     assert.equal(await sale.price(), price);
@@ -38,7 +38,7 @@ contract('Planet Sale', function([owner, user]) {
 
   it('checking availability', async function() {
     assert.isFalse(await sale.available(65792));
-    await constit.setSpawnProxy(256, sale.address);
+    await eclipt.setSpawnProxy(256, sale.address);
     assert.isTrue(await sale.available(65792));
     assert.isFalse(await sale.available(65793));
   });
@@ -49,7 +49,7 @@ contract('Planet Sale', function([owner, user]) {
     // must pay the price
     await assertRevert(sale.purchase(65792, {from:user,value:price-1}));
     await sale.purchase(65792, {from:user,value:price});
-    assert.isTrue(await ships.isOwner(65792, user));
+    assert.isTrue(await azimuth.isOwner(65792, user));
     assert.isFalse(await sale.available(65792));
     assert.equal(await web3.eth.getBalance(sale.address), price);
     // can only purchase available planets.

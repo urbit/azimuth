@@ -1,81 +1,81 @@
-//  contract that uses the Ships contract
+//  contract that takes and gives Azimuth points
 
 pragma solidity 0.4.24;
 
-import './ReadsShips.sol';
-import './Constitution.sol';
+import './ReadsAzimuth.sol';
+import './Ecliptic.sol';
 
-contract TakesShips is ReadsShips
+contract TakesPoints is ReadsAzimuth
 {
-  constructor(Ships _ships)
-    ReadsShips(_ships)
+  constructor(Azimuth _azimuth)
+    ReadsAzimuth(_azimuth)
     public
   {
     //
   }
 
-  //  takeShip(): transfer _ship to this contract. if _clean is true, require
-  //              that the ship be unbooted.
+  //  takePoint(): transfer _point to this contract. if _clean is true, require
+  //              that the point be unused.
   //              returns true if this succeeds, false otherwise.
   //
-  function takeShip(uint32 _ship, bool _clean)
+  function takePoint(uint32 _point, bool _clean)
     internal
     returns (bool success)
   {
-    //  There are two ways for a contract to get a ship.
-    //  One way is for a parent ship to grant the contract permission to
-    //  spawn its ships.
-    //  The contract will spawn the ship directly to itself.
+    //  There are two ways for a contract to get a point.
+    //  One way is for a parent point to grant the contract permission to
+    //  spawn its points.
+    //  The contract will spawn the point directly to itself.
     //
-    uint16 prefix = ships.getPrefix(_ship);
-    if ( ships.isOwner(_ship, 0x0) &&
-         ships.isOwner(prefix, msg.sender) &&
-         ships.isSpawnProxy(prefix, this) )
+    uint16 prefix = azimuth.getPrefix(_point);
+    if ( azimuth.isOwner(_point, 0x0) &&
+         azimuth.isOwner(prefix, msg.sender) &&
+         azimuth.isSpawnProxy(prefix, this) )
          //NOTE  this might still fail because of spawn limit
     {
-      //  first model: spawn _ship to :this contract
+      //  first model: spawn _point to :this contract
       //
-      Constitution(ships.owner()).spawn(_ship, this);
+      Ecliptic(azimuth.owner()).spawn(_point, this);
       return true;
     }
 
-    //  The second way is to accept existing ships, optionally requiring
-    //  they be unbooted.
-    //  To deposit a ship this way, the owner grants the contract
-    //  permission to transfer ownership of the ship.
-    //  The contract will transfer the ship to itself.
+    //  The second way is to accept existing points, optionally requiring
+    //  they be unused.
+    //  To deposit a point this way, the owner grants the contract
+    //  permission to transfer ownership of the point.
+    //  The contract will transfer the point to itself.
     //
-    if ( (!_clean || !ships.hasBeenBooted(_ship)) &&
-         ships.isOwner(_ship, msg.sender) &&
-         ships.isTransferProxy(_ship, this) )
+    if ( (!_clean || !azimuth.hasBeenUsed(_point)) &&
+         azimuth.isOwner(_point, msg.sender) &&
+         azimuth.isTransferProxy(_point, this) )
     {
-      //  second model: transfer active, unused _ship to :this contract
+      //  second model: transfer active, unused _point to :this contract
       //
-      Constitution(ships.owner()).transferShip(_ship, this, true);
+      Ecliptic(azimuth.owner()).transferPoint(_point, this, true);
       return true;
     }
 
-    //  ship is not for us to take
+    //  point is not for us to take
     //
     return false;
   }
 
-  //  giveShip(): transfer a _ship we own to _to, optionally resetting.
+  //  givePoint(): transfer a _point we own to _to, optionally resetting.
   //              returns true if this succeeds, false otherwise.
   //
-  function giveShip(uint32 _ship, address _to, bool _reset)
+  function givePoint(uint32 _point, address _to, bool _reset)
     internal
     returns (bool success)
   {
-    //  only give ships we've taken, ships we fully own
+    //  only give points we've taken, points we fully own
     //
-    if (ships.isOwner(_ship, this))
+    if (azimuth.isOwner(_point, this))
     {
-      Constitution(ships.owner()).transferShip(_ship, _to, _reset);
+      Ecliptic(azimuth.owner()).transferPoint(_point, _to, _reset);
       return true;
     }
 
-    //  ship is not for us to give
+    //  point is not for us to give
     //
     return false;
   }

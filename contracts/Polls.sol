@@ -32,7 +32,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    to the voting itself (that is, determining who is eligible to vote)
 //    is expected to be implemented by this contract's owner.
 //
-//    This contract will be owned by the Constitution contract.
+//    This contract will be owned by the Ecliptic contract.
 //
 contract Polls is Ownable
 {
@@ -40,17 +40,17 @@ contract Polls is Ownable
   using SafeMath16 for uint16;
   using SafeMath8 for uint8;
 
-  //  ConstitutionPollStarted: a poll on :proposal has opened
+  //  EclipticPollStarted: a poll on :proposal has opened
   //
-  event ConstitutionPollStarted(address proposal);
+  event EclipticPollStarted(address proposal);
 
   //  DocumentPollStarted: a poll on :proposal has opened
   //
   event DocumentPollStarted(bytes32 proposal);
 
-  //  ConstitutionMajority: :proposal has achieved majority
+  //  EclipticMajority: :proposal has achieved majority
   //
-  event ConstitutionMajority(address proposal);
+  event EclipticMajority(address proposal);
 
   //  DocumentMajority: :proposal has achieved majority
   //
@@ -97,12 +97,12 @@ contract Polls is Ownable
   //
   uint16 public totalVoters;
 
-  //  constitutionPolls: per address, poll held to determine if that address
-  //                 will become the new constitution
+  //  eclipticPolls: per address, poll held to determine if that address
+  //                 will become the new ecliptic
   //
-  mapping(address => Poll) public constitutionPolls;
+  mapping(address => Poll) public eclipticPolls;
 
-  //  constitutionHasAchievedMajority: per address, whether that address
+  //  eclipticHasAchievedMajority: per address, whether that address
   //                                   has everachieved majority
   //
   //    if we did not store this, we would have to look at old poll data
@@ -113,7 +113,7 @@ contract Polls is Ownable
   //    tell with certainty whether or not a majority was achieved,
   //    regardless of the current :totalVoters.
   //
-  mapping(address => bool) public constitutionHasAchievedMajority;
+  mapping(address => bool) public eclipticHasAchievedMajority;
 
   //  documentPolls: per hash, poll held to determine if the corresponding
   //                 document is accepted by the galactic senate
@@ -123,7 +123,7 @@ contract Polls is Ownable
   //  documentHasAchievedMajority: per hash, whether that hash has ever
   //                               achieved majority
   //
-  //    the note for constitutionHasAchievedMajority above applies here as well
+  //    the note for eclipticHasAchievedMajority above applies here as well
   //
   mapping(bytes32 => bool) public documentHasAchievedMajority;
 
@@ -174,15 +174,15 @@ contract Polls is Ownable
     return documentMajorities;
   }
 
-  //  hasVotedOnConstitutionPoll(): returns true if _galaxy has voted
+  //  hasVotedOnEclipticPoll(): returns true if _galaxy has voted
   //                                on the _proposal
   //
-  function hasVotedOnConstitutionPoll(uint8 _galaxy, address _proposal)
+  function hasVotedOnEclipticPoll(uint8 _galaxy, address _proposal)
     external
     view
     returns (bool result)
   {
-    return constitutionPolls[_proposal].voted[_galaxy];
+    return eclipticPolls[_proposal].voted[_galaxy];
   }
 
   //  hasVotedOnDocumentPoll(): returns true if _galaxy has voted
@@ -196,21 +196,21 @@ contract Polls is Ownable
     return documentPolls[_proposal].voted[_galaxy];
   }
 
-  //  startConstitutionPoll(): open a poll on making _proposal the new constitution
+  //  startEclipticPoll(): open a poll on making _proposal the new ecliptic
   //
-  function startConstitutionPoll(address _proposal)
+  function startEclipticPoll(address _proposal)
     external
     onlyOwner
   {
     //  _proposal must not have achieved majority before
     //
-    require(!constitutionHasAchievedMajority[_proposal]);
+    require(!eclipticHasAchievedMajority[_proposal]);
 
     //  start the poll
     //
-    Poll storage poll = constitutionPolls[_proposal];
+    Poll storage poll = eclipticPolls[_proposal];
     startPoll(poll);
-    emit ConstitutionPollStarted(_proposal);
+    emit EclipticPollStarted(_proposal);
   }
 
   //  startDocumentPoll(): open a poll on accepting the document
@@ -254,18 +254,18 @@ contract Polls is Ownable
     _poll.cooldown = pollCooldown;
   }
 
-  //  castConstitutionVote(): as galaxy _as, cast a vote on the _proposal
+  //  castEclipticVote(): as galaxy _as, cast a vote on the _proposal
   //
   //    _vote is true when in favor of the proposal, false otherwise
   //
-  function castConstitutionVote(uint8 _as, address _proposal, bool _vote)
+  function castEclipticVote(uint8 _as, address _proposal, bool _vote)
     external
     onlyOwner
     returns (bool majority)
   {
-    Poll storage poll = constitutionPolls[_proposal];
+    Poll storage poll = eclipticPolls[_proposal];
     processVote(poll, _as, _vote);
-    return updateConstitutionPoll(_proposal);
+    return updateEclipticPoll(_proposal);
   }
 
   //  castDocumentVote(): as galaxy _as, cast a vote on the _proposal
@@ -312,30 +312,30 @@ contract Polls is Ownable
     }
   }
 
-  //  updateConstitutionPoll(): check whether the _proposal has achieved
+  //  updateEclipticPoll(): check whether the _proposal has achieved
   //                            majority, updating state, sending an event,
   //                            and returning true if it has
   //
-  function updateConstitutionPoll(address _proposal)
+  function updateEclipticPoll(address _proposal)
     public
     onlyOwner
     returns (bool majority)
   {
     //  _proposal must not have achieved majority before
     //
-    require(!constitutionHasAchievedMajority[_proposal]);
+    require(!eclipticHasAchievedMajority[_proposal]);
 
     //  check for majority in the poll
     //
-    Poll storage poll = constitutionPolls[_proposal];
+    Poll storage poll = eclipticPolls[_proposal];
     majority = checkPollMajority(poll);
 
     //  if majority was achieved, update the state and send an event
     //
     if (majority)
     {
-      constitutionHasAchievedMajority[_proposal] = true;
-      emit ConstitutionMajority(_proposal);
+      eclipticHasAchievedMajority[_proposal] = true;
+      emit EclipticMajority(_proposal);
     }
     return majority;
   }
@@ -343,7 +343,7 @@ contract Polls is Ownable
   //  updateDocumentPoll(): check whether the _proposal has achieved majority,
   //                        updating the state and sending an event if it has
   //
-  //    this can be called by anyone, because the constitution does not
+  //    this can be called by anyone, because the ecliptic does not
   //    need to be aware of the result
   //
   function updateDocumentPoll(bytes32 _proposal)

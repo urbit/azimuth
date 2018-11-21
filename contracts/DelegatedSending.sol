@@ -2,9 +2,9 @@
 
 pragma solidity 0.4.24;
 
-import './Constitution.sol';
+import './Ecliptic.sol';
 
-//  DelegatedSending: invite-like ship sending
+//  DelegatedSending: invite-like point sending
 //
 //    This contract allows planet owners to gift planets to their friends,
 //    if their prefix has allowed it.
@@ -15,15 +15,15 @@ import './Constitution.sol';
 //    regular users with a way to get their friends and family onto it.
 //
 //    To allow planets to be sent my this contract, stars must set it as
-//    their spawnProxy using the Constitution.
+//    their spawnProxy using the Ecliptic.
 //
-contract DelegatedSending is ReadsShips
+contract DelegatedSending is ReadsAzimuth
 {
-  //  Sent: :by sent :ship
+  //  Sent: :by sent :point
   //
   event Sent( uint64 indexed fromPool,
               uint32 indexed by,
-              uint32 ship,
+              uint32 point,
               address indexed to);
 
   //  limits: per star, the maximum amount of planets any of its planets may
@@ -51,21 +51,21 @@ contract DelegatedSending is ReadsShips
   //
   mapping(uint32 => uint64) public fromPool;
 
-  //  constructor(): register the ships contract
+  //  constructor(): register the azimuth contract
   //
-  constructor(Ships _ships)
-    ReadsShips(_ships)
+  constructor(Azimuth _azimuth)
+    ReadsAzimuth(_azimuth)
     public
   {
     //
   }
 
   //  configureLimit(): as the owner of a star, configure the amount of
-  //                    planets that may be given away per ship.
+  //                    planets that may be given away per point.
   //
   function configureLimit(uint16 _prefix, uint16 _limit)
     external
-    activeShipOwner(_prefix)
+    activePointOwner(_prefix)
   {
     limits[_prefix] = _limit;
   }
@@ -75,24 +75,24 @@ contract DelegatedSending is ReadsShips
   //
   function resetPool(uint32 _for)
     external
-    activeShipOwner(ships.getPrefix(_for))
+    activePointOwner(azimuth.getPrefix(_for))
   {
     fromPool[_for] = 0;
     pools[uint64(_for) + 1] = 0;
   }
 
-  //  sendShip(): as the ship _as, spawn the ship _ship to _to.
+  //  sendPoint(): as the point _as, spawn the point _point to _to.
   //
   //    Requirements:
   //    - :msg.sender must be the owner of _as,
   //    - _to must not be the :msg.sender,
-  //    - _as must be able to send the _ship according to canSend()
+  //    - _as must be able to send the _point according to canSend()
   //
-  function sendShip(uint32 _as, uint32 _ship, address _to)
+  function sendPoint(uint32 _as, uint32 _point, address _to)
     external
-    activeShipOwner(_as)
+    activePointOwner(_as)
   {
-    require(canSend(_as, _ship));
+    require(canSend(_as, _point));
 
     //  caller may not send to themselves
     //
@@ -107,61 +107,61 @@ contract DelegatedSending is ReadsShips
     uint64 pool = getPool(_as);
     pools[pool] = pools[pool] + 1;
 
-    //  associate the _ship with this pool
+    //  associate the _point with this pool
     //
-    fromPool[_ship] = pool;
+    fromPool[_point] = pool;
 
-    //  spawn _ship to _to, they still need to accept the transfer manually
+    //  spawn _point to _to, they still need to accept the transfer manually
     //
-    Constitution(ships.owner()).spawn(_ship, _to);
+    Ecliptic(azimuth.owner()).spawn(_point, _to);
 
-    emit Sent(pool, _as, _ship, _to);
+    emit Sent(pool, _as, _point, _to);
   }
 
-  //  canSend(): check whether current conditions allow _as to send _ship
+  //  canSend(): check whether current conditions allow _as to send _point
   //
-  function canSend(uint32 _as, uint32 _ship)
+  function canSend(uint32 _as, uint32 _point)
     public
     view
     returns (bool result)
   {
-    uint16 prefix = ships.getPrefix(_as);
+    uint16 prefix = azimuth.getPrefix(_as);
     uint64 pool = getPool(_as);
-    return ( //  can only send ships with the same prefix
+    return ( //  can only send points with the same prefix
              //
-             (prefix == ships.getPrefix(_ship)) &&
+             (prefix == azimuth.getPrefix(_point)) &&
              //
              //  _as must not have hit the allowed limit yet
              //
              (pools[pool] < limits[prefix]) &&
              //
-             //  _ship needs to not be (in the process of being) spawned
+             //  _point needs to not be (in the process of being) spawned
              //
-             ships.isOwner(_ship, 0x0) &&
+             azimuth.isOwner(_point, 0x0) &&
              //
-             //  this contract must have permission to spawn ships
+             //  this contract must have permission to spawn points
              //
-             ships.isSpawnProxy(prefix, this) &&
+             azimuth.isSpawnProxy(prefix, this) &&
              //
              //  the prefix must not have hit its spawn limit yet
              //
-             ( ships.getSpawnCount(prefix) <
-               Constitution(ships.owner())
+             ( azimuth.getSpawnCount(prefix) <
+               Ecliptic(azimuth.owner())
                .getSpawnLimit(prefix, block.timestamp) ) &&
              //
              //  the prefix must be live
              //
-             ships.isLive(prefix) );
+             azimuth.isLive(prefix) );
   }
 
-  //  getPool(): get the invite pool _ship belongs to
+  //  getPool(): get the invite pool _point belongs to
   //
-  function getPool(uint32 _ship)
+  function getPool(uint32 _point)
     internal
     view
     returns (uint64 pool)
   {
-    pool = fromPool[_ship];
+    pool = fromPool[_point];
 
     //  no pool explicitly registered means they have their own pool,
     //  because they either were not invited by this contract, or have
@@ -171,21 +171,21 @@ contract DelegatedSending is ReadsShips
     {
       //  the pool for planet n is n + 1, see also :fromPool
       //
-      return uint64(_ship) + 1;
+      return uint64(_point) + 1;
     }
   }
 
   //  canReceive(): wether the _recipient is eligible to receive a planet
   //                from this contract or not
   //
-  //    only those who don't own or are entitled to any ships may receive
+  //    only those who don't own or are entitled to any points may receive
   //
   function canReceive(address _recipient)
     public
     view
     returns (bool result)
   {
-    return ( 0 == ships.getOwnedShipCount(_recipient) &&
-             0 == ships.getTransferringForCount(_recipient) );
+    return ( 0 == azimuth.getOwnedPointCount(_recipient) &&
+             0 == azimuth.getTransferringForCount(_recipient) );
   }
 }

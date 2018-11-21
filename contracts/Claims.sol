@@ -2,24 +2,24 @@
 
 pragma solidity 0.4.24;
 
-import './ReadsShips.sol';
+import './ReadsAzimuth.sol';
 
 //  Claims: simple identity management
 //
-//    This contract allows ships to document claims about their owner.
+//    This contract allows points to document claims about their owner.
 //    Most commonly, these are about identity, with a claim's protocol
 //    defining the context or platform of the claim, and its dossier
 //    containing proof of its validity.
-//    Ships are limited to a maximum of 16 claims.
+//    Azimuth are limited to a maximum of 16 claims.
 //
 //    For existing claims, the dossier can be updated, or the claim can
 //    be removed entirely. It is recommended to remove any claims associated
-//    with a ship when it is about to be transferred to a new owner.
-//    For convenience, the owner of the Ships contract (the Constitution)
-//    is allowed to clear claims for any ship, allowing it to do this for
+//    with a point when it is about to be transferred to a new owner.
+//    For convenience, the owner of the Azimuth contract (the Ecliptic)
+//    is allowed to clear claims for any point, allowing it to do this for
 //    you on-transfer.
 //
-contract Claims is ReadsShips
+contract Claims is ReadsAzimuth
 {
   //  ClaimAdded: a claim was addhd by :by
   //
@@ -32,7 +32,7 @@ contract Claims is ReadsShips
   //
   event ClaimRemoved(uint32 indexed by, string _protocol, string _claim);
 
-  //  maxClaims: the amount of claims that can be registered per ship
+  //  maxClaims: the amount of claims that can be registered per point
   //
   uint8 constant maxClaims = 16;
 
@@ -53,31 +53,31 @@ contract Claims is ReadsShips
     bytes dossier;
   }
 
-  //  per ship, list of claims
+  //  per point, list of claims
   //
   mapping(uint32 => Claim[maxClaims]) public claims;
 
-  //  constructor(): register the ships contract.
+  //  constructor(): register the azimuth contract.
   //
-  constructor(Ships _ships)
-    ReadsShips(_ships)
+  constructor(Azimuth _azimuth)
+    ReadsAzimuth(_azimuth)
     public
   {
     //
   }
 
-  //  addClaim(): register a claim as _ship
+  //  addClaim(): register a claim as _point
   //
-  function addClaim(uint32 _ship,
+  function addClaim(uint32 _point,
                     string _protocol,
                     string _claim,
                     bytes _dossier)
     external
-    activeShipManager(_ship)
+    activePointManager(_point)
   {
     //  cur: index + 1 of the claim if it already exists, 0 otherwise
     //
-    uint8 cur = findClaim(_ship, _protocol, _claim);
+    uint8 cur = findClaim(_point, _protocol, _claim);
 
     //  if the claim doesn't yet exist, store it in state
     //
@@ -85,28 +85,28 @@ contract Claims is ReadsShips
     {
       //  if there are no empty slots left, this throws
       //
-      uint8 empty = findEmptySlot(_ship);
-      claims[_ship][empty] = Claim(_protocol, _claim, _dossier);
+      uint8 empty = findEmptySlot(_point);
+      claims[_point][empty] = Claim(_protocol, _claim, _dossier);
     }
     //
     //  if the claim has been made before, update the version in state
     //
     else
     {
-      claims[_ship][cur-1] = Claim(_protocol, _claim, _dossier);
+      claims[_point][cur-1] = Claim(_protocol, _claim, _dossier);
     }
-    emit ClaimAdded(_ship, _protocol, _claim, _dossier);
+    emit ClaimAdded(_point, _protocol, _claim, _dossier);
   }
 
-  //  removeClaim(): unregister a claim as _ship
+  //  removeClaim(): unregister a claim as _point
   //
-  function removeClaim(uint32 _ship, string _protocol, string _claim)
+  function removeClaim(uint32 _point, string _protocol, string _claim)
     external
-    activeShipManager(_ship)
+    activePointManager(_point)
   {
-    //  i: current index + 1 in _ship's list of claims
+    //  i: current index + 1 in _point's list of claims
     //
-    uint256 i = findClaim(_ship, _protocol, _claim);
+    uint256 i = findClaim(_point, _protocol, _claim);
 
     //  we store index + 1, because 0 is the eth default value
     //  can only delete an existing claim
@@ -116,24 +116,24 @@ contract Claims is ReadsShips
 
     //  clear out the claim
     //
-    claims[_ship][i] = Claim('', '', '');
+    claims[_point][i] = Claim('', '', '');
 
-    emit ClaimRemoved(_ship, _protocol, _claim);
+    emit ClaimRemoved(_point, _protocol, _claim);
   }
 
-  //  clearClaims(): unregister all of _ship's claims
+  //  clearClaims(): unregister all of _point's claims
   //
-  //    can also be called by the constitution during ship transfer
+  //    can also be called by the ecliptic during point transfer
   //
-  function clearClaims(uint32 _ship)
+  function clearClaims(uint32 _point)
     external
   {
-    //  both ship owner and constitution may do this
+    //  both point owner and ecliptic may do this
     //
-    require( ships.canManage(_ship, msg.sender) ||
-             ( msg.sender == ships.owner() ) );
+    require( azimuth.canManage(_point, msg.sender) ||
+             ( msg.sender == azimuth.owner() ) );
 
-    Claim[maxClaims] storage currClaims = claims[_ship];
+    Claim[maxClaims] storage currClaims = claims[_point];
 
     //  clear out all claims
     //

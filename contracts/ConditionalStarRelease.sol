@@ -2,8 +2,8 @@
 
 pragma solidity 0.4.24;
 
-import './Constitution.sol';
-import './TakesShips.sol';
+import './Ecliptic.sol';
+import './TakesPoints.sol';
 import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -55,7 +55,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    them. This saves address space from being lost forever in case of
 //    key loss by participants.
 //
-contract ConditionalStarRelease is Ownable, TakesShips
+contract ConditionalStarRelease is Ownable, TakesPoints
 {
   using SafeMath for uint256;
   using SafeMath16 for uint16;
@@ -152,11 +152,11 @@ contract ConditionalStarRelease is Ownable, TakesShips
 
   //  constructor(): configure conditions and deadlines
   //
-  constructor( Ships _ships,
+  constructor( Azimuth _azimuth,
                bytes32[] _conditions,
                uint256[] _livelines,
                uint256[] _deadlines )
-    TakesShips(_ships)
+    TakesPoints(_azimuth)
     public
   {
     //  sanity check: condition per deadline
@@ -166,9 +166,9 @@ contract ConditionalStarRelease is Ownable, TakesShips
              _livelines.length == _conditions.length &&
              _deadlines.length == _conditions.length );
 
-    //  reference ships and polls contracts
+    //  reference points and polls contracts
     //
-    polls = Constitution(ships.owner()).polls();
+    polls = Ecliptic(azimuth.owner()).polls();
 
     //  install conditions and deadlines, and prepare timestamps array
     //
@@ -240,7 +240,7 @@ contract ConditionalStarRelease is Ownable, TakesShips
       //  have the contract take ownership of the star if possible,
       //  reverting if that fails.
       //
-      require( takeShip(_star, true) );
+      require( takePoint(_star, true) );
 
       //  add _star to the participant's star balance
       //
@@ -426,7 +426,7 @@ contract ConditionalStarRelease is Ownable, TakesShips
 
       //  then transfer the star
       //
-      require( giveShip(star, _to, _reset) );
+      require( givePoint(star, _to, _reset) );
     }
 
   //
@@ -471,10 +471,10 @@ contract ConditionalStarRelease is Ownable, TakesShips
       //
       if (bytes32(0) == condition)
       {
-        //  condition is met if the Constitution has been upgraded
+        //  condition is met if the Ecliptic has been upgraded
         //  at least once.
         //
-        met = (0x0 != Constitution(ships.owner()).previousConstitution());
+        met = (0x0 != Ecliptic(azimuth.owner()).previousEcliptic());
       }
       //
       //  a real condition is met when it has achieved a majority vote

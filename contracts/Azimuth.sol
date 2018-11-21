@@ -1,21 +1,21 @@
-//  the azimuth ship data store
+//  the azimuth data store
 
 pragma solidity 0.4.24;
 
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
-//  Ships: ship state data contract
+//  Azimuth: point state data contract
 //
-//    This contract is used for storing all data related to Azimuth addresses
+//    This contract is used for storing all data related to Azimuth points
 //    and their ownership. Consider this contract the Azimuth ledger.
 //
 //    It also contains permissions data, which ties in to ERC721
 //    functionality. Operators of an address are allowed to transfer
-//    ownership of all ships owned by their associated address
+//    ownership of all points owned by their associated address
 //    (ERC721's approveAll()). A transfer proxy is allowed to transfer
-//    ownership of a single ship (ERC721's approve()).
-//    Separate from ERC721 are managers, assigned per ship. They are
-//    allowed to perform "low-impact" operations on the owner's ships,
+//    ownership of a single point (ERC721's approve()).
+//    Separate from ERC721 are managers, assigned per point. They are
+//    allowed to perform "low-impact" operations on the owner's points,
 //    like configuring public keys and making escape requests.
 //
 //    Since data stores are difficult to upgrade, this contract contains
@@ -23,88 +23,88 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    herein can only be modified by this contract's owner, which can be
 //    changed and is thus upgradable/replacable.
 //
-//    Initially, this contract will be owned by the Constitution contract.
+//    This contract will be owned by the Ecliptic contract.
 //
-contract Ships is Ownable
+contract Azimuth is Ownable
 {
-  //  OwnerChanged: :ship is now owned by :owner
+  //  OwnerChanged: :point is now owned by :owner
   //
-  event OwnerChanged(uint32 indexed ship, address indexed owner);
+  event OwnerChanged(uint32 indexed point, address indexed owner);
 
-  //  Activated: :ship is now activate
+  //  Activated: :point is now activate
   //
-  event Activated(uint32 indexed ship);
+  event Activated(uint32 indexed point);
 
   //  Spawned: :parent has spawned :child.
   //
   event Spawned(uint32 indexed parent, uint32 child);
 
-  //  EscapeRequested: :ship has requested a new sponsor, :sponsor
+  //  EscapeRequested: :point has requested a new sponsor, :sponsor
   //
-  event EscapeRequested(uint32 indexed ship, uint32 indexed sponsor);
+  event EscapeRequested(uint32 indexed point, uint32 indexed sponsor);
 
-  //  EscapeCanceled: :ship's :sponsor request was canceled or rejected
+  //  EscapeCanceled: :point's :sponsor request was canceled or rejected
   //
-  event EscapeCanceled(uint32 indexed ship, uint32 indexed sponsor);
+  event EscapeCanceled(uint32 indexed point, uint32 indexed sponsor);
 
-  //  EscapeAccepted: :ship confirmed with a new sponsor, :sponsor
+  //  EscapeAccepted: :point confirmed with a new sponsor, :sponsor
   //
-  event EscapeAccepted(uint32 indexed ship, uint32 indexed sponsor);
+  event EscapeAccepted(uint32 indexed point, uint32 indexed sponsor);
 
-  //  LostSponsor: :ship's sponsor is now refusing it service
+  //  LostSponsor: :point's sponsor is now refusing it service
   //
-  event LostSponsor(uint32 indexed ship, uint32 indexed sponsor);
+  event LostSponsor(uint32 indexed point, uint32 indexed sponsor);
 
-  //  ChangedKeys: :ship has new network public keys, :crypt and :auth
+  //  ChangedKeys: :point has new network public keys, :crypt and :auth
   //
-  event ChangedKeys( uint32 indexed ship,
+  event ChangedKeys( uint32 indexed point,
                      bytes32 encryptionKey,
                      bytes32 authenticationKey,
                      uint32 cryptoSuiteVersion,
                      uint32 keyRevisionNumber );
 
-  //  BrokeContinuity: :ship has a new continuity number, :number.
+  //  BrokeContinuity: :point has a new continuity number, :number.
   //
-  event BrokeContinuity(uint32 indexed ship, uint32 number);
+  event BrokeContinuity(uint32 indexed point, uint32 number);
 
-  //  ChangedSpawnProxy: :ship has a new spawn proxy
+  //  ChangedSpawnProxy: :point has a new spawn proxy
   //
-  event ChangedSpawnProxy(uint32 indexed ship, address indexed spawnProxy);
+  event ChangedSpawnProxy(uint32 indexed point, address indexed spawnProxy);
 
-  //  ChangedTransferProxy: :ship has a new transfer proxy
+  //  ChangedTransferProxy: :point has a new transfer proxy
   //
-  event ChangedTransferProxy( uint32 indexed ship,
+  event ChangedTransferProxy( uint32 indexed point,
                               address indexed transferProxy );
 
-  //  ChangedManagementProxy: :manager can now manage :ship
+  //  ChangedManagementProxy: :manager can now manage :point
   //
-  event ChangedManagementProxy(uint32 indexed ship, address indexed manager);
+  event ChangedManagementProxy(uint32 indexed point, address indexed manager);
 
-  //  ChangedVotingProxy: :voter can now vote using :ship
+  //  ChangedVotingProxy: :voter can now vote using :point
   //
-  event ChangedVotingProxy(uint32 indexed ship, address indexed voter);
+  event ChangedVotingProxy(uint32 indexed point, address indexed voter);
 
   //  ChangedDns: dnsDomains has been updated
   //
   event ChangedDns(string primary, string secondary, string tertiary);
 
-  //  Class: classes of ship registered on-chain
+  //  Size: kinds of points registered on-chain
   //
-  enum Class
+  enum Size
   {
     Galaxy,
     Star,
     Planet
   }
 
-  //  Hull: state of a ship
+  //  Point: state of a point
   //
-  struct Hull
+  struct Point
   {
-    //  active: whether ship can be run
+    //  active: whether point can be used
     //
-    //    false: ship belongs to parent, cannot be booted
-    //    true: ship has been, or can be, booted
+    //    false: point belongs to parent, cannot be used
+    //    true: point has been, or can be, used
     //
     bool active;
 
@@ -132,17 +132,17 @@ contract Ships is Ownable
     //
     uint32[] spawned;
 
-    //  sponsor: ship that supports this one on the network, or,
-    //           if :hasSponsor is false, the last ship that supported it.
-    //           (by default, the ship's half-width prefix)
+    //  sponsor: the point that supports this one on the network, or,
+    //           if :hasSponsor is false, the last point that supported it.
+    //           (by default, the point's half-width prefix)
     //
     uint32 sponsor;
 
-    //  hasSponsor: true if the sponsor still supports the ship
+    //  hasSponsor: true if the sponsor still supports the point
     //
     bool hasSponsor;
 
-    //  escapeRequested: true if the ship has requested to change sponsors
+    //  escapeRequested: true if the point has requested to change sponsors
     //
     bool escapeRequested;
 
@@ -153,7 +153,7 @@ contract Ships is Ownable
 
   struct Deed
   {
-    //  owner: address that owns this ship
+    //  owner: address that owns this point
     //
     address owner;
 
@@ -162,7 +162,7 @@ contract Ships is Ownable
     //
     address managementProxy;
 
-    //  votingProxy: 0, or another address with the right to vote as this ship
+    //  votingProxy: 0, or another address with the right to vote
     //
     address votingProxy;
 
@@ -175,81 +175,81 @@ contract Ships is Ownable
     address transferProxy;
   }
 
-  //  ships: per ship, general network-relevant ship state
+  //  points: per point, general network-relevant point state
   //
-  mapping(uint32 => Hull) public ships;
+  mapping(uint32 => Point) public points;
 
-  //  rights: per ship, on-chain ownership and permissions
+  //  rights: per point, on-chain ownership and permissions
   //
   mapping(uint32 => Deed) public rights;
 
-  //  shipsOwnedBy: per address, list of ships owned
+  //  pointsOwnedBy: per address, list of points owned
   //
-  mapping(address => uint32[]) public shipsOwnedBy;
+  mapping(address => uint32[]) public pointsOwnedBy;
 
-  //  shipOwnerIndexes: per owner per ship, (index + 1) in shipsOwnedBy array
+  //  pointOwnerIndexes: per owner per point, (index + 1) in pointsOwnedBy array
   //
   //    We delete owners by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
-  //    shipOwnerIndexes[owner][ship].
+  //    pointOwnerIndexes[owner][point].
   //
-  mapping(address => mapping(uint32 => uint256)) public shipOwnerIndexes;
+  mapping(address => mapping(uint32 => uint256)) public pointOwnerIndexes;
 
   //  operators: per owner, per address, has the right to transfer ownership
-  //             of all the owner's ships (ERC721)
+  //             of all the owner's points (ERC721)
   //
   mapping(address => mapping(address => bool)) public operators;
 
-  //  managerFor: per address, the ships they are managing
+  //  managerFor: per address, the points they are managing
   //
   mapping(address => uint32[]) public managerFor;
 
-  //  managerForIndexes: per address, per ship, (index + 1) in
-  //                      the managerFor array
+  //  managerForIndexes: per address, per point, (index + 1) in
+  //                     the managerFor array
   //
   mapping(address => mapping(uint32 => uint256)) public managerForIndexes;
 
-  //  votingFor: per address, the ships they can vote with
+  //  votingFor: per address, the points they can vote with
   //
   mapping(address => uint32[]) public votingFor;
 
-  //  votingForIndexes: per address, per ship, (index + 1) in
+  //  votingForIndexes: per address, per point, (index + 1) in
   //                    the votingFor array
   //
   mapping(address => mapping(uint32 => uint256)) public votingForIndexes;
 
-  //  transferringFor: per address, the ships they are transfer proxy for
+  //  transferringFor: per address, the points they are transfer proxy for
   //
   mapping(address => uint32[]) public transferringFor;
 
-  //  transferringForIndexes: per address, per ship, (index + 1) in
+  //  transferringForIndexes: per address, per point, (index + 1) in
   //                          the transferringFor array
   //
   mapping(address => mapping(uint32 => uint256)) public transferringForIndexes;
 
-  //  spawningFor: per address, the ships they are spawn proxy for
+  //  spawningFor: per address, the points they are spawn proxy for
   //
   mapping(address => uint32[]) public spawningFor;
 
-  //  spawningForIndexes: per address, per ship, (index + 1) in
+  //  spawningForIndexes: per address, per point, (index + 1) in
   //                      the spawningFor array
   //
   mapping(address => mapping(uint32 => uint256)) public spawningForIndexes;
 
-  //  sponsoring: per ship, the ships they are sponsoring
+  //  sponsoring: per point, the points they are sponsoring
   //
   mapping(uint32 => uint32[]) public sponsoring;
 
-  //  sponsoringIndexes: per ship, per ship, (index + 1) in
+  //  sponsoringIndexes: per point, per point, (index + 1) in
   //                     the sponsoring array
   //
   mapping(uint32 => mapping(uint32 => uint256)) public sponsoringIndexes;
 
-  //  escapeRequests: per ship, the ships they have open escape requests from
+  //  escapeRequests: per point, the points they have open escape requests from
   //
   mapping(uint32 => uint32[]) public escapeRequests;
 
-  //  escapeRequestsIndexes: per ship, per ship, (index + 1) in
+  //  escapeRequestsIndexes: per point, per point, (index + 1) in
   //                         the escapeRequests array
   //
   mapping(uint32 => mapping(uint32 => uint256)) public escapeRequestsIndexes;
@@ -288,109 +288,109 @@ contract Ships is Ownable
       emit ChangedDns(_primary, _secondary, _tertiary);
     }
 
-    //  getOwnedShips(): return array of ships that :msg.sender owns
+    //  getOwnedPoints(): return array of points that :msg.sender owns
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getOwnedShips()
+    function getOwnedPoints()
       view
       external
-      returns (uint32[] ownedShips)
+      returns (uint32[] ownedAzimuth)
     {
-      return shipsOwnedBy[msg.sender];
+      return pointsOwnedBy[msg.sender];
     }
 
-    //  getOwnedShipsByAddress(): return array of ships that _whose owns
+    //  getOwnedPointsByAddress(): return array of points that _whose owns
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getOwnedShipsByAddress(address _whose)
+    function getOwnedPointsByAddress(address _whose)
       view
       external
-      returns (uint32[] ownedShips)
+      returns (uint32[] ownedPoints)
     {
-      return shipsOwnedBy[_whose];
+      return pointsOwnedBy[_whose];
     }
 
-    //  getOwnedShipCount(): return length of array of ships that _whose owns
+    //  getOwnedPointCount(): return length of array of points that _whose owns
     //
-    function getOwnedShipCount(address _whose)
+    function getOwnedPointCount(address _whose)
       view
       external
       returns (uint256 count)
     {
-      return shipsOwnedBy[_whose].length;
+      return pointsOwnedBy[_whose].length;
     }
 
-    //  getOwnedShipAtIndex(): get ship at _index from array of ships that
+    //  getOwnedPointAtIndex(): get point at _index from array of points that
     //                         _whose owns
     //
-    function getOwnedShipAtIndex(address _whose, uint256 _index)
+    function getOwnedPointAtIndex(address _whose, uint256 _index)
       view
       external
-      returns (uint32 ship)
+      returns (uint32 point)
     {
-      uint32[] storage owned = shipsOwnedBy[_whose];
+      uint32[] storage owned = pointsOwnedBy[_whose];
       require(_index < owned.length);
       return owned[_index];
     }
 
-    //  isOwner(): true if _ship is owned by _address
+    //  isOwner(): true if _point is owned by _address
     //
-    function isOwner(uint32 _ship, address _address)
+    function isOwner(uint32 _point, address _address)
       view
       external
       returns (bool result)
     {
-      return (rights[_ship].owner == _address);
+      return (rights[_point].owner == _address);
     }
 
-    //  getOwner(): return owner of _ship
+    //  getOwner(): return owner of _point
     //
-    function getOwner(uint32 _ship)
+    function getOwner(uint32 _point)
       view
       external
       returns (address owner)
     {
-      return rights[_ship].owner;
+      return rights[_point].owner;
     }
 
-    //  setOwner(): set owner of _ship to _owner
+    //  setOwner(): set owner of _point to _owner
     //
     //    Note: setOwner() only implements the minimal data storage
-    //    logic for a transfer; use the constitution contract for a
-    //    full transfer.
+    //    logic for a transfer; the full transfer is implemented in
+    //    Ecliptic.
     //
     //    Note: _owner must not be the zero address.
     //
-    function setOwner(uint32 _ship, address _owner)
+    function setOwner(uint32 _point, address _owner)
       onlyOwner
       external
     {
-      //  prevent burning of ships by making zero the owner
+      //  prevent burning of points by making zero the owner
       //
       require(0x0 != _owner);
 
       //  prev: previous owner, if any
       //
-      address prev = rights[_ship].owner;
+      address prev = rights[_point].owner;
 
       if (prev == _owner)
       {
         return;
       }
 
-      //  if the ship used to have a different owner, do some gymnastics to
-      //  keep the list of owned ships gapless.  delete this ship from the
+      //  if the point used to have a different owner, do some gymnastics to
+      //  keep the list of owned points gapless.  delete this point from the
       //  list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous owner's list of owned ships
+        //  i: current index in previous owner's list of owned points
         //
-        uint256 i = shipOwnerIndexes[prev][_ship];
+        uint256 i = pointOwnerIndexes[prev][_point];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -398,78 +398,78 @@ contract Ships is Ownable
         i--;
 
         //  copy the last item in the list into the now-unused slot,
-        //  making sure to update its :shipOwnerIndexes reference
+        //  making sure to update its :pointOwnerIndexes reference
         //
-        uint32[] storage owner = shipsOwnedBy[prev];
+        uint32[] storage owner = pointsOwnedBy[prev];
         uint256 last = owner.length - 1;
         uint32 moved = owner[last];
         owner[i] = moved;
-        shipOwnerIndexes[prev][moved] = i + 1;
+        pointOwnerIndexes[prev][moved] = i + 1;
 
         //  delete the last item
         //
         delete(owner[last]);
         owner.length = last;
-        shipOwnerIndexes[prev][_ship] = 0;
+        pointOwnerIndexes[prev][_point] = 0;
       }
 
       //  update the owner list and the owner's index list
       //
-      rights[_ship].owner = _owner;
-      shipsOwnedBy[_owner].push(_ship);
-      shipOwnerIndexes[_owner][_ship] = shipsOwnedBy[_owner].length;
-      emit OwnerChanged(_ship, _owner);
+      rights[_point].owner = _owner;
+      pointsOwnedBy[_owner].push(_point);
+      pointOwnerIndexes[_owner][_point] = pointsOwnedBy[_owner].length;
+      emit OwnerChanged(_point, _owner);
     }
 
-    function isManagementProxy(uint32 _ship, address _manager)
+    function isManagementProxy(uint32 _point, address _manager)
       view
       external
       returns (bool result)
     {
-      return (rights[_ship].managementProxy == _manager);
+      return (rights[_point].managementProxy == _manager);
     }
 
-    function getManagementProxy(uint32 _ship)
+    function getManagementProxy(uint32 _point)
       view
       external
       returns (address manager)
     {
-      return rights[_ship].managementProxy;
+      return rights[_point].managementProxy;
     }
 
-    //  canManage(): true if _who is the owner of _ship,
-    //               or the manager of _ship's owner
+    //  canManage(): true if _who is the owner of _point,
+    //               or the manager of _point's owner
     //
-    function canManage(uint32 _ship, address _who)
+    function canManage(uint32 _point, address _who)
       view
       external
       returns (bool result)
     {
-      Deed storage deed = rights[_ship];
+      Deed storage deed = rights[_point];
       return ( (_who == deed.owner) ||
                (_who == deed.managementProxy) );
     }
 
-    function setManagementProxy(uint32 _ship, address _manager)
+    function setManagementProxy(uint32 _point, address _manager)
       onlyOwner
       external
     {
-      Deed storage deed = rights[_ship];
+      Deed storage deed = rights[_point];
       address prev = deed.managementProxy;
       if (prev == _manager)
       {
         return;
       }
 
-      //  if the ship used to have a different manager, do some gymnastics
-      //  to keep the reverse lookup gapless.  delete the ship from the
+      //  if the point used to have a different manager, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the point from the
       //  old manager's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous manager's list of managed ships
+        //  i: current index in previous manager's list of managed points
         //
-        uint256 i = managerForIndexes[prev][_ship];
+        uint256 i = managerForIndexes[prev][_point];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -489,18 +489,18 @@ contract Ships is Ownable
         //
         delete(prevMfor[last]);
         prevMfor.length = last;
-        managerForIndexes[prev][_ship] = 0;
+        managerForIndexes[prev][_point] = 0;
       }
 
       if (0x0 != _manager)
       {
         uint32[] storage mfor = managerFor[_manager];
-        mfor.push(_ship);
-        managerForIndexes[_manager][_ship] = mfor.length;
+        mfor.push(_point);
+        managerForIndexes[_manager][_point] = mfor.length;
       }
 
       deed.managementProxy = _manager;
-      emit ChangedManagementProxy(_ship, _manager);
+      emit ChangedManagementProxy(_point, _manager);
     }
 
     function getManagerForCount(address _manager)
@@ -524,56 +524,56 @@ contract Ships is Ownable
       return managerFor[_manager];
     }
 
-    function isVotingProxy(uint32 _ship, address _voter)
+    function isVotingProxy(uint32 _point, address _voter)
       view
       external
       returns (bool result)
     {
-      return (rights[_ship].votingProxy == _voter);
+      return (rights[_point].votingProxy == _voter);
     }
 
-    function getVotingProxy(uint32 _ship)
+    function getVotingProxy(uint32 _point)
       view
       external
       returns (address voter)
     {
-      return rights[_ship].votingProxy;
+      return rights[_point].votingProxy;
     }
 
-    //  canVoteAs(): true if _who is the owner of _ship,
-    //               or the voting proxy of _ship's owner
+    //  canVoteAs(): true if _who is the owner of _point,
+    //               or the voting proxy of _point's owner
     //
-    function canVoteAs(uint32 _ship, address _who)
+    function canVoteAs(uint32 _point, address _who)
       view
       external
       returns (bool result)
     {
-      Deed storage deed = rights[_ship];
+      Deed storage deed = rights[_point];
       return ( (_who == deed.owner) ||
                (_who == deed.votingProxy) );
     }
 
-    function setVotingProxy(uint32 _ship, address _voter)
+    function setVotingProxy(uint32 _point, address _voter)
       onlyOwner
       external
     {
-      Deed storage deed = rights[_ship];
+      Deed storage deed = rights[_point];
       address prev = deed.votingProxy;
       if (prev == _voter)
       {
         return;
       }
 
-      //  if the ship used to have a different voter, do some gymnastics
-      //  to keep the reverse lookup gapless.  delete the ship from the
+      //  if the point used to have a different voter, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the point from the
       //  old voter's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous voter's list of ships it was
+        //  i: current index in previous voter's list of points it was
         //     voting for
         //
-        uint256 i = votingForIndexes[prev][_ship];
+        uint256 i = votingForIndexes[prev][_point];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -593,18 +593,18 @@ contract Ships is Ownable
         //
         delete(prevVfor[last]);
         prevVfor.length = last;
-        votingForIndexes[prev][_ship] = 0;
+        votingForIndexes[prev][_point] = 0;
       }
 
       if (0x0 != _voter)
       {
         uint32[] storage vfor = votingFor[_voter];
-        vfor.push(_ship);
-        votingForIndexes[_voter][_ship] = vfor.length;
+        vfor.push(_point);
+        votingForIndexes[_voter][_point] = vfor.length;
       }
 
       deed.votingProxy = _voter;
-      emit ChangedVotingProxy(_ship, _voter);
+      emit ChangedVotingProxy(_point, _voter);
     }
 
     function getVotingForCount(address _voter)
@@ -628,267 +628,267 @@ contract Ships is Ownable
       return votingFor[_voter];
     }
 
-    //  isActive(): return true if ship is active
+    //  isActive(): return true if point is active
     //
-    function isActive(uint32 _ship)
+    function isActive(uint32 _point)
       view
       external
       returns (bool equals)
     {
-      return ships[_ship].active;
+      return points[_point].active;
     }
 
-    //  activateShip(): activate a ship, register it as spawned by its parent
+    //  activatePoint(): activate a point, register it as spawned by its parent
     //
-    function activateShip(uint32 _ship)
+    function activatePoint(uint32 _point)
       onlyOwner
       external
     {
-      //  make a ship active, setting its sponsor to its prefix
+      //  make a point active, setting its sponsor to its prefix
       //
-      Hull storage ship = ships[_ship];
-      require(!ship.active);
-      ship.active = true;
-      registerSponsor(_ship, true, getPrefix(_ship));
-      emit Activated(_ship);
+      Point storage point = points[_point];
+      require(!point.active);
+      point.active = true;
+      registerSponsor(_point, true, getPrefix(_point));
+      emit Activated(_point);
     }
 
-    //  registerSpawn(): add a ship to its parent's list of spawned ships
+    //  registerSpawn(): add a point to its parent's list of spawned points
     //
-    function registerSpawned(uint32 _ship)
+    function registerSpawned(uint32 _point)
       onlyOwner
       external
     {
-      //  if a ship is its own prefix (a galaxy) then don't register it
+      //  if a point is its own prefix (a galaxy) then don't register it
       //
-      uint32 prefix = getPrefix(_ship);
-      if (prefix == _ship)
+      uint32 prefix = getPrefix(_point);
+      if (prefix == _point)
       {
         return;
       }
 
-      //  register a new spawned ship for the prefix
+      //  register a new spawned point for the prefix
       //
-      ships[prefix].spawned.push(_ship);
-      emit Spawned(prefix, _ship);
+      points[prefix].spawned.push(_point);
+      emit Spawned(prefix, _point);
     }
 
-    function getKeys(uint32 _ship)
+    function getKeys(uint32 _point)
       view
       external
       returns (bytes32 crypt, bytes32 auth, uint32 suite, uint32 revision)
     {
-      Hull storage ship = ships[_ship];
-      return (ship.encryptionKey,
-              ship.authenticationKey,
-              ship.cryptoSuiteVersion,
-              ship.keyRevisionNumber);
+      Point storage point = points[_point];
+      return (point.encryptionKey,
+              point.authenticationKey,
+              point.cryptoSuiteVersion,
+              point.keyRevisionNumber);
     }
 
-    function getKeyRevisionNumber(uint32 _ship)
+    function getKeyRevisionNumber(uint32 _point)
       view
       external
       returns (uint32 revision)
     {
-      return ships[_ship].keyRevisionNumber;
+      return points[_point].keyRevisionNumber;
     }
 
-    //  hasBeenBooted(): returns true if the ship has ever been assigned keys
+    //  hasBeenUsed(): returns true if the point has ever been assigned keys
     //
-    function hasBeenBooted(uint32 _ship)
+    function hasBeenUsed(uint32 _point)
       view
       external
       returns (bool result)
     {
-      return ( ships[_ship].keyRevisionNumber > 0 );
+      return ( points[_point].keyRevisionNumber > 0 );
     }
 
-    //  isLive(): returns true if _ship currently has keys properly configured
+    //  isLive(): returns true if _point currently has keys properly configured
     //
-    function isLive(uint32 _ship)
+    function isLive(uint32 _point)
       view
       external
       returns (bool result)
     {
-      Hull storage ship = ships[_ship];
-      return ( ship.encryptionKey != 0 &&
-               ship.authenticationKey != 0 &&
-               ship.cryptoSuiteVersion != 0 );
+      Point storage point = points[_point];
+      return ( point.encryptionKey != 0 &&
+               point.authenticationKey != 0 &&
+               point.cryptoSuiteVersion != 0 );
     }
 
-    //  setKeys(): set network public keys of _ship to _encryptionKey and
+    //  setKeys(): set network public keys of _point to _encryptionKey and
     //            _authenticationKey
     //
-    function setKeys(uint32 _ship,
+    function setKeys(uint32 _point,
                      bytes32 _encryptionKey,
                      bytes32 _authenticationKey,
                      uint32 _cryptoSuiteVersion)
       onlyOwner
       external
     {
-      Hull storage ship = ships[_ship];
-      if ( ship.encryptionKey == _encryptionKey &&
-           ship.authenticationKey == _authenticationKey &&
-           ship.cryptoSuiteVersion == _cryptoSuiteVersion )
+      Point storage point = points[_point];
+      if ( point.encryptionKey == _encryptionKey &&
+           point.authenticationKey == _authenticationKey &&
+           point.cryptoSuiteVersion == _cryptoSuiteVersion )
       {
         return;
       }
 
-      ship.encryptionKey = _encryptionKey;
-      ship.authenticationKey = _authenticationKey;
-      ship.cryptoSuiteVersion = _cryptoSuiteVersion;
-      ship.keyRevisionNumber++;
+      point.encryptionKey = _encryptionKey;
+      point.authenticationKey = _authenticationKey;
+      point.cryptoSuiteVersion = _cryptoSuiteVersion;
+      point.keyRevisionNumber++;
 
-      emit ChangedKeys(_ship,
+      emit ChangedKeys(_point,
                        _encryptionKey,
                        _authenticationKey,
                        _cryptoSuiteVersion,
-                       ship.keyRevisionNumber);
+                       point.keyRevisionNumber);
     }
 
-    function getContinuityNumber(uint32 _ship)
+    function getContinuityNumber(uint32 _point)
       view
       external
       returns (uint32 continuityNumber)
     {
-      return ships[_ship].continuityNumber;
+      return points[_point].continuityNumber;
     }
 
-    function incrementContinuityNumber(uint32 _ship)
+    function incrementContinuityNumber(uint32 _point)
       onlyOwner
       external
     {
-      Hull storage ship = ships[_ship];
-      ship.continuityNumber++;
-      emit BrokeContinuity(_ship, ship.continuityNumber);
+      Point storage point = points[_point];
+      point.continuityNumber++;
+      emit BrokeContinuity(_point, point.continuityNumber);
     }
 
-    //  getSpawnCount(): return the number of children spawned by _ship
+    //  getSpawnCount(): return the number of children spawned by _point
     //
-    function getSpawnCount(uint32 _ship)
+    function getSpawnCount(uint32 _point)
       view
       external
       returns (uint32 spawnCount)
     {
-      uint256 len = ships[_ship].spawned.length;
+      uint256 len = points[_point].spawned.length;
       assert(len < 2**32);
       return uint32(len);
     }
 
-    //  getSpawned(): return array ships spawned under _ship
+    //  getSpawned(): return array of points created under _point
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getSpawned(uint32 _ship)
+    function getSpawned(uint32 _point)
       view
       external
       returns (uint32[] spawned)
     {
-      return ships[_ship].spawned;
+      return points[_point].spawned;
     }
 
-    function getSponsor(uint32 _ship)
+    function getSponsor(uint32 _point)
       view
       external
       returns (uint32 sponsor)
     {
-      return ships[_ship].sponsor;
+      return points[_point].sponsor;
     }
 
-    function hasSponsor(uint32 _ship)
+    function hasSponsor(uint32 _point)
       view
       external
       returns (bool has)
     {
-      return ships[_ship].hasSponsor;
+      return points[_point].hasSponsor;
     }
 
-    function isSponsor(uint32 _ship, uint32 _sponsor)
+    function isSponsor(uint32 _point, uint32 _sponsor)
       view
       external
       returns (bool result)
     {
-      Hull storage ship = ships[_ship];
-      return ( ship.hasSponsor &&
-               (ship.sponsor == _sponsor) );
+      Point storage point = points[_point];
+      return ( point.hasSponsor &&
+               (point.sponsor == _sponsor) );
     }
 
-    function loseSponsor(uint32 _ship)
+    function loseSponsor(uint32 _point)
       onlyOwner
       external
     {
-      Hull storage ship = ships[_ship];
-      if (!ship.hasSponsor)
+      Point storage point = points[_point];
+      if (!point.hasSponsor)
       {
         return;
       }
-      registerSponsor(_ship, false, ship.sponsor);
-      emit LostSponsor(_ship, ship.sponsor);
+      registerSponsor(_point, false, point.sponsor);
+      emit LostSponsor(_point, point.sponsor);
     }
 
-    function isEscaping(uint32 _ship)
+    function isEscaping(uint32 _point)
       view
       external
       returns (bool escaping)
     {
-      return ships[_ship].escapeRequested;
+      return points[_point].escapeRequested;
     }
 
-    function getEscapeRequest(uint32 _ship)
+    function getEscapeRequest(uint32 _point)
       view
       external
       returns (uint32 escape)
     {
-      return ships[_ship].escapeRequestedTo;
+      return points[_point].escapeRequestedTo;
     }
 
-    function isRequestingEscapeTo(uint32 _ship, uint32 _sponsor)
+    function isRequestingEscapeTo(uint32 _point, uint32 _sponsor)
       view
       public
       returns (bool equals)
     {
-      Hull storage ship = ships[_ship];
-      return (ship.escapeRequested && (ship.escapeRequestedTo == _sponsor));
+      Point storage point = points[_point];
+      return (point.escapeRequested && (point.escapeRequestedTo == _sponsor));
     }
 
-    function setEscapeRequest(uint32 _ship, uint32 _sponsor)
+    function setEscapeRequest(uint32 _point, uint32 _sponsor)
       onlyOwner
       external
     {
-      if (isRequestingEscapeTo(_ship, _sponsor))
+      if (isRequestingEscapeTo(_point, _sponsor))
       {
         return;
       }
-      registerEscapeRequest(_ship, true, _sponsor);
-      emit EscapeRequested(_ship, _sponsor);
+      registerEscapeRequest(_point, true, _sponsor);
+      emit EscapeRequested(_point, _sponsor);
     }
 
-    function cancelEscape(uint32 _ship)
+    function cancelEscape(uint32 _point)
       onlyOwner
       external
     {
-      Hull storage ship = ships[_ship];
-      if (!ship.escapeRequested)
+      Point storage point = points[_point];
+      if (!point.escapeRequested)
       {
         return;
       }
-      uint32 request = ship.escapeRequestedTo;
-      registerEscapeRequest(_ship, false, 0);
-      emit EscapeCanceled(_ship, request);
+      uint32 request = point.escapeRequestedTo;
+      registerEscapeRequest(_point, false, 0);
+      emit EscapeCanceled(_point, request);
     }
 
     //  doEscape(): perform the requested escape
     //
-    function doEscape(uint32 _ship)
+    function doEscape(uint32 _point)
       onlyOwner
       external
     {
-      Hull storage ship = ships[_ship];
-      require(ship.escapeRequested);
-      registerSponsor(_ship, true, ship.escapeRequestedTo);
-      registerEscapeRequest(_ship, false, 0);
-      emit EscapeAccepted(_ship, ship.sponsor);
+      Point storage point = points[_point];
+      require(point.escapeRequested);
+      registerSponsor(_point, true, point.escapeRequestedTo);
+      registerEscapeRequest(_point, false, 0);
+      emit EscapeAccepted(_point, point.sponsor);
     }
 
     function getSponsoringCount(uint32 _sponsor)
@@ -899,7 +899,7 @@ contract Ships is Ownable
       return sponsoring[_sponsor].length;
     }
 
-    //  getSponsoring(): get the ships _sponsor is a sponsor for
+    //  getSponsoring(): get the points _sponsor is a sponsor for
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
@@ -920,7 +920,7 @@ contract Ships is Ownable
       return escapeRequests[_sponsor].length;
     }
 
-    //  getEscapeRequests(): get the ships _sponsor has received escape
+    //  getEscapeRequests(): get the points _sponsor has received escape
     //                       requests from
     //
     //    Note: only useful for clients, as Solidity does not currently
@@ -934,42 +934,42 @@ contract Ships is Ownable
       return escapeRequests[_sponsor];
     }
 
-    function isSpawnProxy(uint32 _ship, address _spawner)
+    function isSpawnProxy(uint32 _point, address _spawner)
       view
       external
       returns (bool result)
     {
-      return (rights[_ship].spawnProxy == _spawner);
+      return (rights[_point].spawnProxy == _spawner);
     }
 
-    function getSpawnProxy(uint32 _ship)
+    function getSpawnProxy(uint32 _point)
       view
       external
       returns (address spawnProxy)
     {
-      return rights[_ship].spawnProxy;
+      return rights[_point].spawnProxy;
     }
 
-    function setSpawnProxy(uint32 _ship, address _spawner)
+    function setSpawnProxy(uint32 _point, address _spawner)
       onlyOwner
       external
     {
-      Deed storage deed = rights[_ship];
+      Deed storage deed = rights[_point];
       address prev = deed.spawnProxy;
       if (prev == _spawner)
       {
         return;
       }
 
-      //  if the ship used to have a different spawn proxy, do some
-      //  gymnastics to keep the reverse lookup gapless.  delete the ship
+      //  if the point used to have a different spawn proxy, do some
+      //  gymnastics to keep the reverse lookup gapless.  delete the point
       //  from the old proxy's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous proxy's list of spawning ships
+        //  i: current index in previous proxy's list of spawning points
         //
-        uint256 i = spawningForIndexes[prev][_ship];
+        uint256 i = spawningForIndexes[prev][_point];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -989,18 +989,18 @@ contract Ships is Ownable
         //
         delete(prevSfor[last]);
         prevSfor.length = last;
-        spawningForIndexes[prev][_ship] = 0;
+        spawningForIndexes[prev][_point] = 0;
       }
 
       if (0x0 != _spawner)
       {
         uint32[] storage sfor = spawningFor[_spawner];
-        sfor.push(_ship);
-        spawningForIndexes[_spawner][_ship] = sfor.length;
+        sfor.push(_point);
+        spawningForIndexes[_spawner][_point] = sfor.length;
       }
 
       deed.spawnProxy = _spawner;
-      emit ChangedSpawnProxy(_ship, _spawner);
+      emit ChangedSpawnProxy(_point, _spawner);
     }
 
     function getSpawningForCount(address _proxy)
@@ -1011,7 +1011,7 @@ contract Ships is Ownable
       return spawningFor[_proxy].length;
     }
 
-    //  getSpawningFor(): get the ships _proxy is a spawn proxy for
+    //  getSpawningFor(): get the points _proxy is a spawn proxy for
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
@@ -1024,44 +1024,44 @@ contract Ships is Ownable
       return spawningFor[_proxy];
     }
 
-    function isTransferProxy(uint32 _ship, address _transferrer)
+    function isTransferProxy(uint32 _point, address _transferrer)
       view
       external
       returns (bool result)
     {
-      return (rights[_ship].transferProxy == _transferrer);
+      return (rights[_point].transferProxy == _transferrer);
     }
 
-    function getTransferProxy(uint32 _ship)
+    function getTransferProxy(uint32 _point)
       view
       external
       returns (address transferProxy)
     {
-      return rights[_ship].transferProxy;
+      return rights[_point].transferProxy;
     }
 
-    //  setTransferProxy(): configure _transferrer as transfer proxy for _ship
+    //  setTransferProxy(): configure _transferrer as transfer proxy for _point
     //
-    function setTransferProxy(uint32 _ship, address _transferrer)
+    function setTransferProxy(uint32 _point, address _transferrer)
       onlyOwner
       external
     {
-      Deed storage deed = rights[_ship];
+      Deed storage deed = rights[_point];
       address prev = deed.transferProxy;
       if (prev == _transferrer)
       {
         return;
       }
 
-      //  if the ship used to have a different transfer proxy, do some
-      //  gymnastics to keep the reverse lookup gapless.  delete the ship
+      //  if the point used to have a different transfer proxy, do some
+      //  gymnastics to keep the reverse lookup gapless.  delete the point
       //  from the old proxy's list, then fill that gap with the list tail.
       //
       if (0x0 != prev)
       {
-        //  i: current index in previous proxy's list of transferable ships
+        //  i: current index in previous proxy's list of transferable points
         //
-        uint256 i = transferringForIndexes[prev][_ship];
+        uint256 i = transferringForIndexes[prev][_point];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -1081,18 +1081,18 @@ contract Ships is Ownable
         //
         delete(prevTfor[last]);
         prevTfor.length = last;
-        transferringForIndexes[prev][_ship] = 0;
+        transferringForIndexes[prev][_point] = 0;
       }
 
       if (0x0 != _transferrer)
       {
         uint32[] storage tfor = transferringFor[_transferrer];
-        tfor.push(_ship);
-        transferringForIndexes[_transferrer][_ship] = tfor.length;
+        tfor.push(_point);
+        transferringForIndexes[_transferrer][_point] = tfor.length;
       }
 
       deed.transferProxy = _transferrer;
-      emit ChangedTransferProxy(_ship, _transferrer);
+      emit ChangedTransferProxy(_point, _transferrer);
     }
 
     function getTransferringForCount(address _proxy)
@@ -1103,7 +1103,7 @@ contract Ships is Ownable
       return transferringFor[_proxy].length;
     }
 
-    //  getTransferringFor(): get the ships _proxy is a transfer proxy for
+    //  getTransferringFor(): get the points _proxy is a transfer proxy for
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
@@ -1124,7 +1124,7 @@ contract Ships is Ownable
       return operators[_owner][_operator];
     }
 
-    //  setOperator(): dis/allow _operator to transfer ownership of all ships
+    //  setOperator(): dis/allow _operator to transfer ownership of all points
     //                 owned by _owner
     //
     //    operators are part of the ERC721 standard
@@ -1140,30 +1140,30 @@ contract Ships is Ownable
   //  Utility functions
   //
 
-    //  registerSponsor(): set the sponsorship state of _ship and update the
+    //  registerSponsor(): set the sponsorship state of _point and update the
     //                reverse lookup for sponsors
     //
-    function registerSponsor(uint32 _ship, bool _hasSponsor, uint32 _sponsor)
+    function registerSponsor(uint32 _point, bool _hasSponsor, uint32 _sponsor)
       internal
     {
-      Hull storage ship = ships[_ship];
-      bool had = ship.hasSponsor;
-      uint32 prev = ship.sponsor;
+      Point storage point = points[_point];
+      bool had = point.hasSponsor;
+      uint32 prev = point.sponsor;
       if ( (!had && !_hasSponsor) ||
            (had && _hasSponsor && prev == _sponsor) )
       {
         return;
       }
 
-      //  if the ship used to have a different sponsor, do some gymnastics
-      //  to keep the reverse lookup gapless.  delete the ship from the old
+      //  if the point used to have a different sponsor, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the point from the old
       //  sponsor's list, then fill that gap with the list tail.
       //
       if (had)
       {
-        //  i: current index in previous sponsor's list of sponsored ships
+        //  i: current index in previous sponsor's list of sponsored points
         //
-        uint256 i = sponsoringIndexes[prev][_ship];
+        uint256 i = sponsoringIndexes[prev][_point];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -1183,45 +1183,45 @@ contract Ships is Ownable
         //
         delete(prevSponsoring[last]);
         prevSponsoring.length = last;
-        sponsoringIndexes[prev][_ship] = 0;
+        sponsoringIndexes[prev][_point] = 0;
       }
 
       if (_hasSponsor)
       {
         uint32[] storage newSponsoring = sponsoring[_sponsor];
-        newSponsoring.push(_ship);
-        sponsoringIndexes[_sponsor][_ship] = newSponsoring.length;
+        newSponsoring.push(_point);
+        sponsoringIndexes[_sponsor][_point] = newSponsoring.length;
       }
 
-      ship.sponsor = _sponsor;
-      ship.hasSponsor = _hasSponsor;
+      point.sponsor = _sponsor;
+      point.hasSponsor = _hasSponsor;
     }
 
-    //  registerEscapeRequest(): set the escape state of _ship and update the
+    //  registerEscapeRequest(): set the escape state of _point and update the
     //                           reverse lookup for sponsors
     //
-    function registerEscapeRequest( uint32 _ship,
+    function registerEscapeRequest( uint32 _point,
                                     bool _isEscaping, uint32 _sponsor )
       internal
     {
-      Hull storage ship = ships[_ship];
-      bool was = ship.escapeRequested;
-      uint32 prev = ship.escapeRequestedTo;
+      Point storage point = points[_point];
+      bool was = point.escapeRequested;
+      uint32 prev = point.escapeRequestedTo;
       if ( (!was && !_isEscaping) ||
            (was && _isEscaping && prev == _sponsor) )
       {
         return;
       }
 
-      //  if the ship used to have a different request, do some gymnastics
-      //  to keep the reverse lookup gapless.  delete the ship from the old
+      //  if the point used to have a different request, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the point from the old
       //  sponsor's list, then fill that gap with the list tail.
       //
       if (was)
       {
-        //  i: current index in previous sponsor's list of sponsored ships
+        //  i: current index in previous sponsor's list of sponsored points
         //
-        uint256 i = escapeRequestsIndexes[prev][_ship];
+        uint256 i = escapeRequestsIndexes[prev][_point];
 
         //  we store index + 1, because 0 is the solidity default value
         //
@@ -1241,43 +1241,43 @@ contract Ships is Ownable
         //
         delete(prevRequests[last]);
         prevRequests.length = last;
-        escapeRequestsIndexes[prev][_ship] = 0;
+        escapeRequestsIndexes[prev][_point] = 0;
       }
 
       if (_isEscaping)
       {
         uint32[] storage newRequests = escapeRequests[_sponsor];
-        newRequests.push(_ship);
-        escapeRequestsIndexes[_sponsor][_ship] = newRequests.length;
+        newRequests.push(_point);
+        escapeRequestsIndexes[_sponsor][_point] = newRequests.length;
       }
 
-      ship.escapeRequestedTo = _sponsor;
-      ship.escapeRequested = _isEscaping;
+      point.escapeRequestedTo = _sponsor;
+      point.escapeRequested = _isEscaping;
     }
 
-    //  getPrefix(): compute prefix parent of _ship
+    //  getPrefix(): compute prefix parent of _point
     //
-    function getPrefix(uint32 _ship)
+    function getPrefix(uint32 _point)
       pure
       public
       returns (uint16 parent)
     {
-      if (_ship < 65536)
+      if (_point < 65536)
       {
-        return uint16(_ship % 256);
+        return uint16(_point % 256);
       }
-      return uint16(_ship % 65536);
+      return uint16(_point % 65536);
     }
 
-    //  getShipClass(): return the class of _ship
+    //  getPointSize(): return the size of _point
     //
-    function getShipClass(uint32 _ship)
+    function getPointSize(uint32 _point)
       external
       pure
-      returns (Class _class)
+      returns (Size _size)
     {
-      if (_ship < 256) return Class.Galaxy;
-      if (_ship < 65536) return Class.Star;
-      return Class.Planet;
+      if (_point < 256) return Size.Galaxy;
+      if (_point < 65536) return Size.Star;
+      return Size.Planet;
     }
 }

@@ -1,26 +1,26 @@
 //  base contract for the azimuth logic contract
-//  encapsulates dependencies all constitutions need.
+//  encapsulates dependencies all ecliptics need.
 
 pragma solidity 0.4.24;
 
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
-import './ReadsShips.sol';
+import './ReadsAzimuth.sol';
 import './Polls.sol';
 
-//  ConstitutionBase: upgradable constitution
+//  EclipticBase: upgradable ecliptic
 //
-//    This contract implements the upgrade logic for the Constitution.
-//    Newer versions of the Constitution are expected to provide at least
+//    This contract implements the upgrade logic for the Ecliptic.
+//    Newer versions of the Ecliptic are expected to provide at least
 //    the onUpgrade() function. If they don't, upgrading to them will fail.
 //
 //    Note that even though this contract doesn't specify any required
 //    interface members aside from upgrade() and onUpgrade(), contracts
 //    and clients may still rely on the presence of certain functions
-//    provided by the Constitution proper. Keep this in mind when writing
-//    updated versions of it.
+//    provided by the Ecliptic proper. Keep this in mind when writing
+//    new versions of it.
 //
-contract ConstitutionBase is Ownable, ReadsShips
+contract EclipticBase is Ownable, ReadsAzimuth
 {
   event Upgraded(address to);
 
@@ -28,25 +28,25 @@ contract ConstitutionBase is Ownable, ReadsShips
   //
   Polls public polls;
 
-  //  previousConstitution: address of the previous constitution this
-  //                        instance expects to upgrade from, stored and
-  //                        checked for to prevent unexpected upgrade paths
+  //  previousEcliptic: address of the previous ecliptic this
+  //                    instance expects to upgrade from, stored and
+  //                    checked for to prevent unexpected upgrade paths
   //
-  address public previousConstitution;
+  address public previousEcliptic;
 
   constructor( address _previous,
-               Ships _ships,
+               Azimuth _azimuth,
                Polls _polls )
-    ReadsShips(_ships)
+    ReadsAzimuth(_azimuth)
     internal
   {
-    previousConstitution = _previous;
+    previousEcliptic = _previous;
     polls = _polls;
   }
 
-  //  onUpgrade(): called by previous constitution when upgrading
+  //  onUpgrade(): called by previous ecliptic when upgrading
   //
-  //    in future constitutions, this might perform more logic than
+  //    in future ecliptics, this might perform more logic than
   //    just simple checks and verifications.
   //    when overriding this, make sure to call the original as well.
   //
@@ -56,23 +56,23 @@ contract ConstitutionBase is Ownable, ReadsShips
     //  make sure this is the expected upgrade path,
     //  and that we have gotten the ownership we require
     //
-    require( msg.sender == previousConstitution &&
-             this == ships.owner() &&
+    require( msg.sender == previousEcliptic &&
+             this == azimuth.owner() &&
              this == polls.owner() );
   }
 
-  //  upgrade(): transfer ownership of the constitution data to the new
-  //             constitution contract, notify it, then self-destruct.
+  //  upgrade(): transfer ownership of the ecliptic data to the new
+  //             ecliptic contract, notify it, then self-destruct.
   //
   //    Note: any eth that have somehow ended up in the contract are also
-  //          sent to the new constitution.
+  //          sent to the new ecliptic.
   //
-  function upgrade(ConstitutionBase _new)
+  function upgrade(EclipticBase _new)
     internal
   {
     //  transfer ownership of the data contracts
     //
-    ships.transferOwnership(_new);
+    azimuth.transferOwnership(_new);
     polls.transferOwnership(_new);
 
     //  trigger upgrade logic on the target contract

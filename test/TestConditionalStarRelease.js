@@ -1,14 +1,14 @@
-const Ships = artifacts.require('../contracts/Ships.sol');
+const Azimuth = artifacts.require('../contracts/Azimuth.sol');
 const Polls = artifacts.require('../contracts/Polls.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
-const Constitution = artifacts.require('../contracts/Constitution.sol');
+const Ecliptic = artifacts.require('../contracts/Ecliptic.sol');
 const CSR = artifacts.require('../contracts/ConditionalStarRelease.sol');
 
 const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
 
 contract('Conditional Star Release', function([owner, user1, user2, user3]) {
-  let ships, ships2, polls, constit, constit2, csr, csr2,
+  let azimuth, azimuth2, polls, eclipt, eclipt2, csr, csr2,
       deadline1, deadline2, deadline3, condit2, rateUnit,
       deadlineStep;
 
@@ -34,41 +34,41 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     deadlineStep = 100;
     condit2 = 123456789;
     rateUnit = deadlineStep * 10;
-    ships = await Ships.new();
-    ships2 = await Ships.new();
+    azimuth = await Azimuth.new();
+    azimuth2 = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
-    claims = await Claims.new(ships.address);
-    constit = await Constitution.new(0x1, ships.address, polls.address,
+    claims = await Claims.new(azimuth.address);
+    eclipt = await Ecliptic.new(0x1, azimuth.address, polls.address,
                                      claims.address);
-    constit2 = await Constitution.new(0x0, ships2.address,
+    eclipt2 = await Ecliptic.new(0x0, azimuth2.address,
                                       polls.address, claims.address)
-    await ships.transferOwnership(constit.address);
-    await ships2.transferOwnership(constit2.address);
-    await polls.transferOwnership(constit.address);
-    await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 1, 2, 1, false);
-    await constit.spawn(256, owner);
-    await constit.spawn(2560, owner);
-    await constit.configureKeys(2560, 1, 2, 1, false);
+    await azimuth.transferOwnership(eclipt.address);
+    await azimuth2.transferOwnership(eclipt2.address);
+    await polls.transferOwnership(eclipt.address);
+    await eclipt.createGalaxy(0, owner);
+    await eclipt.configureKeys(0, 1, 2, 1, false);
+    await eclipt.spawn(256, owner);
+    await eclipt.spawn(2560, owner);
+    await eclipt.configureKeys(2560, 1, 2, 1, false);
     deadline1 = web3.toDecimal(await getChainTime()) + 10;
     deadline2 = deadline1 + deadlineStep;
     deadline3 = deadline2 + deadlineStep;
-    csr = await CSR.new(ships.address, [0, condit2, "miss me", "too"],
+    csr = await CSR.new(azimuth.address, [0, condit2, "miss me", "too"],
                          [0, 0, 0, 0],
                          [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
-    csr2 = await CSR.new(ships2.address, [0, condit2, "miss me", "too"],
+    csr2 = await CSR.new(azimuth2.address, [0, condit2, "miss me", "too"],
                          [0, 0, 0, 0],
                          [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
-    await constit.setSpawnProxy(0, csr.address);
-    await constit.setTransferProxy(256, csr.address);
+    await eclipt.setSpawnProxy(0, csr.address);
+    await eclipt.setTransferProxy(256, csr.address);
   });
 
   it('creation sanity check', async function() {
     // need as many deadlines as conditions
-    await assertRevert(CSR.new(ships.address, [0, condit2], [0, 0], [0]));
-    await assertRevert(CSR.new(ships.address, [0, condit2], [0], [0, 0]));
+    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0, 0], [0]));
+    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0], [0, 0]));
     var many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertRevert(CSR.new(ships.address, many, many, many));
+    await assertRevert(CSR.new(azimuth.address, many, many, many));
   });
 
   it('analyzing conditions', async function() {
@@ -80,8 +80,8 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await csr.analyzeCondition(1);
     assert.equal(await csr.timestamps(1), 0);
     // fulfill condition 2
-    await constit.startDocumentPoll(0, condit2);
-    await constit.castDocumentVote(0, condit2, true);
+    await eclipt.startDocumentPoll(0, condit2);
+    await eclipt.castDocumentVote(0, condit2, true);
     assert.isTrue(await polls.documentHasAchievedMajority(condit2));
     await csr.analyzeCondition(1, {from:user1});
     assert.notEqual(await csr.timestamps(1), 0);
@@ -147,7 +147,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     }
     assert.equal((await csr.getRemainingStars(user1)).length, 8);
     assert.equal((await csr.getRemainingStars(user1))[7], 2048);
-    assert.isTrue(await ships.isOwner(256, csr.address));
+    assert.isTrue(await azimuth.isOwner(256, csr.address));
     assert.isTrue(await csr.verifyBalance(user1));
     // can't deposit too many
     await assertRevert(csr.deposit(user1, 2304));
@@ -158,7 +158,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     // only commitment participant can do this
     await assertRevert(csr.withdraw({from:owner}));
     await csr.withdraw({from:user1});
-    assert.isTrue(await ships.isOwner(2048, user1));
+    assert.isTrue(await azimuth.isOwner(2048, user1));
     assert.equal((await csr.commitments(user1))[3], 1);
     // can't withdraw over limit
     await assertRevert(csr.withdraw());
@@ -204,13 +204,13 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     for (var i = 0; i < 4; i++) {
       await csr.withdrawForfeited(user2, owner);
     }
-    assert.isTrue(await ships.isOwner(512, owner));
+    assert.isTrue(await azimuth.isOwner(512, owner));
   });
 
   it('escape hatch', async function() {
     await assertRevert(csr.withdrawOverdue(user2, owner));
     await increaseTime(10*365*24*60*60);
     await csr.withdrawOverdue(user2, owner);
-    assert.isTrue(await ships.isOwner(256, owner));
+    assert.isTrue(await azimuth.isOwner(256, owner));
   });
 });

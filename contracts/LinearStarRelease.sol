@@ -2,8 +2,8 @@
 
 pragma solidity 0.4.24;
 
-import './Constitution.sol';
-import './TakesShips.sol';
+import './Ecliptic.sol';
+import './TakesPoints.sol';
 import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -21,7 +21,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    owner is able to withdraw them. This saves address space from
 //    being lost forever in case of key loss by participants.
 //
-contract LinearStarRelease is Ownable, TakesShips
+contract LinearStarRelease is Ownable, TakesPoints
 {
   using SafeMath for uint256;
   using SafeMath16 for uint16;
@@ -75,13 +75,13 @@ contract LinearStarRelease is Ownable, TakesShips
   //
   mapping(address => Batch) public batches;
 
-  //  constructor(): configure ships contract and set starting date
+  //  constructor(): register azimuth contract and set starting date
   //
-  constructor(Ships _ships)
-    TakesShips(_ships)
+  constructor(Azimuth _azimuth)
+    TakesPoints(_azimuth)
     public
   {
-    ships = _ships;
+    azimuth = _azimuth;
     start = block.timestamp;
   }
 
@@ -133,7 +133,7 @@ contract LinearStarRelease is Ownable, TakesShips
       //  have the contract take ownership of the star if possible,
       //  reverting if that fails.
       //
-      require( takeShip(_star, true) );
+      require( takePoint(_star, true) );
 
       //  add _star to the participant's star balance
       //
@@ -250,7 +250,7 @@ contract LinearStarRelease is Ownable, TakesShips
 
       //  transfer :star
       //
-      require( giveShip(star, _to, _reset) );
+      require( givePoint(star, _to, _reset) );
     }
 
   //

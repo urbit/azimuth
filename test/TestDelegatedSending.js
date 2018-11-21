@@ -1,14 +1,14 @@
-const Ships = artifacts.require('../contracts/Ships.sol');
+const Azimuth = artifacts.require('../contracts/Azimuth.sol');
 const Polls = artifacts.require('../contracts/Polls.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
-const Constitution = artifacts.require('../contracts/Constitution.sol');
+const Ecliptic = artifacts.require('../contracts/Ecliptic.sol');
 const DelegatedSending = artifacts.require('../contracts/DelegatedSending.sol');
 
 const assertRevert = require('./helpers/assertRevert');
 const seeEvents = require('./helpers/seeEvents');
 
 contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
-  let ships, constit, dese;
+  let azimuth, eclipt, dese;
   let p1, p2, p3, p4, p5;
 
   before('setting up for tests', async function() {
@@ -18,22 +18,22 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     p4 = 262400;
     p5 = 327936;
     //
-    ships = await Ships.new();
+    azimuth = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
-    claims = await Claims.new(ships.address);
-    constit = await Constitution.new(0, ships.address, polls.address,
+    claims = await Claims.new(azimuth.address);
+    eclipt = await Ecliptic.new(0, azimuth.address, polls.address,
                                      claims.address);
-    await ships.transferOwnership(constit.address);
-    await polls.transferOwnership(constit.address);
-    dese = await DelegatedSending.new(ships.address);
+    await azimuth.transferOwnership(eclipt.address);
+    await polls.transferOwnership(eclipt.address);
+    dese = await DelegatedSending.new(azimuth.address);
     //
-    await constit.createGalaxy(0, owner);
-    await constit.configureKeys(0, 1, 1, 1, false);
-    await constit.spawn(256, owner);
-    await constit.configureKeys(256, 1, 1, 1, false);
-    await constit.spawn(p1, owner);
-    await constit.transferShip(p1, owner, false);
-    await constit.setSpawnProxy(256, dese.address);
+    await eclipt.createGalaxy(0, owner);
+    await eclipt.configureKeys(0, 1, 1, 1, false);
+    await eclipt.spawn(256, owner);
+    await eclipt.configureKeys(256, 1, 1, 1, false);
+    await eclipt.spawn(p1, owner);
+    await eclipt.transferPoint(p1, owner, false);
+    await eclipt.setSpawnProxy(256, dese.address);
   });
 
   it('configuring', async function() {
@@ -47,33 +47,33 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
   });
 
   it('sending', async function() {
-    // can only be done by ship owner
-    await assertRevert(dese.sendShip(p1, p2, user1, {from:user1}));
+    // can only be done by point owner
+    await assertRevert(dese.sendPoint(p1, p2, user1, {from:user1}));
     // can't send to self
-    await assertRevert(dese.sendShip(p1, p2, owner));
+    await assertRevert(dese.sendPoint(p1, p2, owner));
     // send as regular planet
     assert.isTrue(await dese.canReceive(user1));
-    await seeEvents(dese.sendShip(p1, p2, user1), ['Sent']);
-    assert.isTrue(await ships.isTransferProxy(p2, user1));
+    await seeEvents(dese.sendPoint(p1, p2, user1), ['Sent']);
+    assert.isTrue(await azimuth.isTransferProxy(p2, user1));
     assert.isFalse(await dese.canSend(p1, p2));
-    await assertRevert(dese.sendShip(p1, p2, user1));
+    await assertRevert(dese.sendPoint(p1, p2, user1));
     // can't send to users with pending transfers
     assert.isFalse(await dese.canReceive(user1));
-    await assertRevert(dese.sendShip(p2, p3, user1));
-    await constit.transferShip(p2, user1, true);
+    await assertRevert(dese.sendPoint(p2, p3, user1));
+    await eclipt.transferPoint(p2, user1, true);
     assert.isFalse(await dese.canSend(p1, p2));
-    // can't send to users who own ships
+    // can't send to users who own points
     assert.isFalse(await dese.canReceive(user1));
-    await assertRevert(dese.sendShip(p1, p3, user1));
+    await assertRevert(dese.sendPoint(p1, p3, user1));
     // send as invited planet
-    await dese.sendShip(p2, p3, user2, {from:user1});
-    await constit.transferShip(p3, user2, true);
-    await dese.sendShip(p3, p4, user3, {from:user2});
-    await constit.transferShip(p4, user3, true);
+    await dese.sendPoint(p2, p3, user2, {from:user1});
+    await eclipt.transferPoint(p3, user2, true);
+    await dese.sendPoint(p3, p4, user3, {from:user2});
+    await eclipt.transferPoint(p4, user3, true);
     // can't send more than the limit
     assert.isFalse(await dese.canSend(p1, p5));
     assert.isFalse(await dese.canSend(p3, p5));
-    await assertRevert(dese.sendShip(p3, p5, user4));
+    await assertRevert(dese.sendPoint(p3, p5, user4));
   });
 
   it('resetting a pool', async function() {
@@ -83,6 +83,6 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     assert.isTrue(await dese.canSend(p3, p5));
     // shouldn't affect the pool it came from
     assert.isFalse(await dese.canSend(p1, p5));
-    await dese.sendShip(p3, p5, user4, {from:user2});
+    await dese.sendPoint(p3, p5, user4, {from:user2});
   });
 });
