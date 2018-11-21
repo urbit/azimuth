@@ -26,7 +26,8 @@
     "test:setup": "npm run build && npm run test:ganache",
     "test:truffle": "truffle test",
     "test:cleanup": "pkill -f ganache-cli",
-    "test": "npm-run-all test:setup test:truffle test:cleanup --continue-on-error"
+    "test": "npm-run-all test:setup test:truffle test:cleanup --continue-on-error",
+    "install": "npm run build"
   },
   "repository": {
     "type": "git",
