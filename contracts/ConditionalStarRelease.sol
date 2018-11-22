@@ -555,6 +555,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       {
         return 1;
       }
+
+      return limit;
     }
 
     //  totalStars(): return the number of stars available after batch _from
@@ -569,6 +571,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       {
         total = total.add(_batches[i]);
       }
+      return total;
     }
 
     //  verifyBalance: check the balance of _participant

@@ -132,7 +132,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       //
       require(azimuth.isActive(id));
 
-      owner = azimuth.getOwner(id);
+      return azimuth.getOwner(id);
     }
 
     //  exists(): returns true if point _tokenId is active
