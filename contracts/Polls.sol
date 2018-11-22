@@ -40,17 +40,17 @@ contract Polls is Ownable
   using SafeMath16 for uint16;
   using SafeMath8 for uint8;
 
-  //  EclipticPollStarted: a poll on :proposal has opened
+  //  UpgradePollStarted: a poll on :proposal has opened
   //
-  event EclipticPollStarted(address proposal);
+  event UpgradePollStarted(address proposal);
 
   //  DocumentPollStarted: a poll on :proposal has opened
   //
   event DocumentPollStarted(bytes32 proposal);
 
-  //  EclipticMajority: :proposal has achieved majority
+  //  UpgradeMajority: :proposal has achieved majority
   //
-  event EclipticMajority(address proposal);
+  event UpgradeMajority(address proposal);
 
   //  DocumentMajority: :proposal has achieved majority
   //
@@ -97,13 +97,13 @@ contract Polls is Ownable
   //
   uint16 public totalVoters;
 
-  //  eclipticPolls: per address, poll held to determine if that address
-  //                 will become the new ecliptic
+  //  upgradePolls: per address, poll held to determine if that address
+  //                will become the new ecliptic
   //
-  mapping(address => Poll) public eclipticPolls;
+  mapping(address => Poll) public upgradePolls;
 
-  //  eclipticHasAchievedMajority: per address, whether that address
-  //                                   has everachieved majority
+  //  upgradeHasAchievedMajority: per address, whether that address
+  //                              has ever achieved majority
   //
   //    if we did not store this, we would have to look at old poll data
   //    to see whether or not a proposal has ever achieved majority.
@@ -113,7 +113,7 @@ contract Polls is Ownable
   //    tell with certainty whether or not a majority was achieved,
   //    regardless of the current :totalVoters.
   //
-  mapping(address => bool) public eclipticHasAchievedMajority;
+  mapping(address => bool) public upgradeHasAchievedMajority;
 
   //  documentPolls: per hash, poll held to determine if the corresponding
   //                 document is accepted by the galactic senate
@@ -123,7 +123,7 @@ contract Polls is Ownable
   //  documentHasAchievedMajority: per hash, whether that hash has ever
   //                               achieved majority
   //
-  //    the note for eclipticHasAchievedMajority above applies here as well
+  //    the note for upgradeHasAchievedMajority above applies here as well
   //
   mapping(bytes32 => bool) public documentHasAchievedMajority;
 
@@ -174,15 +174,15 @@ contract Polls is Ownable
     return documentMajorities;
   }
 
-  //  hasVotedOnEclipticPoll(): returns true if _galaxy has voted
-  //                                on the _proposal
+  //  hasVotedOnUpgradePoll(): returns true if _galaxy has voted
+  //                           on the _proposal
   //
-  function hasVotedOnEclipticPoll(uint8 _galaxy, address _proposal)
+  function hasVotedOnUpgradePoll(uint8 _galaxy, address _proposal)
     external
     view
     returns (bool result)
   {
-    return eclipticPolls[_proposal].voted[_galaxy];
+    return upgradePolls[_proposal].voted[_galaxy];
   }
 
   //  hasVotedOnDocumentPoll(): returns true if _galaxy has voted
@@ -196,21 +196,21 @@ contract Polls is Ownable
     return documentPolls[_proposal].voted[_galaxy];
   }
 
-  //  startEclipticPoll(): open a poll on making _proposal the new ecliptic
+  //  startUpgradePoll(): open a poll on making _proposal the new ecliptic
   //
-  function startEclipticPoll(address _proposal)
+  function startUpgradePoll(address _proposal)
     external
     onlyOwner
   {
     //  _proposal must not have achieved majority before
     //
-    require(!eclipticHasAchievedMajority[_proposal]);
+    require(!upgradeHasAchievedMajority[_proposal]);
 
     //  start the poll
     //
-    Poll storage poll = eclipticPolls[_proposal];
+    Poll storage poll = upgradePolls[_proposal];
     startPoll(poll);
-    emit EclipticPollStarted(_proposal);
+    emit UpgradePollStarted(_proposal);
   }
 
   //  startDocumentPoll(): open a poll on accepting the document
@@ -254,18 +254,18 @@ contract Polls is Ownable
     _poll.cooldown = pollCooldown;
   }
 
-  //  castEclipticVote(): as galaxy _as, cast a vote on the _proposal
+  //  castUpgradeVote(): as galaxy _as, cast a vote on the _proposal
   //
   //    _vote is true when in favor of the proposal, false otherwise
   //
-  function castEclipticVote(uint8 _as, address _proposal, bool _vote)
+  function castUpgradeVote(uint8 _as, address _proposal, bool _vote)
     external
     onlyOwner
     returns (bool majority)
   {
-    Poll storage poll = eclipticPolls[_proposal];
+    Poll storage poll = upgradePolls[_proposal];
     processVote(poll, _as, _vote);
-    return updateEclipticPoll(_proposal);
+    return updateUpgradePoll(_proposal);
   }
 
   //  castDocumentVote(): as galaxy _as, cast a vote on the _proposal
@@ -312,30 +312,30 @@ contract Polls is Ownable
     }
   }
 
-  //  updateEclipticPoll(): check whether the _proposal has achieved
+  //  updateUpgradePoll(): check whether the _proposal has achieved
   //                            majority, updating state, sending an event,
   //                            and returning true if it has
   //
-  function updateEclipticPoll(address _proposal)
+  function updateUpgradePoll(address _proposal)
     public
     onlyOwner
     returns (bool majority)
   {
     //  _proposal must not have achieved majority before
     //
-    require(!eclipticHasAchievedMajority[_proposal]);
+    require(!upgradeHasAchievedMajority[_proposal]);
 
     //  check for majority in the poll
     //
-    Poll storage poll = eclipticPolls[_proposal];
+    Poll storage poll = upgradePolls[_proposal];
     majority = checkPollMajority(poll);
 
     //  if majority was achieved, update the state and send an event
     //
     if (majority)
     {
-      eclipticHasAchievedMajority[_proposal] = true;
-      emit EclipticMajority(_proposal);
+      upgradeHasAchievedMajority[_proposal] = true;
+      emit UpgradeMajority(_proposal);
     }
     return majority;
   }

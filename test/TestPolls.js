@@ -38,59 +38,59 @@ contract('Polls', function([owner, user]) {
     await assertRevert(polls.reconfigure(duration, 7776001));
   });
 
-  it('ecliptic poll start & majority', async function() {
-    assert.isFalse(await polls.eclipticHasAchievedMajority(concrProp));
+  it('upgrade poll start & majority', async function() {
+    assert.isFalse(await polls.upgradeHasAchievedMajority(concrProp));
     // non-owner can't do this.
-    await assertRevert(polls.startEclipticPoll(concrProp, {from:user}));
-    await polls.startEclipticPoll(concrProp);
-    let cPoll = await polls.eclipticPolls(concrProp);
+    await assertRevert(polls.startUpgradePoll(concrProp, {from:user}));
+    await polls.startUpgradePoll(concrProp);
+    let cPoll = await polls.upgradePolls(concrProp);
     assert.notEqual(cPoll[0], 0);
     // non-owner can't do this.
-    await assertRevert(polls.castEclipticVote(0, concrProp, true, {from:user}));
+    await assertRevert(polls.castUpgradeVote(0, concrProp, true, {from:user}));
     // cast votes.
     // we use .call to check the result first, then actually transact.
-    assert.isFalse(await polls.castEclipticVote.call(0, concrProp, true));
-    await polls.castEclipticVote(0, concrProp, true);
-    assert.isTrue(await polls.hasVotedOnEclipticPoll(0, concrProp));
+    assert.isFalse(await polls.castUpgradeVote.call(0, concrProp, true));
+    await polls.castUpgradeVote(0, concrProp, true);
+    assert.isTrue(await polls.hasVotedOnUpgradePoll(0, concrProp));
     // can't vote twice.
-    await assertRevert(polls.castEclipticVote(0, concrProp, true));
-    assert.isFalse(await polls.castEclipticVote.call(1, concrProp, false));
-    await polls.castEclipticVote(1, concrProp, false);
-    assert.isTrue(await polls.castEclipticVote.call(2, concrProp, true));
-    await polls.castEclipticVote(2, concrProp, true);
-    assert.isTrue(await polls.eclipticHasAchievedMajority(concrProp));
-    cPoll = await polls.eclipticPolls(concrProp);
+    await assertRevert(polls.castUpgradeVote(0, concrProp, true));
+    assert.isFalse(await polls.castUpgradeVote.call(1, concrProp, false));
+    await polls.castUpgradeVote(1, concrProp, false);
+    assert.isTrue(await polls.castUpgradeVote.call(2, concrProp, true));
+    await polls.castUpgradeVote(2, concrProp, true);
+    assert.isTrue(await polls.upgradeHasAchievedMajority(concrProp));
+    cPoll = await polls.upgradePolls(concrProp);
     assert.equal(cPoll[1], 2);
     assert.equal(cPoll[2], 1);
     // can't vote on finished poll
-    await assertRevert(polls.castEclipticVote(3, concrProp, true));
+    await assertRevert(polls.castUpgradeVote(3, concrProp, true));
   });
 
-  it('ecliptic poll minority & restart', async function() {
+  it('upgrade poll minority & restart', async function() {
     // start poll and wait for it to time out
-    await polls.startEclipticPoll(concrProp2);
-    await polls.castEclipticVote(0, concrProp2, false);
+    await polls.startUpgradePoll(concrProp2);
+    await polls.castUpgradeVote(0, concrProp2, false);
     await increaseTime(duration);
     // can't vote on finished poll
-    await assertRevert(polls.castEclipticVote(1, concrProp2, true));
+    await assertRevert(polls.castUpgradeVote(1, concrProp2, true));
     // can't recreate right away.
-    await assertRevert(polls.startEclipticPoll(concrProp2));
+    await assertRevert(polls.startUpgradePoll(concrProp2));
     await increaseTime(cooldown + 5);
     // recreate poll.
-    await polls.startEclipticPoll(concrProp2);
-    let cPoll = await polls.eclipticPolls(concrProp2);
+    await polls.startUpgradePoll(concrProp2);
+    let cPoll = await polls.upgradePolls(concrProp2);
     assert.equal(cPoll[1], 0);
     assert.equal(cPoll[2], 0);
-    assert.isFalse(await polls.hasVotedOnEclipticPoll(0, concrProp2));
+    assert.isFalse(await polls.hasVotedOnUpgradePoll(0, concrProp2));
     // test timeout majority
-    await polls.castEclipticVote(0, concrProp2, true);
-    assert.isTrue(await polls.hasVotedOnEclipticPoll(0, concrProp2));
+    await polls.castUpgradeVote(0, concrProp2, true);
+    assert.isTrue(await polls.hasVotedOnUpgradePoll(0, concrProp2));
     await increaseTime(duration + 5);
-    assert.isTrue(await polls.updateEclipticPoll.call(concrProp2));
-    await polls.updateEclipticPoll(concrProp2);
-    assert.isTrue(await polls.eclipticHasAchievedMajority(concrProp2));
+    assert.isTrue(await polls.updateUpgradePoll.call(concrProp2));
+    await polls.updateUpgradePoll(concrProp2);
+    assert.isTrue(await polls.upgradeHasAchievedMajority(concrProp2));
     // can't recreate once majority happened
-    await assertRevert(polls.startEclipticPoll(concrProp2));
+    await assertRevert(polls.startUpgradePoll(concrProp2));
   });
 
   it('document poll start & majority', async function() {

@@ -734,22 +734,22 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       azimuth.setVotingProxy(_galaxy, _voter);
     }
 
-    //  startEclipticPoll(): as _galaxy, start a poll for the ecliptic
-    //                       upgrade _proposal
+    //  startUpgradePoll(): as _galaxy, start a poll for the ecliptic
+    //                      upgrade _proposal
     //
     //    Requirements:
     //    - :msg.sender must be the owner of _galaxy,
     //    - the _proposal must expect to be upgraded from this specific
     //      contract, as indicated by its previousEcliptic attribute.
     //
-    function startEclipticPoll(uint8 _galaxy, EclipticBase _proposal)
+    function startUpgradePoll(uint8 _galaxy, EclipticBase _proposal)
       external
       activePointVoter(_galaxy)
     {
       //  ensure that the upgrade target expects this contract as the source
       //
       require(_proposal.previousEcliptic() == address(this));
-      polls.startEclipticPoll(_proposal);
+      polls.startUpgradePoll(_proposal);
     }
 
     //  startDocumentPoll(): as _galaxy, start a poll for the _proposal
@@ -761,15 +761,15 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       polls.startDocumentPoll(_proposal);
     }
 
-    //  castEclipticVote(): as _galaxy, cast a _vote on the ecliptic
-    //                          upgrade _proposal
+    //  castUpgradeVote(): as _galaxy, cast a _vote on the ecliptic
+    //                     upgrade _proposal
     //
     //    _vote is true when in favor of the proposal, false otherwise
     //
     //    If this vote results in a majority for the _proposal, it will
     //    be upgraded to immediately.
     //
-    function castEclipticVote(uint8 _galaxy,
+    function castUpgradeVote(uint8 _galaxy,
                               EclipticBase _proposal,
                               bool _vote)
       external
@@ -777,7 +777,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     {
       //  majority: true if the vote resulted in a majority, false otherwise
       //
-      bool majority = polls.castEclipticVote(_galaxy, _proposal, _vote);
+      bool majority = polls.castUpgradeVote(_galaxy, _proposal, _vote);
 
       //  if a majority is in favor of the upgrade, it happens as defined
       //  in the ecliptic base contract
@@ -799,15 +799,15 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       polls.castDocumentVote(_galaxy, _proposal, _vote);
     }
 
-    //  updateEclipticPoll(): check whether the _proposal has achieved
-    //                        majority, upgrading to it if it has
+    //  updateUpgradePoll(): check whether the _proposal has achieved
+    //                      majority, upgrading to it if it has
     //
-    function updateEclipticPoll(EclipticBase _proposal)
+    function updateUpgradePoll(EclipticBase _proposal)
       external
     {
       //  majority: true if the poll ended in a majority, false otherwise
       //
-      bool majority = polls.updateEclipticPoll(_proposal);
+      bool majority = polls.updateUpgradePoll(_proposal);
 
       //  if a majority is in favor of the upgrade, it happens as defined
       //  in the ecliptic base contract
