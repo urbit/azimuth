@@ -952,6 +952,19 @@ contract Azimuth is Ownable
       return rights[_point].spawnProxy;
     }
 
+    //  canSpawnAs(): true if _who is the owner or spawn proxy of _point
+    //
+    function canSpawnAs(uint32 _point, address _who)
+      view
+      external
+      returns (bool result)
+    {
+      Deed storage deed = rights[_point];
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.spawnProxy) ) );
+    }
+
     function setSpawnProxy(uint32 _point, address _spawner)
       onlyOwner
       external
@@ -1040,6 +1053,21 @@ contract Azimuth is Ownable
       returns (address transferProxy)
     {
       return rights[_point].transferProxy;
+    }
+
+    //  canTransfer(): true if _who is the owner or transfer proxy of _point,
+    //                 or is an operator for _point's current owner
+    //
+    function canTransfer(uint32 _point, address _who)
+      view
+      external
+      returns (bool result)
+    {
+      Deed storage deed = rights[_point];
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.transferProxy) ||
+                 operators[deed.owner][_who] ) );
     }
 
     //  setTransferProxy(): configure _transferrer as transfer proxy for _point

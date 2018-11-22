@@ -360,8 +360,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       //  other addresses need explicit permission (the role
       //  of "spawnProxy" in the Azimuth contract)
       //
-      require( azimuth.isOwner(prefix, msg.sender) ||
-               azimuth.isSpawnProxy(prefix, msg.sender) );
+      require( azimuth.canSpawnAs(prefix, msg.sender) );
 
       //  if the caller is spawning the point to themselves,
       //  assume it knows what it's doing and resolve right away
@@ -493,16 +492,10 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     function transferPoint(uint32 _point, address _target, bool _reset)
       public
     {
-      //  old: current point owner
+      //  transfer is legitimate if the caller is the current owner, or
+      //  an operator for the current owner, or the _point's transfer proxy
       //
-      address old = azimuth.getOwner(_point);
-
-      //  transfer is legitimate if the caller is the old owner, or
-      //  has operator or transfer rights
-      //
-      require((old == msg.sender)
-              || azimuth.isOperator(old, msg.sender)
-              || azimuth.isTransferProxy(_point, msg.sender));
+      require(azimuth.canTransfer(_point, msg.sender));
 
       //  if the point wasn't active yet, that means transferring it
       //  is part of the "spawn" flow, so we need to activate it
@@ -519,6 +512,10 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       //
       if ( !azimuth.isOwner(_point, _target) )
       {
+        //  remember the previous owner, to be included in the Transfer event
+        //
+        address old = azimuth.getOwner(_point);
+
         azimuth.setOwner(_point, _target);
 
         //  according to ERC721, the transferrer gets cleared during every

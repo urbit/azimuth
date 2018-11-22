@@ -47,7 +47,7 @@ contract TakesPoints is ReadsAzimuth
     //
     if ( (!_clean || !azimuth.hasBeenUsed(_point)) &&
          azimuth.isOwner(_point, msg.sender) &&
-         azimuth.isTransferProxy(_point, this) )
+         azimuth.canTransfer(_point, this) )
     {
       //  second model: transfer active, unused _point to :this contract
       //
