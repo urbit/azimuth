@@ -37,7 +37,7 @@ contract Azimuth is Ownable
 
   //  Spawned: :parent has spawned :child.
   //
-  event Spawned(uint32 indexed parent, uint32 child);
+  event Spawned(uint32 indexed parent, uint32 indexed child);
 
   //  EscapeRequested: :point has requested a new sponsor, :sponsor
   //
