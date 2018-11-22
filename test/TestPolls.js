@@ -147,4 +147,16 @@ contract('Polls', function([owner, user]) {
     await polls.updateDocumentPoll(abstrProp2);
     assert.isTrue(await polls.documentHasAchievedMajority(abstrProp2));
   });
+
+  it('strong minority case', async function() {
+    // this test stretches the calculation in checkPollMajority to their limits
+    let pox = await Polls.new(432111, 432222);
+    for (let i = 0; i <= 255; i++) {
+      await pox.incrementTotalVoters();
+    }
+    await pox.startDocumentPoll(abstrProp2);
+    for (let i = 0; i <= 255; i++) {
+      await pox.castDocumentVote(i, abstrProp2, false);
+    }
+  });
 });

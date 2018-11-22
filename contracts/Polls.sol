@@ -378,11 +378,6 @@ contract Polls is Ownable
     view
     returns (bool majority)
   {
-    //  remainingVotes: amount of votes that can still be cast
-    //
-    int16 remainingVotes = int16(totalVoters.sub( _poll.yesVotes.add(_poll.noVotes) ));
-    int16 score = int16(_poll.yesVotes) - int16(_poll.noVotes);
-
     return ( //  poll must have at least the minimum required yes-votes
              //
              (_poll.yesVotes >= (totalVoters / 4)) &&
@@ -399,7 +394,9 @@ contract Polls is Ownable
                //
                //  or because there aren't enough remaining voters to
                //  tip the scale
+               //  "score" is greater than "remaining votes"
                //
-               (score > remainingVotes) ) );
+               ( _poll.yesVotes.sub(_poll.noVotes) >
+                 totalVoters.sub( _poll.yesVotes.add(_poll.noVotes) ) ) ) );
   }
 }
