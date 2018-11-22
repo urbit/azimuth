@@ -142,7 +142,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       view
       returns (bool doesExist)
     {
-      return ( (_tokenId < 4294967296) &&
+      return ( (_tokenId < 0x100000000) &&
                azimuth.isActive(uint32(_tokenId)) );
     }
 
@@ -885,7 +885,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     //
     modifier validPointId(uint256 _id)
     {
-      require(_id < 4294967296);
+      require(_id < 0x100000000);
       _;
     }
 

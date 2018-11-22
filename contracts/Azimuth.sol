@@ -1262,11 +1262,11 @@ contract Azimuth is Ownable
       public
       returns (uint16 parent)
     {
-      if (_point < 65536)
+      if (_point < 0x10000)
       {
-        return uint16(_point % 256);
+        return uint16(_point % 0x100);
       }
-      return uint16(_point % 65536);
+      return uint16(_point % 0x10000);
     }
 
     //  getPointSize(): return the size of _point
@@ -1276,8 +1276,8 @@ contract Azimuth is Ownable
       pure
       returns (Size _size)
     {
-      if (_point < 256) return Size.Galaxy;
-      if (_point < 65536) return Size.Star;
+      if (_point < 0x100) return Size.Galaxy;
+      if (_point < 0x10000) return Size.Star;
       return Size.Planet;
     }
 }

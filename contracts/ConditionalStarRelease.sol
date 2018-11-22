@@ -233,7 +233,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //  ensure we can only deposit stars, and that we can't deposit
       //  more stars than necessary
       //
-      require( (_star > 255) &&
+      require( (_star > 0xff) &&
                ( com.stars.length <
                  com.total.sub( com.withdrawn.add(com.forfeited) ) ) );
 
