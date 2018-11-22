@@ -393,9 +393,10 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
       //  restrict :forfeited to the number of stars not withdrawn
       //
-      if ( forfeited > com.total.sub(com.withdrawn) )
+      uint16 remaining = com.total.sub(com.withdrawn);
+      if ( forfeited > remaining )
       {
-        forfeited = com.total.sub(com.withdrawn);
+        forfeited = remaining;
       }
 
       //  update commitment metadata
