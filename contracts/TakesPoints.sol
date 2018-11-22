@@ -22,6 +22,8 @@ contract TakesPoints is ReadsAzimuth
     internal
     returns (bool success)
   {
+    Ecliptic ecliptic = Ecliptic(azimuth.owner());
+
     //  There are two ways for a contract to get a point.
     //  One way is for a parent point to grant the contract permission to
     //  spawn its points.
@@ -30,12 +32,12 @@ contract TakesPoints is ReadsAzimuth
     uint16 prefix = azimuth.getPrefix(_point);
     if ( azimuth.isOwner(_point, 0x0) &&
          azimuth.isOwner(prefix, msg.sender) &&
-         azimuth.isSpawnProxy(prefix, this) )
-         //NOTE  this might still fail because of spawn limit
+         azimuth.isSpawnProxy(prefix, this) &&
+         (ecliptic.getSpawnLimit(prefix, now) > azimuth.getSpawnCount(prefix)) )
     {
       //  first model: spawn _point to :this contract
       //
-      Ecliptic(azimuth.owner()).spawn(_point, this);
+      ecliptic.spawn(_point, this);
       return true;
     }
 
@@ -51,7 +53,7 @@ contract TakesPoints is ReadsAzimuth
     {
       //  second model: transfer active, unused _point to :this contract
       //
-      Ecliptic(azimuth.owner()).transferPoint(_point, this, true);
+      ecliptic.transferPoint(_point, this, true);
       return true;
     }
 
