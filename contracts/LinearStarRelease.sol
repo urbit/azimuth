@@ -131,10 +131,11 @@ contract LinearStarRelease is Ownable, TakesPoints
     {
       Batch storage batch = batches[_participant];
 
-      //  ensure we can't deposit more stars than the participant
-      //  is entitled to
+      //  ensure we can only deposit stars, and that we can't deposit
+      //  more stars than necessary
       //
-      require( batch.stars.length < batch.amount.sub(batch.withdrawn) );
+      require( (_star > 0xff) &&
+               (batch.stars.length < batch.amount.sub(batch.withdrawn)) );
 
       //  have the contract take ownership of the star if possible,
       //  reverting if that fails.
