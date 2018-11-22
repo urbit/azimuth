@@ -42,7 +42,7 @@ contract PlanetSale is Ownable
   {
     require(0 < _price);
     azimuth = _azimuth;
-    price = _price;
+    setPrice(_price);
   }
 
   //
@@ -105,7 +105,7 @@ contract PlanetSale is Ownable
     //  setPrice(): configure the price in wei per planet
     //
     function setPrice(uint256 _price)
-      external
+      public
       onlyOwner
     {
       require(0 < _price);
