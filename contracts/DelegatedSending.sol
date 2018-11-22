@@ -21,10 +21,11 @@ contract DelegatedSending is ReadsAzimuth
 {
   //  Sent: :by sent :point
   //
-  event Sent( uint64 indexed fromPool,
-              uint32 indexed by,
+  event Sent( uint16 indexed prefix,
+              uint64 indexed fromPool,
+              uint32 by,
               uint32 point,
-              address indexed to);
+              address to);
 
   //  limits: per star, the maximum amount of planets any of its planets may
   //          give away
@@ -115,7 +116,7 @@ contract DelegatedSending is ReadsAzimuth
     //
     Ecliptic(azimuth.owner()).spawn(_point, _to);
 
-    emit Sent(pool, _as, _point, _to);
+    emit Sent(azimuth.getPrefix(_point), pool, _as, _point, _to);
   }
 
   //  canSend(): check whether current conditions allow _as to send _point
