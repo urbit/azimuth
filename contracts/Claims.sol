@@ -116,7 +116,7 @@ contract Claims is ReadsAzimuth
 
     //  clear out the claim
     //
-    claims[_point][i] = Claim('', '', '');
+    delete claims[_point][i];
 
     emit ClaimRemoved(_point, _protocol, _claim);
   }
