@@ -143,15 +143,15 @@ contract DelegatedSending is ReadsAzimuth
              //
              azimuth.isSpawnProxy(prefix, this) &&
              //
+             //  the prefix must be in use
+             //
+             azimuth.hasBeenUsed(prefix) &&
+             //
              //  the prefix must not have hit its spawn limit yet
              //
              ( azimuth.getSpawnCount(prefix) <
                Ecliptic(azimuth.owner())
-               .getSpawnLimit(prefix, block.timestamp) ) &&
-             //
-             //  the prefix must be live
-             //
-             azimuth.isLive(prefix) );
+               .getSpawnLimit(prefix, block.timestamp) ) );
   }
 
   //  getPool(): get the invite pool _point belongs to

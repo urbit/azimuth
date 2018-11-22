@@ -66,9 +66,9 @@ contract PlanetSale is Ownable
                //
                azimuth.isSpawnProxy(prefix, this) &&
                //
-               //  prefix must be live
+               //  prefix must be in use
                //
-               azimuth.isLive(prefix) );
+               azimuth.hasBeenUsed(prefix) );
     }
 
     //  purchase(): pay the :price, acquire ownership of the _planet
