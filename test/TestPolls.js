@@ -45,6 +45,8 @@ contract('Polls', function([owner, user]) {
     await polls.startUpgradePoll(concrProp);
     let cPoll = await polls.upgradePolls(concrProp);
     assert.notEqual(cPoll[0], 0);
+    assert.equal(await polls.getUpgradeProposalCount(), 1);
+    assert.equal((await polls.getUpgradeProposals())[0], concrProp);
     // non-owner can't do this.
     await assertRevert(polls.castUpgradeVote(0, concrProp, true, {from:user}));
     // cast votes.
@@ -82,6 +84,10 @@ contract('Polls', function([owner, user]) {
     assert.equal(cPoll[1], 0);
     assert.equal(cPoll[2], 0);
     assert.isFalse(await polls.hasVotedOnUpgradePoll(0, concrProp2));
+    assert.equal(await polls.getUpgradeProposalCount(), 2);
+    let props = await polls.getUpgradeProposals();
+    assert.equal(props[0], concrProp);
+    assert.equal(props[1], concrProp2);
     // test timeout majority
     await polls.castUpgradeVote(0, concrProp2, true);
     assert.isTrue(await polls.hasVotedOnUpgradePoll(0, concrProp2));
@@ -102,6 +108,8 @@ contract('Polls', function([owner, user]) {
     await polls.startDocumentPoll(abstrProp);
     let aPoll = await polls.documentPolls(abstrProp);
     assert.notEqual(aPoll[0], 0);
+    assert.equal(await polls.getDocumentProposalCount(), 1);
+    assert.equal((await polls.getDocumentProposals())[0], abstrProp);
     // non-owner can't do this.
     await assertRevert(polls.castDocumentVote(0, abstrProp, true, {from:user}));
     // cast votes.
@@ -140,6 +148,10 @@ contract('Polls', function([owner, user]) {
     assert.equal(aPoll[1], 0);
     assert.equal(aPoll[2], 0);
     assert.isFalse(await polls.hasVotedOnDocumentPoll(0, abstrProp2));
+    assert.equal(await polls.getDocumentProposalCount(), 2);
+    let props = await polls.getDocumentProposals();
+    assert.equal(props[0], abstrProp);
+    assert.equal(props[1], abstrProp2);
     // test timeout majority
     await polls.castDocumentVote(0, abstrProp2, true);
     assert.isTrue(await polls.hasVotedOnDocumentPoll(0, abstrProp2));

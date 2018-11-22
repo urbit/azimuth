@@ -97,6 +97,13 @@ contract Polls is Ownable
   //
   uint16 public totalVoters;
 
+  //  upgradeProposals: list of all upgrades ever proposed
+  //
+  //    this allows clients to discover the existence of polls.
+  //    from there, they can do liveness checks on the polls themselves.
+  //
+  address[] public upgradeProposals;
+
   //  upgradePolls: per address, poll held to determine if that address
   //                will become the new ecliptic
   //
@@ -114,6 +121,13 @@ contract Polls is Ownable
   //    regardless of the current :totalVoters.
   //
   mapping(address => bool) public upgradeHasAchievedMajority;
+
+  //  documentProposals: list of all documents ever proposed
+  //
+  //    this allows clients to discover the existence of polls.
+  //    from there, they can do liveness checks on the polls themselves.
+  //
+  bytes32[] public documentProposals;
 
   //  documentPolls: per hash, poll held to determine if the corresponding
   //                 document is accepted by the galactic senate
@@ -161,6 +175,52 @@ contract Polls is Ownable
     totalVoters = totalVoters.add(1);
   }
 
+  //  getAllUpgradeProposals(): return array of all upgrade proposals ever made
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
+  function getUpgradeProposals()
+    external
+    view
+    returns (address[] proposals)
+  {
+    return upgradeProposals;
+  }
+
+  //  getUpgradeProposalCount(): get the number of unique proposed upgrades
+  //
+  function getUpgradeProposalCount()
+    external
+    view
+    returns (uint256 count)
+  {
+    return upgradeProposals.length;
+  }
+
+  //  getAllDocumentProposals(): return array of all upgrade proposals ever made
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
+  function getDocumentProposals()
+    external
+    view
+    returns (bytes32[] proposals)
+  {
+    return documentProposals;
+  }
+
+  //  getDocumentProposalCount(): get the number of unique proposed upgrades
+  //
+  function getDocumentProposalCount()
+    external
+    view
+    returns (uint256 count)
+  {
+    return documentProposals.length;
+  }
+
   //  getDocumentMajorities(): return array of all document majorities
   //
   //    Note: only useful for clients, as Solidity does not currently
@@ -206,9 +266,15 @@ contract Polls is Ownable
     //
     require(!upgradeHasAchievedMajority[_proposal]);
 
-    //  start the poll
-    //
     Poll storage poll = upgradePolls[_proposal];
+
+    //  if the proposal is being made for the first time, register it.
+    //
+    if (0 == poll.start)
+    {
+      upgradeProposals.push(_proposal);
+    }
+
     startPoll(poll);
     emit UpgradePollStarted(_proposal);
   }
@@ -224,9 +290,15 @@ contract Polls is Ownable
     //
     require(!documentHasAchievedMajority[_proposal]);
 
-    //  start the poll
-    //
     Poll storage poll = documentPolls[_proposal];
+
+    //  if the proposal is being made for the first time, register it.
+    //
+    if (0 == poll.start)
+    {
+      documentProposals.push(_proposal);
+    }
+
     startPoll(poll);
     emit DocumentPollStarted(_proposal);
   }
