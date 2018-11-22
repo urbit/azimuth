@@ -213,7 +213,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //  make sure we're not promising more than we can possibly give
       //
       uint16 total = totalStars(_batches, 0);
-      require(com.total <= 65280);
+      require( (total > 0) &&
+               (total <= 0xff00) );
 
       Commitment storage com = commitments[_participant];
       com.batches = _batches;

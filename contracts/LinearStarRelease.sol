@@ -106,11 +106,17 @@ contract LinearStarRelease is Ownable, TakesPoints
       external
       onlyOwner
     {
-      //  make sure a sane rate is submitted
-      //
-      require(_rate > 0);
-
       Batch storage batch = batches[_participant];
+
+      //  make sure this participant doesn't already have a batch registered
+      //
+      require(0 == batch.amount);
+
+      //  make sure batch details are sane
+      //
+      require( (_rate > 0) &&
+               (_amount > 0) );
+
       batch.windup = _windup;
       batch.amount = _amount;
       batch.rate = _rate;
