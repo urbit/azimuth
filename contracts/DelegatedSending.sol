@@ -106,7 +106,7 @@ contract DelegatedSending is ReadsAzimuth
     //  increment the sent counter for _as.
     //
     uint64 pool = getPool(_as);
-    pools[pool] = pools[pool] + 1;
+    pools[pool]++;
 
     //  associate the _point with this pool
     //
@@ -174,6 +174,8 @@ contract DelegatedSending is ReadsAzimuth
       //
       return uint64(_point) + 1;
     }
+
+    return pool;
   }
 
   //  canReceive(): wether the _recipient is eligible to receive a planet
