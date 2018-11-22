@@ -81,7 +81,6 @@ contract LinearStarRelease is Ownable, TakesPoints
     TakesPoints(_azimuth)
     public
   {
-    azimuth = _azimuth;
     start = block.timestamp;
   }
 
@@ -160,14 +159,9 @@ contract LinearStarRelease is Ownable, TakesPoints
       //
       require(block.timestamp > start.add(escapeHatchTime));
 
-      //  update contract state
-      //
-      Batch storage batch = batches[_participant];
-      batch.withdrawn = batch.withdrawn.add(1);
-
       //  withdraw a star from the batch
       //
-      performWithdraw(batch, _to, false);
+      performWithdraw(batches[_participant], _to, false);
     }
 
   //
@@ -229,10 +223,6 @@ contract LinearStarRelease is Ownable, TakesPoints
       require( (batch.stars.length > 0) &&
                (batch.withdrawn < withdrawLimit(msg.sender)) );
 
-      //  update contract state
-      //
-      batch.withdrawn = batch.withdrawn.add(1);
-
       //  withdraw a star from the batch
       //
       performWithdraw(batch, _to, true);
@@ -254,6 +244,7 @@ contract LinearStarRelease is Ownable, TakesPoints
       //  remove the star from the batch
       //
       _batch.stars.length = _batch.stars.length.sub(1);
+      _batch.withdrawn = _batch.withdrawn.add(1);
 
       //  transfer :star
       //
