@@ -446,8 +446,9 @@ contract Azimuth is Ownable
       returns (bool result)
     {
       Deed storage deed = rights[_point];
-      return ( (_who == deed.owner) ||
-               (_who == deed.managementProxy) );
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.managementProxy) ) );
     }
 
     function setManagementProxy(uint32 _point, address _manager)
@@ -549,8 +550,9 @@ contract Azimuth is Ownable
       returns (bool result)
     {
       Deed storage deed = rights[_point];
-      return ( (_who == deed.owner) ||
-               (_who == deed.votingProxy) );
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.votingProxy) ) );
     }
 
     function setVotingProxy(uint32 _point, address _voter)
