@@ -4,9 +4,10 @@ pragma solidity 0.4.24;
 
 import './EclipticBase.sol';
 import './Claims.sol';
-import './ERC165Mapping.sol';
-import './interfaces/ERC721Receiver.sol';
+
+import 'openzeppelin-solidity/contracts/introspection/SupportsInterfaceWithLookup.sol';
 import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
+import 'openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
 import 'openzeppelin-solidity/contracts/AddressUtils.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 
@@ -46,7 +47,7 @@ import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 //    allowing points to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
-contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
+contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
 {
   using SafeMath for uint256;
   using AddressUtils for address;
@@ -97,9 +98,9 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
 
     //  register supported interfaces for ERC165
     //
-    supportedInterfaces[0x80ac58cd] = true; // ERC721
-    supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
-    supportedInterfaces[0x7f5828d0] = true; // ERC173 (ownership)
+    _registerInterface(0x80ac58cd); // ERC721
+    _registerInterface(0x5b5e139f); // ERC721Metadata
+    _registerInterface(0x7f5828d0); // ERC173 (ownership)
   }
 
   //
@@ -239,7 +240,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
   //
 
     function name()
-      public
+      external
       view
       returns (string)
     {
@@ -247,7 +248,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     }
 
     function symbol()
-      public
+      external
       view
       returns (string)
     {
