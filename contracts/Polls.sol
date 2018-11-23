@@ -464,11 +464,8 @@ contract Polls is Ownable
                //
                (block.timestamp > _poll.start.add(_poll.duration)) ||
                //
-               //  or because there aren't enough remaining voters to
-               //  tip the scale
-               //  "score" is greater than "remaining votes"
+               //  or there are more yes votes than there can be no votes
                //
-               ( _poll.yesVotes.sub(_poll.noVotes) >
-                 totalVoters.sub( _poll.yesVotes.add(_poll.noVotes) ) ) ) );
+               ( _poll.yesVotes > totalVoters.sub(_poll.yesVotes) ) ) );
   }
 }
