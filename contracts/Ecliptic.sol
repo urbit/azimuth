@@ -372,7 +372,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       }
       //
       //  when sending to a "foreign" address, enforce a withdraw pattern
-      //  making the _point parent's owner the _point owner in the mean time
+      //  making the _point prefix's owner the _point owner in the mean time
       //
       else
       {
@@ -509,7 +509,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //  if the owner would actually change, change it
       //
       //    the only time this deliberately wouldn't be the case is when a
-      //    parent point wants to activate a spawned but untransferred child.
+      //    prefix owner wants to activate a spawned but untransferred child.
       //
       if ( !azimuth.isOwner(_point, _target) )
       {

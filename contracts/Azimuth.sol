@@ -37,7 +37,7 @@ contract Azimuth is Ownable
 
   //  Spawned: :parent has spawned :child.
   //
-  event Spawned(uint32 indexed parent, uint32 indexed child);
+  event Spawned(uint32 indexed prefix, uint32 indexed child);
 
   //  EscapeRequested: :point has requested a new sponsor, :sponsor
   //
@@ -1285,12 +1285,12 @@ contract Azimuth is Ownable
       point.escapeRequested = _isEscaping;
     }
 
-    //  getPrefix(): compute prefix parent of _point
+    //  getPrefix(): compute prefix ("parent") of _point
     //
     function getPrefix(uint32 _point)
       pure
       public
-      returns (uint16 parent)
+      returns (uint16 prefix)
     {
       if (_point < 0x10000)
       {

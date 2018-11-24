@@ -52,10 +52,10 @@ contract('Ecliptic', function([owner, user1, user2]) {
   });
 
   it('spawning points', async function() {
-    // can't spawn if parent not live.
+    // can't spawn if prefix not live.
     await assertRevert(eclipt.spawn(256, user1, {from:user1}));
     await eclipt.configureKeys(0, 1, 2, 1, false, {from:user1});
-    // can't spawn if not parent owner.
+    // can't spawn if not prefix owner.
     await assertRevert(eclipt.spawn(256, user1, {from:user2}));
     // can only spawn size directly below prefix
     await assertRevert(eclipt.spawn(65536, user1), {from:user1});
@@ -189,7 +189,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
   });
 
   it('setting and canceling an escape', async function() {
-    // can't if chosen parent not active.
+    // can't if chosen sponsor not active.
     await assertRevert(eclipt.escape(257, 1, {from:user1}));
     await eclipt.configureKeys(1, 8, 9, 1, false, {from:user1});
     // can't if not owner of point.
@@ -218,18 +218,18 @@ contract('Ecliptic', function([owner, user1, user2]) {
   });
 
   it('adopting or reject an escaping point', async function() {
-    // can't if not owner of parent.
+    // can't if not owner of sponsor.
     await assertRevert(eclipt.adopt(256, {from:user2}));
     await assertRevert(eclipt.reject(512, {from:user2}));
-    // can't if target is not escaping to parent.
+    // can't if target is not escaping to sponsor.
     await assertRevert(eclipt.adopt(258, {from:user1}));
     await assertRevert(eclipt.reject(258, {from:user1}));
-    // adopt as parent owner.
+    // adopt as sponsor owner.
     await eclipt.adopt(256, {from:user1});
     assert.isFalse(await azimuth.isRequestingEscapeTo(256, 1));
     assert.equal(await azimuth.getSponsor(256), 1);
     assert.isTrue(await azimuth.isSponsor(256, 1));
-    // reject as parent owner.
+    // reject as sponsor owner.
     await eclipt.reject(512, {from:user1});
     assert.isFalse(await azimuth.isRequestingEscapeTo(512, 1));
     assert.equal(await azimuth.getSponsor(512), 0);

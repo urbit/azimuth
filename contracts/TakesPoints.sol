@@ -25,7 +25,7 @@ contract TakesPoints is ReadsAzimuth
     Ecliptic ecliptic = Ecliptic(azimuth.owner());
 
     //  There are two ways for a contract to get a point.
-    //  One way is for a parent point to grant the contract permission to
+    //  One way is for a prefix point to grant the contract permission to
     //  spawn its points.
     //  The contract will spawn the point directly to itself.
     //

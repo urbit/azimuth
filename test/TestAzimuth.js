@@ -13,7 +13,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     azimuth = await Azimuth.new();
   });
 
-  it('getting prefix parent', async function() {
+  it('getting prefix', async function() {
     // galaxies
     assert.equal(await azimuth.getPrefix(0), 0);
     assert.equal(await azimuth.getPrefix(255), 255);

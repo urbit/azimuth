@@ -89,8 +89,8 @@ contract PlanetSale is Ownable
 
       //  spawn the planet to us, then immediately transfer to the caller
       //
-      //    spawning to the caller would give the point's parent a
-      //    window off opportunity to cancel the transfer
+      //    spawning to the caller would give the point's prefix's owner
+      //    a window of opportunity to cancel the transfer
       //
       Ecliptic ecliptic = Ecliptic(azimuth.owner());
       ecliptic.spawn(_planet, this);
