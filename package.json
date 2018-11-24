@@ -1,25 +1,25 @@
 {
-  "name": "azimuth",
-  "version": "0.9.0",
+  "name": "urbit-azimuth",
+  "version": "0.9.1",
   "description": "A general-purpose PKI on the Ethereum blockchain.",
   "main": "truffle.js",
   "directories": {
-    "doc": "docs",
     "test": "test"
   },
   "dependencies": {
-    "babel-polyfill": "^6.26.0",
-    "babel-register": "^6.26.0",
     "openzeppelin-solidity": "1.10.0",
-    "solidity-coverage": "^0.5.4",
-    "truffle": "4.1.11",
-    "web3-eth-abi": "^1.0.0-beta.34"
+    "truffle": "4.1.11"
   },
   "devDependencies": {
     "ganache-cli": "^6.1.8",
     "mocha": "^5.2.0",
-    "npm-run-all": "^4.1.3"
+    "npm-run-all": "^4.1.3",
+    "web3-eth-abi": "^1.0.0-beta.34",
+    "solidity-coverage": "^0.5.4"
   },
+  "bundledDependencies": [
+    "openzeppelin-solidity"
+  ],
   "scripts": {
     "build": "truffle compile",
     "test:ganache": "ganache-cli --gasLimit 6000000 > /dev/null &",
@@ -33,7 +33,7 @@
     "type": "git",
     "url": "git+https://github.com/urbit/azimuth.git"
   },
-  "author": "",
+  "author": "Tlon",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/urbit/azimuth/issues"
