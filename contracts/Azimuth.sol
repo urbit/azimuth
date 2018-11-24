@@ -421,14 +421,18 @@ contract Azimuth is Ownable
       emit OwnerChanged(_point, _owner);
     }
 
-    function isManagementProxy(uint32 _point, address _manager)
+    //  isManagementProxy(): returns true if _proxy is _point's management proxy
+    //
+    function isManagementProxy(uint32 _point, address _proxy)
       view
       external
       returns (bool result)
     {
-      return (rights[_point].managementProxy == _manager);
+      return (rights[_point].managementProxy == _proxy);
     }
 
+    //  getManagementProxy(): returns _point's current management proxy
+    //
     function getManagementProxy(uint32 _point)
       view
       external
@@ -451,13 +455,15 @@ contract Azimuth is Ownable
                  (_who == deed.managementProxy) ) );
     }
 
-    function setManagementProxy(uint32 _point, address _manager)
+    //  setManagementProxy(): makes _proxy _point's management proxy
+    //
+    function setManagementProxy(uint32 _point, address _proxy)
       onlyOwner
       external
     {
       Deed storage deed = rights[_point];
       address prev = deed.managementProxy;
-      if (prev == _manager)
+      if (prev == _proxy)
       {
         return;
       }
@@ -493,46 +499,52 @@ contract Azimuth is Ownable
         managerForIndexes[prev][_point] = 0;
       }
 
-      if (0x0 != _manager)
+      if (0x0 != _proxy)
       {
-        uint32[] storage mfor = managerFor[_manager];
+        uint32[] storage mfor = managerFor[_proxy];
         mfor.push(_point);
-        managerForIndexes[_manager][_point] = mfor.length;
+        managerForIndexes[_proxy][_point] = mfor.length;
       }
 
-      deed.managementProxy = _manager;
-      emit ChangedManagementProxy(_point, _manager);
+      deed.managementProxy = _proxy;
+      emit ChangedManagementProxy(_point, _proxy);
     }
 
-    function getManagerForCount(address _manager)
+    //  getManagerForCount(): returns the amount of points _proxy can manage
+    //
+    function getManagerForCount(address _proxy)
       view
       external
       returns (uint256 count)
     {
-      return managerFor[_manager].length;
+      return managerFor[_proxy].length;
     }
 
-    //  getManagerFor(): get the owners _manager is a manager for
+    //  getManagerFor(): returns the points _proxy can manage
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getManagerFor(address _manager)
+    function getManagerFor(address _proxy)
       view
       external
       returns (uint32[] mfor)
     {
-      return managerFor[_manager];
+      return managerFor[_proxy];
     }
 
-    function isVotingProxy(uint32 _point, address _voter)
+    //  isVotingProxy(): returns true if _proxy is _point's voting proxy
+    //
+    function isVotingProxy(uint32 _point, address _proxy)
       view
       external
       returns (bool result)
     {
-      return (rights[_point].votingProxy == _voter);
+      return (rights[_point].votingProxy == _proxy);
     }
 
+    //  getVotingProxy(): returns _point's current voting proxy
+    //
     function getVotingProxy(uint32 _point)
       view
       external
@@ -555,13 +567,15 @@ contract Azimuth is Ownable
                  (_who == deed.votingProxy) ) );
     }
 
-    function setVotingProxy(uint32 _point, address _voter)
+    //  setVotingProxy(): makes _proxy _point's voting proxy
+    //
+    function setVotingProxy(uint32 _point, address _proxy)
       onlyOwner
       external
     {
       Deed storage deed = rights[_point];
       address prev = deed.votingProxy;
-      if (prev == _voter)
+      if (prev == _proxy)
       {
         return;
       }
@@ -598,36 +612,38 @@ contract Azimuth is Ownable
         votingForIndexes[prev][_point] = 0;
       }
 
-      if (0x0 != _voter)
+      if (0x0 != _proxy)
       {
-        uint32[] storage vfor = votingFor[_voter];
+        uint32[] storage vfor = votingFor[_proxy];
         vfor.push(_point);
-        votingForIndexes[_voter][_point] = vfor.length;
+        votingForIndexes[_proxy][_point] = vfor.length;
       }
 
-      deed.votingProxy = _voter;
-      emit ChangedVotingProxy(_point, _voter);
+      deed.votingProxy = _proxy;
+      emit ChangedVotingProxy(_point, _proxy);
     }
 
-    function getVotingForCount(address _voter)
+    //  getVotingForCount(): returns the amount of points _proxy can vote as
+    //
+    function getVotingForCount(address _proxy)
       view
       external
       returns (uint256 count)
     {
-      return votingFor[_voter].length;
+      return votingFor[_proxy].length;
     }
 
-    //  getVotingFor(): get the owners _voter is a voter for
+    //  getVotingFor(): returns the points _proxy can vote as
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getVotingFor(address _voter)
+    function getVotingFor(address _proxy)
       view
       external
       returns (uint32[] vfor)
     {
-      return votingFor[_voter];
+      return votingFor[_proxy];
     }
 
     //  isActive(): return true if point is active
@@ -936,14 +952,18 @@ contract Azimuth is Ownable
       return escapeRequests[_sponsor];
     }
 
-    function isSpawnProxy(uint32 _point, address _spawner)
+    //  isSpawnProxy(): returns true if _proxy is _point's spawn proxy
+    //
+    function isSpawnProxy(uint32 _point, address _proxy)
       view
       external
       returns (bool result)
     {
-      return (rights[_point].spawnProxy == _spawner);
+      return (rights[_point].spawnProxy == _proxy);
     }
 
+    //  getSpawnProxy(): returns _point's current spawn proxy
+    //
     function getSpawnProxy(uint32 _point)
       view
       external
@@ -965,13 +985,15 @@ contract Azimuth is Ownable
                  (_who == deed.spawnProxy) ) );
     }
 
-    function setSpawnProxy(uint32 _point, address _spawner)
+    //  setSpawnProxy(): makes _proxy _point's spawn proxy
+    //
+    function setSpawnProxy(uint32 _point, address _proxy)
       onlyOwner
       external
     {
       Deed storage deed = rights[_point];
       address prev = deed.spawnProxy;
-      if (prev == _spawner)
+      if (prev == _proxy)
       {
         return;
       }
@@ -1007,17 +1029,20 @@ contract Azimuth is Ownable
         spawningForIndexes[prev][_point] = 0;
       }
 
-      if (0x0 != _spawner)
+      if (0x0 != _proxy)
       {
-        uint32[] storage sfor = spawningFor[_spawner];
+        uint32[] storage sfor = spawningFor[_proxy];
         sfor.push(_point);
-        spawningForIndexes[_spawner][_point] = sfor.length;
+        spawningForIndexes[_proxy][_point] = sfor.length;
       }
 
-      deed.spawnProxy = _spawner;
-      emit ChangedSpawnProxy(_point, _spawner);
+      deed.spawnProxy = _proxy;
+      emit ChangedSpawnProxy(_point, _proxy);
     }
 
+    //  getSpawningForCount(): returns the amount of points _proxy
+    //                         can spawn with
+    //
     function getSpawningForCount(address _proxy)
       view
       external
@@ -1026,7 +1051,7 @@ contract Azimuth is Ownable
       return spawningFor[_proxy].length;
     }
 
-    //  getSpawningFor(): get the points _proxy is a spawn proxy for
+    //  getSpawningFor(): get the points _proxy can spawn with
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
@@ -1039,14 +1064,18 @@ contract Azimuth is Ownable
       return spawningFor[_proxy];
     }
 
-    function isTransferProxy(uint32 _point, address _transferrer)
+    //  isTransferProxy(): returns true if _proxy is _point's transfer proxy
+    //
+    function isTransferProxy(uint32 _point, address _proxy)
       view
       external
       returns (bool result)
     {
-      return (rights[_point].transferProxy == _transferrer);
+      return (rights[_point].transferProxy == _proxy);
     }
 
+    //  getTransferProxy(): returns _point's current transfer proxy
+    //
     function getTransferProxy(uint32 _point)
       view
       external
@@ -1070,15 +1099,15 @@ contract Azimuth is Ownable
                  operators[deed.owner][_who] ) );
     }
 
-    //  setTransferProxy(): configure _transferrer as transfer proxy for _point
+    //  setManagementProxy(): makes _proxy _point's transfer proxy
     //
-    function setTransferProxy(uint32 _point, address _transferrer)
+    function setTransferProxy(uint32 _point, address _proxy)
       onlyOwner
       external
     {
       Deed storage deed = rights[_point];
       address prev = deed.transferProxy;
-      if (prev == _transferrer)
+      if (prev == _proxy)
       {
         return;
       }
@@ -1114,17 +1143,20 @@ contract Azimuth is Ownable
         transferringForIndexes[prev][_point] = 0;
       }
 
-      if (0x0 != _transferrer)
+      if (0x0 != _proxy)
       {
-        uint32[] storage tfor = transferringFor[_transferrer];
+        uint32[] storage tfor = transferringFor[_proxy];
         tfor.push(_point);
-        transferringForIndexes[_transferrer][_point] = tfor.length;
+        transferringForIndexes[_proxy][_point] = tfor.length;
       }
 
-      deed.transferProxy = _transferrer;
-      emit ChangedTransferProxy(_point, _transferrer);
+      deed.transferProxy = _proxy;
+      emit ChangedTransferProxy(_point, _proxy);
     }
 
+    //  getTransferringForCount(): returns the amount of points _proxy
+    //                             can transfer
+    //
     function getTransferringForCount(address _proxy)
       view
       external
@@ -1133,7 +1165,7 @@ contract Azimuth is Ownable
       return transferringFor[_proxy].length;
     }
 
-    //  getTransferringFor(): get the points _proxy is a transfer proxy for
+    //  getTransferringFor(): get the points _proxy can transfer
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
