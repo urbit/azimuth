@@ -15,11 +15,11 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    amount of stars per a period of time, after an optional waiting
 //    period measured from the launch of this contract.
 //
-//    The owner of the contract can register batches and deposit stars
+//    The owner of this contract can register batches and deposit stars
 //    into them. Participants can withdraw stars as they get released
 //    and transfer ownership of their batch to another address.
 //    If, ten years after the contract launch, any stars remain, the
-//    owner is able to withdraw them. This saves address space from
+//    contract owner is able to withdraw them. This saves address space from
 //    being lost forever in case of key loss by participants.
 //
 contract LinearStarRelease is Ownable, TakesPoints
@@ -27,7 +27,7 @@ contract LinearStarRelease is Ownable, TakesPoints
   using SafeMath for uint256;
   using SafeMath16 for uint16;
 
-  //  escapeHatchTime: amount of time after the first tranche unlocks, after
+  //  escapeHatchTime: amount of time after the time of contract launch, after
   //                   which the contract owner can withdraw arbitrary stars
   //
   uint256 constant escapeHatchTime = 10 * 365 days;
@@ -41,7 +41,7 @@ contract LinearStarRelease is Ownable, TakesPoints
   struct Batch
   {
     //  windup: amount of time it takes for stars to start becoming
-    //          available for withdrawal
+    //          available for withdrawal (start unlocking)
     //
     uint256 windup;
 
@@ -50,7 +50,7 @@ contract LinearStarRelease is Ownable, TakesPoints
     uint16 rate;
 
     //  rateUnit: amount of time it takes for the next :rate stars to be
-    //            released
+    //            released/unlocked
     //
     uint256 rateUnit;
 
@@ -63,7 +63,7 @@ contract LinearStarRelease is Ownable, TakesPoints
     //
     uint16[] stars;
 
-    //  withdrawn: number of stars withdrawn by this batch
+    //  withdrawn: number of stars withdrawn from this batch
     //
     uint16 withdrawn;
 
@@ -149,7 +149,7 @@ contract LinearStarRelease is Ownable, TakesPoints
 
     //  withdrawOverdue(): withdraw arbitrary star from the contract
     //
-    //    this functions as an escape hatch in the case of key loss,
+    //    this functions acts as an escape hatch in the case of key loss,
     //    to prevent blocks of address space from being lost permanently.
     //
     function withdrawOverdue(address _participant, address _to)
@@ -233,7 +233,7 @@ contract LinearStarRelease is Ownable, TakesPoints
   //  Internal functions
   //
 
-    //  performWithdraw(): withdraw a star from _commit to _to
+    //  performWithdraw(): withdraw a star from _batch to _to
     //
     function performWithdraw(Batch storage _batch, address _to, bool _reset)
       internal
@@ -273,7 +273,7 @@ contract LinearStarRelease is Ownable, TakesPoints
       {
         //  calculate the amount of stars available from this batch by
         //  multiplying the release rate (stars per :rateUnit) by the number
-        //  of rateUnits that have passed since the windup period ended
+        //  of :rateUnits that have passed since the windup period ended
         //
         allowed = uint256(batch.rate).mul(
                   ( block.timestamp.sub(start.add(batch.windup)) /
@@ -298,9 +298,8 @@ contract LinearStarRelease is Ownable, TakesPoints
 
     //  verifyBalance: check the balance of _participant
     //
-    //    Note: for use by clients that have not forfeited,
-    //    to verify the contract owner has deposited the stars
-    //    they're entitled to.
+    //    Note: for use by clients, to verify the contract owner
+    //    has deposited all the stars they're entitled to.
     //
     function verifyBalance(address _participant)
       external

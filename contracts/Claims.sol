@@ -10,7 +10,7 @@ import './ReadsAzimuth.sol';
 //    Most commonly, these are about identity, with a claim's protocol
 //    defining the context or platform of the claim, and its dossier
 //    containing proof of its validity.
-//    Azimuth are limited to a maximum of 16 claims.
+//    Points are limited to a maximum of 16 claims.
 //
 //    For existing claims, the dossier can be updated, or the claim can
 //    be removed entirely. It is recommended to remove any claims associated
@@ -21,7 +21,7 @@ import './ReadsAzimuth.sol';
 //
 contract Claims is ReadsAzimuth
 {
-  //  ClaimAdded: a claim was addhd by :by
+  //  ClaimAdded: a claim was added by :by
   //
   event ClaimAdded( uint32 indexed by,
                     string _protocol,
@@ -129,6 +129,11 @@ contract Claims is ReadsAzimuth
     external
   {
     //  both point owner and ecliptic may do this
+    //
+    //    We do not necessarily need to check for _point's active flag here,
+    //    since inactive points cannot have claims set. Doing the check
+    //    anyway would make this function slightly harder to think about due
+    //    to its relation to Ecliptic's transferPoint().
     //
     require( azimuth.canManage(_point, msg.sender) ||
              ( msg.sender == azimuth.owner() ) );

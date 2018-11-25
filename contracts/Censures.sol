@@ -16,7 +16,7 @@ import './ReadsAzimuth.sol';
 //
 contract Censures is ReadsAzimuth
 {
-  //  Censured: :who got censures by :by
+  //  Censured: :who got censured by :by
   //
   event Censured(uint16 indexed by, uint32 indexed who);
 

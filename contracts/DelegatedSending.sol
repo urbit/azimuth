@@ -14,7 +14,7 @@ import './Ecliptic.sol';
 //    to a value higher than zero can help the network grow by providing
 //    regular users with a way to get their friends and family onto it.
 //
-//    To allow planets to be sent my this contract, stars must set it as
+//    To allow planets to be sent by this contract, stars must set it as
 //    their spawnProxy using the Ecliptic.
 //
 contract DelegatedSending is ReadsAzimuth
@@ -41,7 +41,7 @@ contract DelegatedSending is ReadsAzimuth
   //
   mapping(uint64 => uint16) public pools;
 
-  //  fromPool: per planet, the pool from which they were sent
+  //  fromPool: per planet, the pool from which they were sent/invited
   //
   //    when invited by planet n, the invitee is registered in pool n + 1.
   //    a pool of 0 means the planet has its own invite pool.
@@ -178,7 +178,7 @@ contract DelegatedSending is ReadsAzimuth
     return pool;
   }
 
-  //  canReceive(): wether the _recipient is eligible to receive a planet
+  //  canReceive(): whether the _recipient is eligible to receive a planet
   //                from this contract or not
   //
   //    only those who don't own or are entitled to any points may receive

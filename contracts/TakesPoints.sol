@@ -15,8 +15,8 @@ contract TakesPoints is ReadsAzimuth
   }
 
   //  takePoint(): transfer _point to this contract. if _clean is true, require
-  //              that the point be unused.
-  //              returns true if this succeeds, false otherwise.
+  //               that the point be unused.
+  //               returns true if this succeeds, false otherwise.
   //
   function takePoint(uint32 _point, bool _clean)
     internal
@@ -41,8 +41,8 @@ contract TakesPoints is ReadsAzimuth
       return true;
     }
 
-    //  The second way is to accept existing points, optionally requiring
-    //  they be unused.
+    //  The second way is to accept existing points, optionally
+    //  requiring they be unused.
     //  To deposit a point this way, the owner grants the contract
     //  permission to transfer ownership of the point.
     //  The contract will transfer the point to itself.
@@ -63,7 +63,11 @@ contract TakesPoints is ReadsAzimuth
   }
 
   //  givePoint(): transfer a _point we own to _to, optionally resetting.
-  //              returns true if this succeeds, false otherwise.
+  //               returns true if this succeeds, false otherwise.
+  //
+  //    Note that _reset is unnecessary if the point was taken
+  //    using this contract's takePoint() function, which always
+  //    resets, and not touched since.
   //
   function givePoint(uint32 _point, address _to, bool _reset)
     internal

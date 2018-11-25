@@ -454,7 +454,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
         return;
       }
 
-      //  if the deadline has passed, the condition is missed, and the
+      //  if the deadline has passed, the condition is missed, then the
       //  deadline becomes the condition's timestamp.
       //
       uint256 deadline = deadlines[_condition];

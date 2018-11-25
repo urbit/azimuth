@@ -27,7 +27,7 @@ contract PlanetSale is Ownable
   //
   event PlanetSold(uint32 indexed prefix, uint32 indexed planet);
 
-  //  points: points state data store
+  //  azimuth: points state data store
   //
   Azimuth public azimuth;
 
@@ -122,7 +122,7 @@ contract PlanetSale is Ownable
       _target.transfer(address(this).balance);
     }
 
-    //  close(): end the sale by destroying this contract and transfering
+    //  close(): end the sale by destroying this contract and transferring
     //           remaining funds to _target
     //
     function close(address _target)

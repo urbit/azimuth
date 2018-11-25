@@ -112,11 +112,11 @@ contract Polls is Ownable
   //  upgradeHasAchievedMajority: per address, whether that address
   //                              has ever achieved majority
   //
-  //    if we did not store this, we would have to look at old poll data
+  //    If we did not store this, we would have to look at old poll data
   //    to see whether or not a proposal has ever achieved majority.
-  //    since the outcome of a poll is calculated based on :totalVoters,
-  //    which may not be consistent accross time, we need to store outcomes
-  //    explicitly instead of re-calculating them, so that we can always
+  //    Since the outcome of a poll is calculated based on :totalVoters,
+  //    which may not be consistent across time, we need to store outcomes
+  //    explicitly instead of re-calculating them. This allows us to always
   //    tell with certainty whether or not a majority was achieved,
   //    regardless of the current :totalVoters.
   //
