@@ -21,7 +21,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    Since data stores are difficult to upgrade, this contract contains
 //    as little actual business logic as possible. Instead, the data stored
 //    herein can only be modified by this contract's owner, which can be
-//    changed and is thus upgradable/replacable.
+//    changed and is thus upgradable/replaceable.
 //
 //    This contract will be owned by the Ecliptic contract.
 //
@@ -31,15 +31,15 @@ contract Azimuth is Ownable
   //
   event OwnerChanged(uint32 indexed point, address indexed owner);
 
-  //  Activated: :point is now activate
+  //  Activated: :point is now active
   //
   event Activated(uint32 indexed point);
 
-  //  Spawned: :parent has spawned :child.
+  //  Spawned: :prefix has spawned :child
   //
   event Spawned(uint32 indexed prefix, uint32 indexed child);
 
-  //  EscapeRequested: :point has requested a new sponsor, :sponsor
+  //  EscapeRequested: :point has requested a new :sponsor
   //
   event EscapeRequested(uint32 indexed point, uint32 indexed sponsor);
 
@@ -47,15 +47,15 @@ contract Azimuth is Ownable
   //
   event EscapeCanceled(uint32 indexed point, uint32 indexed sponsor);
 
-  //  EscapeAccepted: :point confirmed with a new sponsor, :sponsor
+  //  EscapeAccepted: :point confirmed with a new :sponsor
   //
   event EscapeAccepted(uint32 indexed point, uint32 indexed sponsor);
 
-  //  LostSponsor: :point's sponsor is now refusing it service
+  //  LostSponsor: :point's :sponsor is now refusing it service
   //
   event LostSponsor(uint32 indexed point, uint32 indexed sponsor);
 
-  //  ChangedKeys: :point has new network public keys, :crypt and :auth
+  //  ChangedKeys: :point has new network public keys
   //
   event ChangedKeys( uint32 indexed point,
                      bytes32 encryptionKey,
@@ -63,38 +63,41 @@ contract Azimuth is Ownable
                      uint32 cryptoSuiteVersion,
                      uint32 keyRevisionNumber );
 
-  //  BrokeContinuity: :point has a new continuity number, :number.
+  //  BrokeContinuity: :point has a new continuity number, :number
   //
   event BrokeContinuity(uint32 indexed point, uint32 number);
 
-  //  ChangedSpawnProxy: :point has a new spawn proxy
+  //  ChangedSpawnProxy: :spawnProxy can now spawn using :point
   //
   event ChangedSpawnProxy(uint32 indexed point, address indexed spawnProxy);
 
-  //  ChangedTransferProxy: :point has a new transfer proxy
+  //  ChangedTransferProxy: :transferProxy can now transfer ownership of :point
   //
   event ChangedTransferProxy( uint32 indexed point,
                               address indexed transferProxy );
 
-  //  ChangedManagementProxy: :manager can now manage :point
+  //  ChangedManagementProxy: :managementProxy can now manage :point
   //
-  event ChangedManagementProxy(uint32 indexed point, address indexed manager);
+  event ChangedManagementProxy( uint32 indexed point,
+                                address indexed managementProxy );
 
-  //  ChangedVotingProxy: :voter can now vote using :point
+  //  ChangedVotingProxy: :votingProxy can now vote using :point
   //
-  event ChangedVotingProxy(uint32 indexed point, address indexed voter);
+  event ChangedVotingProxy(uint32 indexed point, address indexed votingProxy);
 
-  //  ChangedDns: dnsDomains has been updated
+  //  ChangedDns: dnsDomains have been updated
   //
   event ChangedDns(string primary, string secondary, string tertiary);
 
   //  Size: kinds of points registered on-chain
   //
+  //    NOTE: the order matters, because of Solidity enum numbering
+  //
   enum Size
   {
-    Galaxy,
-    Star,
-    Planet
+    Galaxy, // = 0
+    Star,   // = 1
+    Planet  // = 2
   }
 
   //  Point: state of a point
@@ -103,16 +106,16 @@ contract Azimuth is Ownable
   {
     //  active: whether point can be used
     //
-    //    false: point belongs to parent, cannot be used
-    //    true: point has been, or can be, used
+    //    false: point belongs to prefix, cannot be configured and used
+    //    true: point no longer belongs to prefix, can be configured and used
     //
     bool active;
 
-    //  encryptionKey: curve25519 encryption key, or 0 for none
+    //  encryptionKey: (curve25519) encryption public key, or 0 for none
     //
     bytes32 encryptionKey;
 
-    //  authenticationKey: ed25519 authentication key, or 0 for none
+    //  authenticationKey: (ed25519) authentication public key, or 0 for none
     //
     bytes32 authenticationKey;
 
@@ -120,7 +123,7 @@ contract Azimuth is Ownable
     //
     uint32 cryptoSuiteVersion;
 
-    //  keyRevisionNumber: incremented every time we change the public keys
+    //  keyRevisionNumber: incremented every time the public keys change
     //
     uint32 keyRevisionNumber;
 
@@ -146,11 +149,13 @@ contract Azimuth is Ownable
     //
     bool escapeRequested;
 
-    //  escapeRequestedTo: if :escapeRequested is set, new sponsor requested
+    //  escapeRequestedTo: if :escapeRequested is true, new sponsor requested
     //
     uint32 escapeRequestedTo;
   }
 
+  //  Deed: permissions for a point
+  //
   struct Deed
   {
     //  owner: address that owns this point
@@ -158,19 +163,21 @@ contract Azimuth is Ownable
     address owner;
 
     //  managementProxy: 0, or another address with the right to perform
-    //                   low-impact, managerial tasks
+    //                   low-impact, managerial operations on this point
     //
     address managementProxy;
 
-    //  votingProxy: 0, or another address with the right to vote
+    //  votingProxy: 0, or another address with the right to vote as this point
     //
     address votingProxy;
 
     //  spawnProxy: 0, or another address with the right to spawn children
+    //              of this point
     //
     address spawnProxy;
 
-    //  transferProxy: 0, or another address with the right to transfer owners
+    //  transferProxy: 0, or another address with the right to transfer
+    //                 ownership of this point
     //
     address transferProxy;
   }
@@ -183,11 +190,12 @@ contract Azimuth is Ownable
   //
   mapping(uint32 => Deed) public rights;
 
-  //  pointsOwnedBy: per address, list of points owned
+  //  pointsOwnedBy: per address, the points they own
   //
   mapping(address => uint32[]) public pointsOwnedBy;
 
-  //  pointOwnerIndexes: per owner per point, (index + 1) in pointsOwnedBy array
+  //  pointOwnerIndexes: per owner, per point, (index + 1) in
+  //                     the pointsOwnedBy array
   //
   //    We delete owners by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
@@ -200,7 +208,7 @@ contract Azimuth is Ownable
   //
   mapping(address => mapping(address => bool)) public operators;
 
-  //  managerFor: per address, the points they are managing
+  //  managerFor: per address, the points they are the management proxy for
   //
   mapping(address => uint32[]) public managerFor;
 
@@ -218,7 +226,7 @@ contract Azimuth is Ownable
   //
   mapping(address => mapping(uint32 => uint256)) public votingForIndexes;
 
-  //  transferringFor: per address, the points they are transfer proxy for
+  //  transferringFor: per address, the points they can transfer
   //
   mapping(address => uint32[]) public transferringFor;
 
@@ -227,7 +235,7 @@ contract Azimuth is Ownable
   //
   mapping(address => mapping(uint32 => uint256)) public transferringForIndexes;
 
-  //  spawningFor: per address, the points they are spawn proxy for
+  //  spawningFor: per address, the points they can spawn with
   //
   mapping(address => uint32[]) public spawningFor;
 
@@ -296,7 +304,7 @@ contract Azimuth is Ownable
     function getOwnedPoints()
       view
       external
-      returns (uint32[] ownedAzimuth)
+      returns (uint32[] ownedPoints)
     {
       return pointsOwnedBy[msg.sender];
     }
@@ -441,8 +449,7 @@ contract Azimuth is Ownable
       return rights[_point].managementProxy;
     }
 
-    //  canManage(): true if _who is the owner of _point,
-    //               or the manager of _point's owner
+    //  canManage(): true if _who is the owner or manager of _point
     //
     function canManage(uint32 _point, address _who)
       view
@@ -646,7 +653,7 @@ contract Azimuth is Ownable
       return votingFor[_proxy];
     }
 
-    //  isActive(): return true if point is active
+    //  isActive(): return true if _point is active
     //
     function isActive(uint32 _point)
       view
@@ -656,7 +663,7 @@ contract Azimuth is Ownable
       return points[_point].active;
     }
 
-    //  activatePoint(): activate a point, register it as spawned by its parent
+    //  activatePoint(): activate a point, register it as spawned by its prefix
     //
     function activatePoint(uint32 _point)
       onlyOwner
@@ -671,7 +678,7 @@ contract Azimuth is Ownable
       emit Activated(_point);
     }
 
-    //  registerSpawn(): add a point to its parent's list of spawned points
+    //  registerSpawn(): add a point to its prefix's list of spawned points
     //
     function registerSpawned(uint32 _point)
       onlyOwner
@@ -741,7 +748,7 @@ contract Azimuth is Ownable
     }
 
     //  setKeys(): set network public keys of _point to _encryptionKey and
-    //            _authenticationKey
+    //            _authenticationKey, with the specified _cryptoSuiteVersion
     //
     function setKeys(uint32 _point,
                      bytes32 _encryptionKey,
@@ -954,7 +961,8 @@ contract Azimuth is Ownable
       return sponsoring[_sponsor].length;
     }
 
-    //  getSponsoring(): get the points _sponsor is a sponsor for
+    //  getSponsoring(): returns a list of points _sponsor is providing
+    //                   service to
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
@@ -1246,7 +1254,7 @@ contract Azimuth is Ownable
   //
 
     //  registerSponsor(): set the sponsorship state of _point and update the
-    //                reverse lookup for sponsors
+    //                     reverse lookup for sponsors
     //
     function registerSponsor(uint32 _point, bool _hasSponsor, uint32 _sponsor)
       internal
@@ -1254,6 +1262,11 @@ contract Azimuth is Ownable
       Point storage point = points[_point];
       bool had = point.hasSponsor;
       uint32 prev = point.sponsor;
+
+      //  if we didn't have a sponsor, and won't get one,
+      //  or if we get the sponsor we already have,
+      //  nothing will change, so jump out early.
+      //
       if ( (!had && !_hasSponsor) ||
            (had && _hasSponsor && prev == _sponsor) )
       {
@@ -1312,6 +1325,11 @@ contract Azimuth is Ownable
       Point storage point = points[_point];
       bool was = point.escapeRequested;
       uint32 prev = point.escapeRequestedTo;
+
+      //  if we weren't escaping, and won't be,
+      //  or if we were escaping, and the new target is the same,
+      //  nothing will change, so jump out early.
+      //
       if ( (!was && !_isEscaping) ||
            (was && _isEscaping && prev == _sponsor) )
       {
