@@ -54,8 +54,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
 
   //  Transfer: This emits when ownership of any NFT changes by any mechanism.
   //            This event emits when NFTs are created (`from` == 0) and
-  //            destroyed (`to` == 0). At the time of any transfer, the approved
-  //            address for that NFT (if any) is reset to none.
+  //            destroyed (`to` == 0). At the time of any transfer, the
+  //            approved address for that NFT (if any) is reset to none.
   //
   event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
 
@@ -63,6 +63,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
   //            reaffirmed. The zero address indicates there is no approved
   //            address. When a Transfer event emits, this also indicates that
   //            the approved address for that NFT (if any) is reset to none.
+  //
   event Approval(address indexed _owner, address indexed _approved,
                  uint256 _tokenId);
 
@@ -190,10 +191,15 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     {
       uint32 id = uint32(_tokenId);
       require(azimuth.isOwner(id, _from));
+
+      //  the ERC721 operator/approved address (if any) is
+      //  accounted for in transferPoint()
+      //
       transferPoint(id, _to, true);
     }
 
-    //  approve(): allow _approved to transfer ownership of point _tokenId
+    //  approve(): allow _approved to transfer ownership of point
+    //             _tokenId
     //
     function approve(address _approved, uint256 _tokenId)
       public
@@ -202,8 +208,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       setTransferProxy(uint32(_tokenId), _approved);
     }
 
-    //  setApprovalForAll(): allow or disallow _operator to transfer ownership
-    //                       of ALL points owned by :msg.sender
+    //  setApprovalForAll(): allow or disallow _operator to
+    //                       transfer ownership of ALL points
+    //                       owned by :msg.sender
     //
     function setApprovalForAll(address _operator, bool _approved)
       public
@@ -213,7 +220,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       emit ApprovalForAll(msg.sender, _operator, _approved);
     }
 
-    //  getApproved(): get the transfer proxy for point _tokenId
+    //  getApproved(): get the approved address for point _tokenId
     //
     function getApproved(uint256 _tokenId)
       public
@@ -221,11 +228,15 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       validPointId(_tokenId)
       returns (address approved)
     {
+      //NOTE  redundant, transfer proxy cannot be set for
+      //      inactive points
+      //
       require(azimuth.isActive(uint32(_tokenId)));
       return azimuth.getTransferProxy(uint32(_tokenId));
     }
 
-    //  isApprovedForAll(): returns true if _operator is an operator for _owner
+    //  isApprovedForAll(): returns true if _operator is an
+    //                      operator for _owner
     //
     function isApprovedForAll(address _owner, address _operator)
       public
@@ -239,6 +250,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
   //  ERC721Metadata interface
   //
 
+    //  name(): returns the name of a collection of points
+    //
     function name()
       external
       view
@@ -247,6 +260,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       return "Azimuth Point";
     }
 
+    //  symbol(): returns an abbreviates name for points
     function symbol()
       external
       view
@@ -255,7 +269,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       return "AZP";
     }
 
-    //  tokenURI(): produce a URL to a standard JSON file
+    //  tokenURI(): returns a URL to an ERC-721 standard JSON file
     //
     function tokenURI(uint256 _tokenId)
       public
@@ -317,14 +331,18 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
                       _cryptoSuiteVersion);
     }
 
-    //  spawn(): spawn _point, giving ownership to _target
+    //  spawn(): spawn _point, then either give, or allow _target to take,
+    //           ownership of _point
+    //
+    //    if _target is the :msg.sender, _targets owns the _point right away.
+    //    otherwise, _target becomes the transfer proxy of _point.
     //
     //    Requirements:
-    //    - _point must not be active,
-    //    - _point must not be a planet with a galaxy prefix,
-    //    - _point's prefix must be used and under its spawn limit,
+    //    - _point must not be active
+    //    - _point must not be a planet with a galaxy prefix
+    //    - _point's prefix must be used and under its spawn limit
     //    - :msg.sender must be either the owner of _point's prefix,
-    //      or an authorized spawn proxy for it.
+    //      or an authorized spawn proxy for it
     //
     function spawn(uint32 _point, address _target)
       external
@@ -351,7 +369,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       require( (uint8(azimuth.getPointSize(prefix)) + 1) ==
                uint8(azimuth.getPointSize(_point)) );
 
-      //  prefix point must be live and able to spawn
+      //  prefix point must be in use and able to spawn
       //
       require( (azimuth.hasBeenUsed(prefix)) &&
                ( azimuth.getSpawnCount(prefix) <
@@ -381,7 +399,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     }
 
     //  doSpawn(): actual spawning logic, used in spawn(). creates _point,
-    //             making the _target its own if _direct, or making the
+    //             making the _target its owner if _direct, or making the
     //             _holder the owner and the _target the transfer proxy
     //             if not _direct.
     //
@@ -417,7 +435,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //
       else
       {
-        //  have _holder hold on to the point while _target gets to transfer
+        //  have _holder hold on to the _point while _target gets to transfer
         //  ownership of it
         //
         azimuth.setOwner(_point, _holder);
@@ -428,8 +446,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       }
     }
 
-    //  getSpawnLimit(): returns the total number of children the point _point
-    //                   is allowed to spawn at datetime _time.
+    //  getSpawnLimit(): returns the total number of children the _point
+    //                   is allowed to spawn at _time.
     //
     function getSpawnLimit(uint32 _point, uint256 _time)
       public
@@ -479,7 +497,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     }
 
     //  transferPoint(): transfer _point to _target, clearing all permissions
-    //                  data and keys if _reset is true
+    //                   data and keys if _reset is true
     //
     //    Note: the _reset flag is useful when transferring the point to
     //    a recipient who doesn't trust the previous owner.
@@ -487,8 +505,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    Requirements:
     //    - :msg.sender must be either _point's current owner, authorized
     //      to transfer _point, or authorized to transfer the current
-    //      owner's points.
-    //    - _target must not be the zero address.
+    //      owner's points (as in ERC721's operator)
+    //    - _target must not be the zero address
     //
     function transferPoint(uint32 _point, address _target, bool _reset)
       public
@@ -519,8 +537,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
 
         azimuth.setOwner(_point, _target);
 
-        //  according to ERC721, the transferrer gets cleared during every
-        //  Transfer event
+        //  according to ERC721, the approved address (here, transfer proxy)
+        //  gets cleared during every Transfer event
         //
         azimuth.setTransferProxy(_point, 0);
 
@@ -571,8 +589,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //  setTransferProxy(): give _transferProxy the right to transfer _point
     //
     //    Requirements:
-    //    - :msg.sender must be either _point's current owner, or be
-    //      allowed to operate the current owner's points.
+    //    - :msg.sender must be either _point's current owner, be an operator
+    //      for the current owner
     //
     function setTransferProxy(uint32 _point, address _transferProxy)
       public
@@ -585,7 +603,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //
       require((owner == msg.sender) || azimuth.isOperator(owner, msg.sender));
 
-      //  set transferrer field in Azimuth contract
+      //  set transfer proxy field in Azimuth contract
       //
       azimuth.setTransferProxy(_point, _transferProxy);
 
@@ -603,7 +621,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       view
       returns (bool canEscape)
     {
-      //  can't escape to a sponsor that hasn't been born
+      //  can't escape to a sponsor that hasn't been used
       //
       if ( !azimuth.hasBeenUsed(_sponsor) ) return false;
 
@@ -616,9 +634,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //  owner should be able to invite their friends onto an
       //  Azimuth network in a two-party transaction, without a new
       //  star relationship.
-      //  The lightweight invitation process works by escaping
-      //  your own active, but never used, point, to yourself,
-      //  then transferring it to your friend.
+      //  The lightweight invitation process works by escaping your
+      //  own active (but never used) point to one of your own
+      //  points, then transferring the point to your friend.
       //
       //  These planets can, in turn, sponsor other unused planets,
       //  so the "planet sponsorship chain" can grow to arbitrary
@@ -642,14 +660,14 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
                  !azimuth.hasBeenUsed(_point) ) );
     }
 
-    //  escape(): request escape from _point to _sponsor
+    //  escape(): request escape as _point to _sponsor
     //
     //    if an escape request is already active, this overwrites
     //    the existing request
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _point,
-    //    - _point must be able to escape to _sponsor as per to canEscapeTo().
+    //    - :msg.sender must be the owner or manager of _point,
+    //    - _point must be able to escape to _sponsor as per to canEscapeTo()
     //
     function escape(uint32 _point, uint32 _sponsor)
       external
@@ -668,10 +686,11 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       azimuth.cancelEscape(_point);
     }
 
-    //  adopt(): as the _sponsor, accept the _point
+    //  adopt(): as the relevant sponsor, accept the _point
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _point's requested sponsor.
+    //    - :msg.sender must be the owner or management proxy
+    //      of _point's requested sponsor
     //
     function adopt(uint32 _point)
       external
@@ -686,10 +705,11 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       azimuth.doEscape(_point);
     }
 
-    //  reject(): as the _sponsor, deny the _point's request
+    //  reject(): as the relevant sponsor, deny the _point's request
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _point's requested sponsor.
+    //    - :msg.sender must be the owner or management proxy
+    //      of _point's requested sponsor
     //
     function reject(uint32 _point)
       external
@@ -706,7 +726,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //  detach(): as the _sponsor, stop sponsoring the _point
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _point's current sponsor.
+    //    - :msg.sender must be the owner or management proxy
+    //      of _point's current sponsor
     //
     function detach(uint32 _point)
       external
@@ -714,7 +735,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       require( azimuth.hasSponsor(_point) &&
                azimuth.canManage(azimuth.getSponsor(_point), msg.sender) );
 
-      //  signal that _sponsor no longer supports _point
+      //  signal that its sponsor no longer supports _point
       //
       azimuth.loseSponsor(_point);
     }
@@ -739,9 +760,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //                      upgrade _proposal
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _galaxy,
+    //    - :msg.sender must be the owner or voting proxy of _galaxy,
     //    - the _proposal must expect to be upgraded from this specific
-    //      contract, as indicated by its previousEcliptic attribute.
+    //      contract, as indicated by its previousEcliptic attribute
     //
     function startUpgradePoll(uint8 _galaxy, EclipticBase _proposal)
       external
