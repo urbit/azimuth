@@ -292,21 +292,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     }
 
   //
-  //  Azimuth functions for all points
+  //  Points interface
   //
-
-    //  setManagementProxy(): configure the management proxy for _point
-    //
-    //    The management proxy may perform "reversible" operations on
-    //    behalf of the owner. This includes public key configuration and
-    //    operations relating to sponsorship.
-    //
-    function setManagementProxy(uint32 _point, address _manager)
-      external
-      activePointOwner(_point)
-    {
-      azimuth.setManagementProxy(_point, _manager);
-    }
 
     //  configureKeys(): configure _point with network public keys
     //                   _encryptionKey, _authenticationKey,
@@ -446,56 +433,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       }
     }
 
-    //  getSpawnLimit(): returns the total number of children the _point
-    //                   is allowed to spawn at _time.
-    //
-    function getSpawnLimit(uint32 _point, uint256 _time)
-      public
-      view
-      returns (uint32 limit)
-    {
-      Azimuth.Size size = azimuth.getPointSize(_point);
-
-      if ( size == Azimuth.Size.Galaxy )
-      {
-        return 255;
-      }
-      else if ( size == Azimuth.Size.Star )
-      {
-        //  in 2018, stars may spawn at most 1024 planets. this limit doubles
-        //  for every subsequent year.
-        //
-        //    Note: 1514764800 corresponds to 2018-01-01
-        //
-        uint256 yearsSince2018 = (_time - 1514764800) / 365 days;
-        if (yearsSince2018 < 6)
-        {
-          limit = uint32( 1024 * (2 ** yearsSince2018) );
-        }
-        else
-        {
-          limit = 65535;
-        }
-        return limit;
-      }
-      else  //  size == Azimuth.Size.Planet
-      {
-        //  planets can create moons, but moons aren't on the chain
-        //
-        return 0;
-      }
-    }
-
-    //  setSpawnProxy(): give _spawnProxy the right to spawn points
-    //                   with the prefix _prefix
-    //
-    function setSpawnProxy(uint16 _prefix, address _spawnProxy)
-      external
-      activePointOwner(_prefix)
-    {
-      azimuth.setSpawnProxy(_prefix, _spawnProxy);
-    }
-
     //  transferPoint(): transfer _point to _target, clearing all permissions
     //                   data and keys if _reset is true
     //
@@ -586,80 +523,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       }
     }
 
-    //  setTransferProxy(): give _transferProxy the right to transfer _point
-    //
-    //    Requirements:
-    //    - :msg.sender must be either _point's current owner, be an operator
-    //      for the current owner
-    //
-    function setTransferProxy(uint32 _point, address _transferProxy)
-      public
-    {
-      //  owner: owner of _point
-      //
-      address owner = azimuth.getOwner(_point);
-
-      //  caller must be :owner, or an operator designated by the owner.
-      //
-      require((owner == msg.sender) || azimuth.isOperator(owner, msg.sender));
-
-      //  set transfer proxy field in Azimuth contract
-      //
-      azimuth.setTransferProxy(_point, _transferProxy);
-
-      //  emit Approval event
-      //
-      emit Approval(owner, _transferProxy, uint256(_point));
-    }
-
-    //  canEscapeTo(): true if _point could try to escape to _sponsor
-    //
-    //    Note: public to help with clients
-    //
-    function canEscapeTo(uint32 _point, uint32 _sponsor)
-      public
-      view
-      returns (bool canEscape)
-    {
-      //  can't escape to a sponsor that hasn't been used
-      //
-      if ( !azimuth.hasBeenUsed(_sponsor) ) return false;
-
-      //  Can only escape to a point one size higher than ourselves,
-      //  except in the special case where the escaping point hasn't
-      //  been used yet -- in that case we may escape to points of
-      //  the same size, to support lightweight invitation chains.
-      //
-      //  The use case for lightweight invitations is that a planet
-      //  owner should be able to invite their friends onto an
-      //  Azimuth network in a two-party transaction, without a new
-      //  star relationship.
-      //  The lightweight invitation process works by escaping your
-      //  own active (but never used) point to one of your own
-      //  points, then transferring the point to your friend.
-      //
-      //  These planets can, in turn, sponsor other unused planets,
-      //  so the "planet sponsorship chain" can grow to arbitrary
-      //  length. Most users, especially deep down the chain, will
-      //  want to improve their performance by switching to direct
-      //  star sponsors eventually.
-      //
-      Azimuth.Size pointSize = azimuth.getPointSize(_point);
-      Azimuth.Size sponsorSize = azimuth.getPointSize(_sponsor);
-      return ( //  normal hierarchical escape structure
-               //
-               ( (uint8(sponsorSize) + 1) == uint8(pointSize) ) ||
-               //
-               //  special peer escape
-               //
-               ( (sponsorSize == pointSize) &&
-                 //
-                 //  peer escape is only for points that haven't been used yet,
-                 //  because it's only for lightweight invitation chains
-                 //
-                 !azimuth.hasBeenUsed(_point) ) );
-    }
-
     //  escape(): request escape as _point to _sponsor
     //
     //    if an escape request is already active, this overwrites
@@ -741,8 +604,121 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     }
 
   //
-  //  Poll actions
+  //  Point rules
   //
+
+    //  getSpawnLimit(): returns the total number of children the _point
+    //                   is allowed to spawn at _time.
+    //
+    function getSpawnLimit(uint32 _point, uint256 _time)
+      public
+      view
+      returns (uint32 limit)
+    {
+      Azimuth.Size size = azimuth.getPointSize(_point);
+
+      if ( size == Azimuth.Size.Galaxy )
+      {
+        return 255;
+      }
+      else if ( size == Azimuth.Size.Star )
+      {
+        //  in 2018, stars may spawn at most 1024 planets. this limit doubles
+        //  for every subsequent year.
+        //
+        //    Note: 1514764800 corresponds to 2018-01-01
+        //
+        uint256 yearsSince2018 = (_time - 1514764800) / 365 days;
+        if (yearsSince2018 < 6)
+        {
+          limit = uint32( 1024 * (2 ** yearsSince2018) );
+        }
+        else
+        {
+          limit = 65535;
+        }
+        return limit;
+      }
+      else  //  size == Azimuth.Size.Planet
+      {
+        //  planets can create moons, but moons aren't on the chain
+        //
+        return 0;
+      }
+    }
+
+    //  canEscapeTo(): true if _point could try to escape to _sponsor
+    //
+    function canEscapeTo(uint32 _point, uint32 _sponsor)
+      public
+      view
+      returns (bool canEscape)
+    {
+      //  can't escape to a sponsor that hasn't been used
+      //
+      if ( !azimuth.hasBeenUsed(_sponsor) ) return false;
+
+      //  Can only escape to a point one size higher than ourselves,
+      //  except in the special case where the escaping point hasn't
+      //  been used yet -- in that case we may escape to points of
+      //  the same size, to support lightweight invitation chains.
+      //
+      //  The use case for lightweight invitations is that a planet
+      //  owner should be able to invite their friends onto an
+      //  Azimuth network in a two-party transaction, without a new
+      //  star relationship.
+      //  The lightweight invitation process works by escaping your
+      //  own active (but never used) point to one of your own
+      //  points, then transferring the point to your friend.
+      //
+      //  These planets can, in turn, sponsor other unused planets,
+      //  so the "planet sponsorship chain" can grow to arbitrary
+      //  length. Most users, especially deep down the chain, will
+      //  want to improve their performance by switching to direct
+      //  star sponsors eventually.
+      //
+      Azimuth.Size pointSize = azimuth.getPointSize(_point);
+      Azimuth.Size sponsorSize = azimuth.getPointSize(_sponsor);
+      return ( //  normal hierarchical escape structure
+               //
+               ( (uint8(sponsorSize) + 1) == uint8(pointSize) ) ||
+               //
+               //  special peer escape
+               //
+               ( (sponsorSize == pointSize) &&
+                 //
+                 //  peer escape is only for points that haven't been used yet,
+                 //  because it's only for lightweight invitation chains
+                 //
+                 !azimuth.hasBeenUsed(_point) ) );
+    }
+
+  //
+  //  Permission management
+  //
+
+    //  setManagementProxy(): configure the management proxy for _point
+    //
+    //    The management proxy may perform "reversible" operations on
+    //    behalf of the owner. This includes public key configuration and
+    //    operations relating to sponsorship.
+    //
+    function setManagementProxy(uint32 _point, address _manager)
+      external
+      activePointOwner(_point)
+    {
+      azimuth.setManagementProxy(_point, _manager);
+    }
+
+    //  setSpawnProxy(): give _spawnProxy the right to spawn points
+    //                   with the prefix _prefix
+    //
+    function setSpawnProxy(uint16 _prefix, address _spawnProxy)
+      external
+      activePointOwner(_prefix)
+    {
+      azimuth.setSpawnProxy(_prefix, _spawnProxy);
+    }
 
     //  setVotingProxy(): configure the voting proxy for _galaxy
     //
@@ -755,6 +731,36 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     {
       azimuth.setVotingProxy(_galaxy, _voter);
     }
+
+    //  setTransferProxy(): give _transferProxy the right to transfer _point
+    //
+    //    Requirements:
+    //    - :msg.sender must be either _point's current owner,
+    //      or be an operator for the current owner
+    //
+    function setTransferProxy(uint32 _point, address _transferProxy)
+      public
+    {
+      //  owner: owner of _point
+      //
+      address owner = azimuth.getOwner(_point);
+
+      //  caller must be :owner, or an operator designated by the owner.
+      //
+      require((owner == msg.sender) || azimuth.isOperator(owner, msg.sender));
+
+      //  set transfer proxy field in Azimuth contract
+      //
+      azimuth.setTransferProxy(_point, _transferProxy);
+
+      //  emit Approval event
+      //
+      emit Approval(owner, _transferProxy, uint256(_point));
+    }
+
+  //
+  //  Poll actions
+  //
 
     //  startUpgradePoll(): as _galaxy, start a poll for the ecliptic
     //                      upgrade _proposal
