@@ -110,8 +110,29 @@ contract Azimuth is Ownable
 
   //  Point: state of a point
   //
+  //    While the ordering of the struct members is semantically chaotic,
+  //    they are ordered to tightly pack them into Ethereum's 32-byte storage
+  //    slots, which reduces gas costs for some function calls.
+  //    The comment ticks indicate assumed slot boundaries.
+  //
   struct Point
   {
+    //  encryptionKey: (curve25519) encryption public key, or 0 for none
+    //
+    bytes32 encryptionKey;
+  //
+    //  authenticationKey: (ed25519) authentication public key, or 0 for none
+    //
+    bytes32 authenticationKey;
+  //
+    //  spawned: for stars and galaxies, all :active children
+    //
+    uint32[] spawned;
+  //
+    //  hasSponsor: true if the sponsor still supports the point
+    //
+    bool hasSponsor;
+
     //  active: whether point can be used
     //
     //    false: point belongs to prefix, cannot be configured and used
@@ -119,13 +140,19 @@ contract Azimuth is Ownable
     //
     bool active;
 
-    //  encryptionKey: (curve25519) encryption public key, or 0 for none
+    //  escapeRequested: true if the point has requested to change sponsors
     //
-    bytes32 encryptionKey;
+    bool escapeRequested;
 
-    //  authenticationKey: (ed25519) authentication public key, or 0 for none
+    //  sponsor: the point that supports this one on the network, or,
+    //           if :hasSponsor is false, the last point that supported it.
+    //           (by default, the point's half-width prefix)
     //
-    bytes32 authenticationKey;
+    uint32 sponsor;
+
+    //  escapeRequestedTo: if :escapeRequested is true, new sponsor requested
+    //
+    uint32 escapeRequestedTo;
 
     //  cryptoSuiteVersion: version of the crypto suite used for the pubkeys
     //
@@ -138,28 +165,6 @@ contract Azimuth is Ownable
     //  continuityNumber: incremented to indicate network-side state loss
     //
     uint32 continuityNumber;
-
-    //  spawned: for stars and galaxies, all :active children
-    //
-    uint32[] spawned;
-
-    //  sponsor: the point that supports this one on the network, or,
-    //           if :hasSponsor is false, the last point that supported it.
-    //           (by default, the point's half-width prefix)
-    //
-    uint32 sponsor;
-
-    //  hasSponsor: true if the sponsor still supports the point
-    //
-    bool hasSponsor;
-
-    //  escapeRequested: true if the point has requested to change sponsors
-    //
-    bool escapeRequested;
-
-    //  escapeRequestedTo: if :escapeRequested is true, new sponsor requested
-    //
-    uint32 escapeRequestedTo;
   }
 
   //  Deed: permissions for a point

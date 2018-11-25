@@ -38,34 +38,39 @@ contract LinearStarRelease is Ownable, TakesPoints
 
   //  Batch: stars that unlock for a participant
   //
+  //    While the ordering of the struct members is semantically chaotic,
+  //    they are ordered to tightly pack them into Ethereum's 32-byte storage
+  //    slots, which reduces gas costs for some function calls.
+  //    The comment ticks indicate assumed slot boundaries.
+  //
   struct Batch
   {
+    //  stars: specific stars assigned to this batch that have not yet
+    //         been withdrawn
+    //
+    uint16[] stars;
+  //
     //  windup: amount of time it takes for stars to start becoming
     //          available for withdrawal (start unlocking)
     //
     uint256 windup;
+  //
+    //  rateUnit: amount of time it takes for the next :rate stars to be
+    //            released/unlocked
+    //
+    uint256 rateUnit;
+  //
+    //  withdrawn: number of stars withdrawn from this batch
+    //
+    uint16 withdrawn;
 
     //  rate: number of stars released per :rateUnit
     //
     uint16 rate;
 
-    //  rateUnit: amount of time it takes for the next :rate stars to be
-    //            released/unlocked
-    //
-    uint256 rateUnit;
-
     //  amount: promised amount of stars
     //
     uint16 amount;
-
-    //  stars: specific stars assigned to this batch that have not yet
-    //         been withdrawn
-    //
-    uint16[] stars;
-
-    //  withdrawn: number of stars withdrawn from this batch
-    //
-    uint16 withdrawn;
 
     //  approvedTransferTo: batch can be transferred to this address
     //
@@ -201,7 +206,7 @@ contract LinearStarRelease is Ownable, TakesPoints
       //
       Batch storage com = batches[_from];
       batches[msg.sender] = com;
-      batches[_from] = Batch(0, 0, 0, 0, new uint16[](0), 0, 0x0);
+      batches[_from] = Batch(new uint16[](0), 0, 0, 0, 0, 0, 0x0);
     }
 
     //  withdraw(): withdraw one star to the sender's address

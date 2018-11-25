@@ -103,7 +103,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     assert.isTrue(await csr.verifyBalance(user1));
     await csr.register(user1, [1, 1, 5, 1], 1, rateUnit);
     await csr.register(user3, [1, 1, 5, 1], 1, rateUnit);
-    assert.equal((await csr.commitments(user1))[0], 8);
+    assert.equal((await csr.commitments(user1))[2], 8);
     assert.isFalse(await csr.verifyBalance(user1));
     // can always withdraw at least one star
     assert.equal(await csr.withdrawLimit(user1), 1);
@@ -159,13 +159,13 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await assertRevert(csr.withdraw({from:owner}));
     await csr.withdraw({from:user1});
     assert.isTrue(await azimuth.isOwner(2048, user1));
-    assert.equal((await csr.commitments(user1))[3], 1);
+    assert.equal((await csr.commitments(user1))[1], 1);
     // can't withdraw over limit
     await assertRevert(csr.withdraw());
     assert.equal(await csr.withdrawLimit(user1), 3);
     await csr.withdraw({from:user1});
     await csr.withdraw({from:user1});
-    assert.equal((await csr.commitments(user1))[3], 3);
+    assert.equal((await csr.commitments(user1))[1], 3);
   });
 
   it('transferring commitment', async function() {
@@ -193,9 +193,9 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     // can't forfeit twice
     await assertRevert(csr.forfeit(2, {from:user2}));
     let com = await csr.commitments(user2);
-    assert.isTrue(com[4]);
-    assert.equal(com[5], com[0] - com[3]);
-    assert.equal(com[5], 5);
+    assert.isTrue(com[5]);
+    assert.equal(com[4], com[2] - com[1]);
+    assert.equal(com[4], 5);
     await increaseTime(rateUnit);
     // can't withdraw because of forfeit
     await assertRevert(csr.withdraw({from:user2}));

@@ -105,11 +105,30 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
   //  Commitment: structure that mirrors a signed paper contract
   //
+  //    While the ordering of the struct members is semantically chaotic,
+  //    they are ordered to tightly pack them into Ethereum's 32-byte storage
+  //    slots, which reduces gas costs for some function calls.
+  //    The comment ticks indicate assumed slot boundaries.
+  //
   struct Commitment
   {
+    //  stars: specific stars assigned to this commitment that have not yet
+    //         been withdrawn
+    //
+    uint16[] stars;
+  //
     //  batches: number of stars to release per condition
     //
     uint16[] batches;
+  //
+    //  rateUnit: amount of time it takes for the next :rate stars to be
+    //            released
+    //
+    uint256 rateUnit;
+  //
+    //  withdrawn: number of stars withdrawn by the participant
+    //
+    uint16 withdrawn;
 
     //  total: sum of stars in all batches
     //
@@ -119,28 +138,14 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     //
     uint16 rate;
 
-    //  rateUnit: amount of time it takes for the next :rate stars to be
-    //            released
-    //
-    uint256 rateUnit;
-
-    //  stars: specific stars assigned to this commitment that have not yet
-    //         been withdrawn
-    //
-    uint16[] stars;
-
-    //  withdrawn: number of stars withdrawn by the participant
-    //
-    uint16 withdrawn;
-
-    //  forfeit: true if this commitment has forfeited any future stars
-    //
-    bool forfeit;
-
     //  forfeited: number of forfeited stars not yet withdrawn by
     //             the contract owner
     //
     uint16 forfeited;
+
+    //  forfeit: true if this commitment has forfeited any future stars
+    //
+    bool forfeit;
 
     //  approvedTransferTo: batch can be transferred to this address
     //
@@ -338,8 +343,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //
       Commitment storage com = commitments[_from];
       commitments[msg.sender] = com;
-      commitments[_from] = Commitment(new uint16[](0), 0, 0, 0,
-                                      new uint16[](0), 0, false, 0, 0x0);
+      commitments[_from] = Commitment(new uint16[](0), new uint16[](0),
+                                      0, 0, 0, 0, 0, false, 0x0);
     }
 
     //  withdraw(): withdraw one star to the sender's address
