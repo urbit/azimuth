@@ -691,6 +691,9 @@ contract Azimuth is Ownable
       emit Spawned(prefix, _point);
     }
 
+    //  getKeys(): returns the public keys and their details, as currently
+    //             registered for _point
+    //
     function getKeys(uint32 _point)
       view
       external
@@ -703,6 +706,9 @@ contract Azimuth is Ownable
               point.keyRevisionNumber);
     }
 
+    //  getKeyRevisionNumber(): gets the revision number of _point's current
+    //                          public keys
+    //
     function getKeyRevisionNumber(uint32 _point)
       view
       external
@@ -764,6 +770,8 @@ contract Azimuth is Ownable
                        point.keyRevisionNumber);
     }
 
+    //  getContinuityNumber(): returns _point's current continuity number
+    //
     function getContinuityNumber(uint32 _point)
       view
       external
@@ -772,6 +780,8 @@ contract Azimuth is Ownable
       return points[_point].continuityNumber;
     }
 
+    // incrementContinuityNumber(): break continuity for _point
+    //
     function incrementContinuityNumber(uint32 _point)
       onlyOwner
       external
@@ -806,6 +816,8 @@ contract Azimuth is Ownable
       return points[_point].spawned;
     }
 
+    //  getSponsor(): returns _point's current (or most recent) sponsor
+    //
     function getSponsor(uint32 _point)
       view
       external
@@ -814,6 +826,8 @@ contract Azimuth is Ownable
       return points[_point].sponsor;
     }
 
+    //  hasSponsor(): returns true if _point's sponsor is providing it service
+    //
     function hasSponsor(uint32 _point)
       view
       external
@@ -822,6 +836,9 @@ contract Azimuth is Ownable
       return points[_point].hasSponsor;
     }
 
+    //  isSponsor(): returns true if _sponsor is currently providing service
+    //               to _point
+    //
     function isSponsor(uint32 _point, uint32 _sponsor)
       view
       external
@@ -832,6 +849,9 @@ contract Azimuth is Ownable
                (point.sponsor == _sponsor) );
     }
 
+    //  loseSponsor(): indicates that _point's sponsor is no longer providing
+    //                 it service
+    //
     function loseSponsor(uint32 _point)
       onlyOwner
       external
@@ -845,6 +865,8 @@ contract Azimuth is Ownable
       emit LostSponsor(_point, point.sponsor);
     }
 
+    //  isEscaping(): returns true if _point has an outstanding escape request
+    //
     function isEscaping(uint32 _point)
       view
       external
@@ -853,6 +875,11 @@ contract Azimuth is Ownable
       return points[_point].escapeRequested;
     }
 
+    //  getEscapeRequest(): returns _point's current escape request
+    //
+    //    the returned escape request is only valid as long as isEscaping()
+    //    returns true
+    //
     function getEscapeRequest(uint32 _point)
       view
       external
@@ -861,6 +888,9 @@ contract Azimuth is Ownable
       return points[_point].escapeRequestedTo;
     }
 
+    //  isRequestingEscapeTo(): returns true if _point has an outstanding
+    //                          escape request targetting _sponsor
+    //
     function isRequestingEscapeTo(uint32 _point, uint32 _sponsor)
       view
       public
@@ -870,6 +900,8 @@ contract Azimuth is Ownable
       return (point.escapeRequested && (point.escapeRequestedTo == _sponsor));
     }
 
+    //  setEscapeRequest(): for _point, start an escape request to _sponsor
+    //
     function setEscapeRequest(uint32 _point, uint32 _sponsor)
       onlyOwner
       external
@@ -882,6 +914,8 @@ contract Azimuth is Ownable
       emit EscapeRequested(_point, _sponsor);
     }
 
+    //  cancelEscape(): for _point, stop the current escape request, if any
+    //
     function cancelEscape(uint32 _point)
       onlyOwner
       external
@@ -909,6 +943,9 @@ contract Azimuth is Ownable
       emit EscapeAccepted(_point, point.sponsor);
     }
 
+    //  getSponsoringCount(): returns the number of points _sponsor is
+    //                        providing service to
+    //
     function getSponsoringCount(uint32 _sponsor)
       view
       external
@@ -930,6 +967,9 @@ contract Azimuth is Ownable
       return sponsoring[_sponsor];
     }
 
+    //  getEscapeRequestsCount(): returns the number of points _sponsor
+    //                            is providing service to
+    //
     function getEscapeRequestsCount(uint32 _sponsor)
       view
       external
@@ -1178,6 +1218,9 @@ contract Azimuth is Ownable
       return transferringFor[_proxy];
     }
 
+    //  isOperator(): returns true if _operator is allowed to transfer
+    //                ownership of _owner's points
+    //
     function isOperator(address _owner, address _operator)
       view
       external
