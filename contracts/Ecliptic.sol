@@ -755,6 +755,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
 
     //  startDocumentPoll(): as _galaxy, start a poll for the _proposal
     //
+    //    the _proposal argument is the keccak-256 hash of any arbitrary
+    //    document or string of text
+    //
     function startDocumentPoll(uint8 _galaxy, bytes32 _proposal)
       external
       activePointVoter(_galaxy)
