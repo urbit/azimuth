@@ -4,6 +4,7 @@ pragma solidity 0.4.24;
 
 import './Ecliptic.sol';
 import './TakesPoints.sol';
+
 import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 

@@ -2,8 +2,8 @@
 
 pragma solidity 0.4.24;
 
-import './ReadsAzimuth.sol';
 import './Ecliptic.sol';
+import './ReadsAzimuth.sol';
 
 contract TakesPoints is ReadsAzimuth
 {

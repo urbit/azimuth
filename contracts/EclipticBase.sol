@@ -3,10 +3,10 @@
 
 pragma solidity 0.4.24;
 
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
-
 import './ReadsAzimuth.sol';
 import './Polls.sol';
+
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  EclipticBase: upgradable ecliptic
 //
