@@ -209,7 +209,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
       //  make sure a sane rate is submitted
       //
-      require(_rate > 0);
+      require( (_rate > 0) &&
+               (_rateUnit > 0) );
 
       //  make sure we're not promising more than we can possibly give
       //

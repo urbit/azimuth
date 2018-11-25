@@ -115,6 +115,7 @@ contract LinearStarRelease is Ownable, TakesPoints
       //  make sure batch details are sane
       //
       require( (_rate > 0) &&
+               (_rateUnit > 0) &&
                (_amount > 0) );
 
       batch.windup = _windup;
