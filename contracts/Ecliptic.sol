@@ -257,7 +257,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       view
       returns (string)
     {
-      return "Azimuth Point";
+      return "Azimuth Points";
     }
 
     //  symbol(): returns an abbreviates name for points
