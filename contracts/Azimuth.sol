@@ -296,25 +296,12 @@ contract Azimuth is Ownable
       emit ChangedDns(_primary, _secondary, _tertiary);
     }
 
-    //  getOwnedPoints(): return array of points that :msg.sender owns
+    //  getOwnedPoints(): return array of points that _whose owns
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getOwnedPoints()
-      view
-      external
-      returns (uint32[] ownedPoints)
-    {
-      return pointsOwnedBy[msg.sender];
-    }
-
-    //  getOwnedPointsByAddress(): return array of points that _whose owns
-    //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getOwnedPointsByAddress(address _whose)
+    function getOwnedPoints(address _whose)
       view
       external
       returns (uint32[] ownedPoints)

@@ -58,7 +58,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
   it('getting owned points', async function() {
     await azimuth.setOwner(1, user);
     await azimuth.setOwner(2, user);
-    let owned = await azimuth.getOwnedPointsByAddress(user);
+    let owned = await azimuth.getOwnedPoints(user);
     assert.equal(owned[0], 0);
     assert.equal(owned[1], 1);
     assert.equal(owned[2], 2);
@@ -66,13 +66,13 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(await azimuth.getOwnedPointAtIndex(user, 2), 2);
     await assertRevert(azimuth.getOwnedPointAtIndex(user, 3));
     await azimuth.setOwner(0, owner);
-    owned = await azimuth.getOwnedPoints({from:user});
+    owned = await azimuth.getOwnedPoints(user);
     assert.equal(owned[0].toNumber(), 2);
     assert.equal(owned[1].toNumber(), 1);
     assert.equal(owned.length, 2);
     // interact with points that got moved in the array
     await azimuth.setOwner(2, owner);
-    owned = await azimuth.getOwnedPoints({from:user});
+    owned = await azimuth.getOwnedPoints(user);
     assert.equal(owned[0].toNumber(), 1);
     assert.equal(owned.length, 1);
   });
