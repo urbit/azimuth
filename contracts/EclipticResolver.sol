@@ -5,17 +5,19 @@ pragma solidity 0.4.24;
 import './interfaces/ResolverInterface.sol';
 import './Azimuth.sol';
 
-contract EclipticResolver
+contract EclipticResolver is ResolverInterface
 {
   Azimuth azimuth;
 
   constructor(Azimuth _azimuth)
+    public
   {
     azimuth = _azimuth;
   }
 
   function addr(bytes32 node)
     constant
+    public
     returns (address)
   {
     //  resolve to the Ecliptic contract
@@ -23,7 +25,8 @@ contract EclipticResolver
   }
 
   function supportsInterface(bytes4 interfaceID)
-    constant
+    pure
+    public
     returns (bool)
   {
     //  supports ERC-137 addr() and ERC-165
@@ -32,6 +35,7 @@ contract EclipticResolver
 
   //  ERC-137 resolvers MUST specify a fallback function that throws
   function()
+    public
   {
     revert();
   }
