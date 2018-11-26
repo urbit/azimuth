@@ -918,6 +918,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       _;
     }
 
+    //  activePointVoter(): require that :msg.sender can vote as _point,
+    //                      and that _point is active
+    //
     modifier activePointVoter(uint32 _point)
     {
       require( azimuth.canVoteAs(_point, msg.sender) &&
