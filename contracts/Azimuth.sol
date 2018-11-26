@@ -1,4 +1,5 @@
 //  the azimuth data store
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 

@@ -1,4 +1,5 @@
 //  the azimuth polls data store
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 
