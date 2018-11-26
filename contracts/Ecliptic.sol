@@ -48,37 +48,10 @@ import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 //    allowing points to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
-contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
+contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
 {
   using SafeMath for uint256;
   using AddressUtils for address;
-
-  //  Transfer: This emits when ownership of any NFT changes by any mechanism.
-  //            This event emits when NFTs are created (`from` == 0) and
-  //            destroyed (`to` == 0). At the time of any transfer, the
-  //            approved address for that NFT (if any) is reset to none.
-  //
-  event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
-
-  //  Approval: This emits when the approved address for an NFT is changed or
-  //            reaffirmed. The zero address indicates there is no approved
-  //            address. When a Transfer event emits, this also indicates that
-  //            the approved address for that NFT (if any) is reset to none.
-  //
-  event Approval(address indexed _owner, address indexed _approved,
-                 uint256 _tokenId);
-
-  //  ApprovalForAll: This emits when an operator is enabled or disabled for an
-  //                  owner. The operator can manage all NFTs of the owner.
-  //
-  event ApprovalForAll(address indexed _owner, address indexed _operator,
-                       bool _approved);
-
-  // erc721Received: equal to:
-  //        bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))
-  //                 which can be also obtained as:
-  //        ERC721Receiver(0).onERC721Received.selector`
-  bytes4 constant erc721Received = 0x150b7a02;
 
   //  claims: contract reference, for clearing claims on-transfer
   //
@@ -100,197 +73,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
 
     //  register supported interfaces for ERC165
     //
-    _registerInterface(0x80ac58cd); // ERC721
-    _registerInterface(0x5b5e139f); // ERC721Metadata
     _registerInterface(0x7f5828d0); // ERC173 (ownership)
   }
-
-  //
-  //  ERC721 interface
-  //
-
-    //  balanceOf(): get the amount of points owned by _owner
-    //
-    function balanceOf(address _owner)
-      public
-      view
-      returns (uint256 balance)
-    {
-      require(0x0 != _owner);
-      return azimuth.getOwnedPointCount(_owner);
-    }
-
-    //  ownerOf(): get the current owner of point _tokenId
-    //
-    function ownerOf(uint256 _tokenId)
-      public
-      view
-      validPointId(_tokenId)
-      returns (address owner)
-    {
-      uint32 id = uint32(_tokenId);
-
-      //  this will throw if the owner is the zero address,
-      //  active points always have a valid owner.
-      //
-      require(azimuth.isActive(id));
-
-      return azimuth.getOwner(id);
-    }
-
-    //  exists(): returns true if point _tokenId is active
-    //
-    function exists(uint256 _tokenId)
-      public
-      view
-      returns (bool doesExist)
-    {
-      return ( (_tokenId < 0x100000000) &&
-               azimuth.isActive(uint32(_tokenId)) );
-    }
-
-    //  safeTransferFrom(): transfer point _tokenId from _from to _to
-    //
-    function safeTransferFrom(address _from, address _to, uint256 _tokenId)
-      public
-    {
-      //  transfer with empty data
-      //
-      safeTransferFrom(_from, _to, _tokenId, "");
-    }
-
-    //  safeTransferFrom(): transfer point _tokenId from _from to _to,
-    //                      and call recipient if it's a contract
-    //
-    function safeTransferFrom(address _from, address _to, uint256 _tokenId,
-                              bytes _data)
-      public
-    {
-      //  perform raw transfer
-      //
-      transferFrom(_from, _to, _tokenId);
-
-      //  do the callback last to avoid re-entrancy
-      //
-      if (_to.isContract())
-      {
-        bytes4 retval = ERC721Receiver(_to)
-                        .onERC721Received(msg.sender, _from, _tokenId, _data);
-        //
-        //  standard return idiom to confirm contract semantics
-        //
-        require(retval == erc721Received);
-      }
-    }
-
-    //  transferFrom(): transfer point _tokenId from _from to _to,
-    //                  WITHOUT notifying recipient contract
-    //
-    function transferFrom(address _from, address _to, uint256 _tokenId)
-      public
-      validPointId(_tokenId)
-    {
-      uint32 id = uint32(_tokenId);
-      require(azimuth.isOwner(id, _from));
-
-      //  the ERC721 operator/approved address (if any) is
-      //  accounted for in transferPoint()
-      //
-      transferPoint(id, _to, true);
-    }
-
-    //  approve(): allow _approved to transfer ownership of point
-    //             _tokenId
-    //
-    function approve(address _approved, uint256 _tokenId)
-      public
-      validPointId(_tokenId)
-    {
-      setTransferProxy(uint32(_tokenId), _approved);
-    }
-
-    //  setApprovalForAll(): allow or disallow _operator to
-    //                       transfer ownership of ALL points
-    //                       owned by :msg.sender
-    //
-    function setApprovalForAll(address _operator, bool _approved)
-      public
-    {
-      require(0x0 != _operator);
-      azimuth.setOperator(msg.sender, _operator, _approved);
-      emit ApprovalForAll(msg.sender, _operator, _approved);
-    }
-
-    //  getApproved(): get the approved address for point _tokenId
-    //
-    function getApproved(uint256 _tokenId)
-      public
-      view
-      validPointId(_tokenId)
-      returns (address approved)
-    {
-      //NOTE  redundant, transfer proxy cannot be set for
-      //      inactive points
-      //
-      require(azimuth.isActive(uint32(_tokenId)));
-      return azimuth.getTransferProxy(uint32(_tokenId));
-    }
-
-    //  isApprovedForAll(): returns true if _operator is an
-    //                      operator for _owner
-    //
-    function isApprovedForAll(address _owner, address _operator)
-      public
-      view
-      returns (bool result)
-    {
-      return azimuth.isOperator(_owner, _operator);
-    }
-
-  //
-  //  ERC721Metadata interface
-  //
-
-    //  name(): returns the name of a collection of points
-    //
-    function name()
-      external
-      view
-      returns (string)
-    {
-      return "Azimuth Points";
-    }
-
-    //  symbol(): returns an abbreviates name for points
-    function symbol()
-      external
-      view
-      returns (string)
-    {
-      return "AZP";
-    }
-
-    //  tokenURI(): returns a URL to an ERC-721 standard JSON file
-    //
-    function tokenURI(uint256 _tokenId)
-      public
-      view
-      validPointId(_tokenId)
-      returns (string _tokenURI)
-    {
-      _tokenURI = "https://azimuth.network/erc721/0000000000.json";
-      bytes memory _tokenURIBytes = bytes(_tokenURI);
-      _tokenURIBytes[31] = byte(48+(_tokenId / 1000000000) % 10);
-      _tokenURIBytes[32] = byte(48+(_tokenId / 100000000) % 10);
-      _tokenURIBytes[33] = byte(48+(_tokenId / 10000000) % 10);
-      _tokenURIBytes[34] = byte(48+(_tokenId / 1000000) % 10);
-      _tokenURIBytes[35] = byte(48+(_tokenId / 100000) % 10);
-      _tokenURIBytes[36] = byte(48+(_tokenId / 10000) % 10);
-      _tokenURIBytes[37] = byte(48+(_tokenId / 1000) % 10);
-      _tokenURIBytes[38] = byte(48+(_tokenId / 100) % 10);
-      _tokenURIBytes[39] = byte(48+(_tokenId / 10) % 10);
-      _tokenURIBytes[40] = byte(48+(_tokenId / 1) % 10);
-    }
 
   //
   //  Points interface
@@ -410,8 +194,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
         //
         azimuth.activatePoint(_point);
         azimuth.setOwner(_point, _target);
-
-        emit Transfer(0x0, _target, uint256(_point));
       }
       //
       //  when spawning indirectly, enforce a withdraw pattern by approving
@@ -428,9 +210,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
         //
         azimuth.setOwner(_point, _holder);
         azimuth.setTransferProxy(_point, _target);
-
-        emit Transfer(0x0, _holder, uint256(_point));
-        emit Approval(_holder, _target, uint256(_point));
       }
     }
 
@@ -479,8 +258,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
         //  gets cleared during every Transfer event
         //
         azimuth.setTransferProxy(_point, 0);
-
-        emit Transfer(old, _target, uint256(_point));
       }
 
       //  reset sensitive data
@@ -753,10 +530,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //  set transfer proxy field in Azimuth contract
       //
       azimuth.setTransferProxy(_point, _transferProxy);
-
-      //  emit Approval event
-      //
-      emit Approval(owner, _transferProxy, uint256(_point));
     }
 
   //
