@@ -624,15 +624,15 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       }
       else if ( size == Azimuth.Size.Star )
       {
-        //  in 2018, stars may spawn at most 1024 planets. this limit doubles
+        //  in 2019, stars may spawn at most 1024 planets. this limit doubles
         //  for every subsequent year.
         //
-        //    Note: 1514764800 corresponds to 2018-01-01
+        //    Note: 1546300800 corresponds to 2019-01-01
         //
-        uint256 yearsSince2018 = (_time - 1514764800) / 365 days;
-        if (yearsSince2018 < 6)
+        uint256 yearsSince2019 = (_time - 1546300800) / 365 days;
+        if (yearsSince2019 < 6)
         {
-          limit = uint32( 1024 * (2 ** yearsSince2018) );
+          limit = uint32( 1024 * (2 ** yearsSince2019) );
         }
         else
         {
