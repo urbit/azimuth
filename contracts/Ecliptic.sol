@@ -396,21 +396,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
       }
       else if ( size == Azimuth.Size.Star )
       {
-        //  in 2019, stars may spawn at most 1024 planets. this limit doubles
-        //  for every subsequent year.
-        //
-        //    Note: 1546300800 corresponds to 2019-01-01
-        //
-        uint256 yearsSince2019 = (_time - 1546300800) / 365 days;
-        if (yearsSince2019 < 6)
-        {
-          limit = uint32( 1024 * (2 ** yearsSince2019) );
-        }
-        else
-        {
-          limit = 65535;
-        }
-        return limit;
+        return 65535;
       }
       else  //  size == Azimuth.Size.Planet
       {
