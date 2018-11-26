@@ -91,6 +91,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
                            uint32 _cryptoSuiteVersion,
                            bool _discontinuous)
       external
+      onlyOwnerOrigin
       activePointManager(_point)
     {
       if (_discontinuous)
@@ -118,6 +119,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function spawn(uint32 _point, address _target)
       external
+      onlyOwnerOrigin
     {
       //  only currently unowned (and thus also inactive) points can be spawned
       //
@@ -227,6 +229,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function transferPoint(uint32 _point, address _target, bool _reset)
       public
+      onlyOwnerOrigin
     {
       //  transfer is legitimate if the caller is the current owner, or
       //  an operator for the current owner, or the _point's transfer proxy
@@ -307,6 +310,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function escape(uint32 _point, uint32 _sponsor)
       external
+      onlyOwnerOrigin
       activePointManager(_point)
     {
       require(canEscapeTo(_point, _sponsor));
@@ -317,6 +321,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function cancelEscape(uint32 _point)
       external
+      onlyOwnerOrigin
       activePointManager(_point)
     {
       azimuth.cancelEscape(_point);
@@ -330,6 +335,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function adopt(uint32 _point)
       external
+      onlyOwnerOrigin
     {
       require( azimuth.isEscaping(_point) &&
                azimuth.canManage( azimuth.getEscapeRequest(_point),
@@ -349,6 +355,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function reject(uint32 _point)
       external
+      onlyOwnerOrigin
     {
       require( azimuth.isEscaping(_point) &&
                azimuth.canManage( azimuth.getEscapeRequest(_point),
@@ -367,6 +374,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function detach(uint32 _point)
       external
+      onlyOwnerOrigin
     {
       require( azimuth.hasSponsor(_point) &&
                azimuth.canManage(azimuth.getSponsor(_point), msg.sender) );
@@ -464,6 +472,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function setManagementProxy(uint32 _point, address _manager)
       external
+      onlyOwnerOrigin
       activePointOwner(_point)
     {
       azimuth.setManagementProxy(_point, _manager);
@@ -474,6 +483,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
+      onlyOwnerOrigin
       activePointOwner(_prefix)
     {
       azimuth.setSpawnProxy(_prefix, _spawnProxy);
@@ -486,6 +496,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function setVotingProxy(uint8 _galaxy, address _voter)
       external
+      onlyOwnerOrigin
       activePointOwner(_galaxy)
     {
       azimuth.setVotingProxy(_galaxy, _voter);
@@ -499,6 +510,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function setTransferProxy(uint32 _point, address _transferProxy)
       public
+      onlyOwnerOrigin
     {
       //  owner: owner of _point
       //
@@ -527,6 +539,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function startUpgradePoll(uint8 _galaxy, EclipticBase _proposal)
       external
+      onlyOwnerOrigin
       activePointVoter(_galaxy)
     {
       //  ensure that the upgrade target expects this contract as the source
@@ -542,6 +555,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function startDocumentPoll(uint8 _galaxy, bytes32 _proposal)
       external
+      onlyOwnerOrigin
       activePointVoter(_galaxy)
     {
       polls.startDocumentPoll(_proposal);
@@ -559,6 +573,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
                               EclipticBase _proposal,
                               bool _vote)
       external
+      onlyOwnerOrigin
       activePointVoter(_galaxy)
     {
       //  majority: true if the vote resulted in a majority, false otherwise
@@ -580,6 +595,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function castDocumentVote(uint8 _galaxy, bytes32 _proposal, bool _vote)
       external
+      onlyOwnerOrigin
       activePointVoter(_galaxy)
     {
       polls.castDocumentVote(_galaxy, _proposal, _vote);
@@ -590,6 +606,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function updateUpgradePoll(EclipticBase _proposal)
       external
+      onlyOwnerOrigin
     {
       //  majority: true if the poll ended in a majority, false otherwise
       //
@@ -611,6 +628,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function updateDocumentPoll(bytes32 _proposal)
       external
+      onlyOwnerOrigin
     {
       polls.updateDocumentPoll(_proposal);
     }
@@ -624,7 +642,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function createGalaxy(uint8 _galaxy, address _target)
       external
-      onlyOwner
+      onlyOwnerOrigin
     {
       //  only currently unowned (and thus also inactive) galaxies can be
       //  created, and only to non-zero addresses
@@ -655,7 +673,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
 
     function setDnsDomains(string _primary, string _secondary, string _tertiary)
       external
-      onlyOwner
+      onlyOwnerOrigin
     {
       azimuth.setDnsDomains(_primary, _secondary, _tertiary);
     }
@@ -666,7 +684,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
     //
     function upgradeTo(EclipticBase _to)
       external
-      onlyOwner
+      onlyOwnerOrigin
     {
       upgrade(_to);
     }
@@ -692,4 +710,15 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
                azimuth.isActive(_point) );
       _;
     }
+
+    //  onlyOwnerOrigin(): require that the tx be originally from owner
+    //
+    //    temporary modifier for use during the launch ceremony
+    //
+    modifier onlyOwnerOrigin()
+    {
+      require(tx.origin == owner);
+      _;
+    }
+
 }
