@@ -4,7 +4,8 @@ pragma solidity 0.4.24;
 
 import './Azimuth.sol';
 
-//  ReadsAzimuth: referring to and testing against the Azimuth data contract
+//  ReadsAzimuth: referring to and testing against the Azimuth
+//                data contract
 //
 //    To avoid needless repetition, this contract provides common
 //    checks and operations using the Azimuth contract.
@@ -24,7 +25,7 @@ contract ReadsAzimuth
   }
 
   //  activePointOwner(): require that :msg.sender is the owner of _point,
-  //                     and that _point is active
+  //                      and that _point is active
   //
   modifier activePointOwner(uint32 _point)
   {
@@ -33,6 +34,9 @@ contract ReadsAzimuth
     _;
   }
 
+  //  activePointManager(): require that :msg.sender can manage _point,
+  //                        and that _point is active
+  //
   modifier activePointManager(uint32 _point)
   {
     require( azimuth.canManage(_point, msg.sender) &&

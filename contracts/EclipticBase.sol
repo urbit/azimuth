@@ -3,16 +3,17 @@
 
 pragma solidity 0.4.24;
 
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
-
 import './ReadsAzimuth.sol';
 import './Polls.sol';
+
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  EclipticBase: upgradable ecliptic
 //
 //    This contract implements the upgrade logic for the Ecliptic.
 //    Newer versions of the Ecliptic are expected to provide at least
-//    the onUpgrade() function. If they don't, upgrading to them will fail.
+//    the onUpgrade() function. If they don't, upgrading to them will
+//    fail.
 //
 //    Note that even though this contract doesn't specify any required
 //    interface members aside from upgrade() and onUpgrade(), contracts
@@ -22,6 +23,8 @@ import './Polls.sol';
 //
 contract EclipticBase is Ownable, ReadsAzimuth
 {
+  //  Upgraded: _to is the new canonical Ecliptic
+  //
   event Upgraded(address to);
 
   //  polls: senate voting contract
@@ -48,7 +51,7 @@ contract EclipticBase is Ownable, ReadsAzimuth
   //
   //    in future ecliptics, this might perform more logic than
   //    just simple checks and verifications.
-  //    when overriding this, make sure to call the original as well.
+  //    when overriding this, make sure to call this original as well.
   //
   function onUpgrade()
     external
@@ -64,8 +67,8 @@ contract EclipticBase is Ownable, ReadsAzimuth
   //  upgrade(): transfer ownership of the ecliptic data to the new
   //             ecliptic contract, notify it, then self-destruct.
   //
-  //    Note: any eth that have somehow ended up in the contract are also
-  //          sent to the new ecliptic.
+  //    Note: any eth that have somehow ended up in this contract
+  //          are also sent to the new ecliptic.
   //
   function upgrade(EclipticBase _new)
     internal

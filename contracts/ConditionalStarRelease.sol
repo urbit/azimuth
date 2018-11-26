@@ -1,9 +1,11 @@
 //  conditional star release
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 
 import './Ecliptic.sol';
 import './TakesPoints.sol';
+
 import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
@@ -104,11 +106,30 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
   //  Commitment: structure that mirrors a signed paper contract
   //
+  //    While the ordering of the struct members is semantically chaotic,
+  //    they are ordered to tightly pack them into Ethereum's 32-byte storage
+  //    slots, which reduces gas costs for some function calls.
+  //    The comment ticks indicate assumed slot boundaries.
+  //
   struct Commitment
   {
+    //  stars: specific stars assigned to this commitment that have not yet
+    //         been withdrawn
+    //
+    uint16[] stars;
+  //
     //  batches: number of stars to release per condition
     //
     uint16[] batches;
+  //
+    //  rateUnit: amount of time it takes for the next :rate stars to be
+    //            released
+    //
+    uint256 rateUnit;
+  //
+    //  withdrawn: number of stars withdrawn by the participant
+    //
+    uint16 withdrawn;
 
     //  total: sum of stars in all batches
     //
@@ -118,28 +139,14 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     //
     uint16 rate;
 
-    //  rateUnit: amount of time it takes for the next :rate stars to be
-    //            released
-    //
-    uint256 rateUnit;
-
-    //  stars: specific stars assigned to this commitment that have not yet
-    //         been withdrawn
-    //
-    uint16[] stars;
-
-    //  withdrawn: number of stars withdrawn by the participant
-    //
-    uint16 withdrawn;
-
-    //  forfeit: true if this commitment has forfeited any future stars
-    //
-    bool forfeit;
-
     //  forfeited: number of forfeited stars not yet withdrawn by
     //             the contract owner
     //
     uint16 forfeited;
+
+    //  forfeit: true if this commitment has forfeited any future stars
+    //
+    bool forfeit;
 
     //  approvedTransferTo: batch can be transferred to this address
     //
@@ -208,12 +215,14 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
       //  make sure a sane rate is submitted
       //
-      require(_rate > 0);
+      require( (_rate > 0) &&
+               (_rateUnit > 0) );
 
       //  make sure we're not promising more than we can possibly give
       //
       uint16 total = totalStars(_batches, 0);
-      require(com.total <= 65280);
+      require( (total > 0) &&
+               (total <= 0xff00) );
 
       Commitment storage com = commitments[_participant];
       com.batches = _batches;
@@ -233,7 +242,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //  ensure we can only deposit stars, and that we can't deposit
       //  more stars than necessary
       //
-      require( (_star > 255) &&
+      require( (_star > 0xff) &&
                ( com.stars.length <
                  com.total.sub( com.withdrawn.add(com.forfeited) ) ) );
 
@@ -335,8 +344,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //
       Commitment storage com = commitments[_from];
       commitments[msg.sender] = com;
-      commitments[_from] = Commitment(new uint16[](0), 0, 0, 0,
-                                      new uint16[](0), 0, false, 0, 0x0);
+      commitments[_from] = Commitment(new uint16[](0), new uint16[](0),
+                                      0, 0, 0, 0, 0, false, 0x0);
     }
 
     //  withdraw(): withdraw one star to the sender's address
@@ -392,9 +401,10 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
       //  restrict :forfeited to the number of stars not withdrawn
       //
-      if ( forfeited > com.total.sub(com.withdrawn) )
+      uint16 remaining = com.total.sub(com.withdrawn);
+      if ( forfeited > remaining )
       {
-        forfeited = com.total.sub(com.withdrawn);
+        forfeited = remaining;
       }
 
       //  update commitment metadata
@@ -451,7 +461,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
         return;
       }
 
-      //  if the deadline has passed, the condition is missed, and the
+      //  if the deadline has passed, the condition is missed, then the
       //  deadline becomes the condition's timestamp.
       //
       uint256 deadline = deadlines[_condition];
@@ -553,6 +563,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       {
         return 1;
       }
+
+      return limit;
     }
 
     //  totalStars(): return the number of stars available after batch _from
@@ -567,6 +579,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       {
         total = total.add(_batches[i]);
       }
+      return total;
     }
 
     //  verifyBalance: check the balance of _participant

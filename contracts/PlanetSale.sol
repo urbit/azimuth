@@ -2,9 +2,9 @@
 
 pragma solidity 0.4.24;
 
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
-
 import './Ecliptic.sol';
+
+import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
 //  PlanetSale: a practically stateless point sale contract
 //
@@ -27,7 +27,7 @@ contract PlanetSale is Ownable
   //
   event PlanetSold(uint32 indexed prefix, uint32 indexed planet);
 
-  //  points: points state data store
+  //  azimuth: points state data store
   //
   Azimuth public azimuth;
 
@@ -42,7 +42,7 @@ contract PlanetSale is Ownable
   {
     require(0 < _price);
     azimuth = _azimuth;
-    price = _price;
+    setPrice(_price);
   }
 
   //
@@ -66,9 +66,9 @@ contract PlanetSale is Ownable
                //
                azimuth.isSpawnProxy(prefix, this) &&
                //
-               //  prefix must be live
+               //  prefix must be linked
                //
-               azimuth.isLive(prefix) );
+               azimuth.hasBeenLinked(prefix) );
     }
 
     //  purchase(): pay the :price, acquire ownership of the _planet
@@ -89,8 +89,8 @@ contract PlanetSale is Ownable
 
       //  spawn the planet to us, then immediately transfer to the caller
       //
-      //    spawning to the caller would give the point's parent a
-      //    window off opportunity to cancel the transfer
+      //    spawning to the caller would give the point's prefix's owner
+      //    a window of opportunity to cancel the transfer
       //
       Ecliptic ecliptic = Ecliptic(azimuth.owner());
       ecliptic.spawn(_planet, this);
@@ -105,7 +105,7 @@ contract PlanetSale is Ownable
     //  setPrice(): configure the price in wei per planet
     //
     function setPrice(uint256 _price)
-      external
+      public
       onlyOwner
     {
       require(0 < _price);
@@ -122,7 +122,7 @@ contract PlanetSale is Ownable
       _target.transfer(address(this).balance);
     }
 
-    //  close(): end the sale by destroying this contract and transfering
+    //  close(): end the sale by destroying this contract and transferring
     //           remaining funds to _target
     //
     function close(address _target)

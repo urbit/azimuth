@@ -1,4 +1,5 @@
 //  the azimuth data store
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 
@@ -21,25 +22,29 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    Since data stores are difficult to upgrade, this contract contains
 //    as little actual business logic as possible. Instead, the data stored
 //    herein can only be modified by this contract's owner, which can be
-//    changed and is thus upgradable/replacable.
+//    changed and is thus upgradable/replaceable.
 //
 //    This contract will be owned by the Ecliptic contract.
 //
 contract Azimuth is Ownable
 {
+//
+//  Events
+//
+
   //  OwnerChanged: :point is now owned by :owner
   //
   event OwnerChanged(uint32 indexed point, address indexed owner);
 
-  //  Activated: :point is now activate
+  //  Activated: :point is now active
   //
   event Activated(uint32 indexed point);
 
-  //  Spawned: :parent has spawned :child.
+  //  Spawned: :prefix has spawned :child
   //
-  event Spawned(uint32 indexed parent, uint32 child);
+  event Spawned(uint32 indexed prefix, uint32 indexed child);
 
-  //  EscapeRequested: :point has requested a new sponsor, :sponsor
+  //  EscapeRequested: :point has requested a new :sponsor
   //
   event EscapeRequested(uint32 indexed point, uint32 indexed sponsor);
 
@@ -47,15 +52,15 @@ contract Azimuth is Ownable
   //
   event EscapeCanceled(uint32 indexed point, uint32 indexed sponsor);
 
-  //  EscapeAccepted: :point confirmed with a new sponsor, :sponsor
+  //  EscapeAccepted: :point confirmed with a new :sponsor
   //
   event EscapeAccepted(uint32 indexed point, uint32 indexed sponsor);
 
-  //  LostSponsor: :point's sponsor is now refusing it service
+  //  LostSponsor: :point's :sponsor is now refusing it service
   //
   event LostSponsor(uint32 indexed point, uint32 indexed sponsor);
 
-  //  ChangedKeys: :point has new network public keys, :crypt and :auth
+  //  ChangedKeys: :point has new network public keys
   //
   event ChangedKeys( uint32 indexed point,
                      bytes32 encryptionKey,
@@ -63,74 +68,82 @@ contract Azimuth is Ownable
                      uint32 cryptoSuiteVersion,
                      uint32 keyRevisionNumber );
 
-  //  BrokeContinuity: :point has a new continuity number, :number.
+  //  BrokeContinuity: :point has a new continuity number, :number
   //
   event BrokeContinuity(uint32 indexed point, uint32 number);
 
-  //  ChangedSpawnProxy: :point has a new spawn proxy
+  //  ChangedSpawnProxy: :spawnProxy can now spawn using :point
   //
   event ChangedSpawnProxy(uint32 indexed point, address indexed spawnProxy);
 
-  //  ChangedTransferProxy: :point has a new transfer proxy
+  //  ChangedTransferProxy: :transferProxy can now transfer ownership of :point
   //
   event ChangedTransferProxy( uint32 indexed point,
                               address indexed transferProxy );
 
-  //  ChangedManagementProxy: :manager can now manage :point
+  //  ChangedManagementProxy: :managementProxy can now manage :point
   //
-  event ChangedManagementProxy(uint32 indexed point, address indexed manager);
+  event ChangedManagementProxy( uint32 indexed point,
+                                address indexed managementProxy );
 
-  //  ChangedVotingProxy: :voter can now vote using :point
+  //  ChangedVotingProxy: :votingProxy can now vote using :point
   //
-  event ChangedVotingProxy(uint32 indexed point, address indexed voter);
+  event ChangedVotingProxy(uint32 indexed point, address indexed votingProxy);
 
-  //  ChangedDns: dnsDomains has been updated
+  //  ChangedDns: dnsDomains have been updated
   //
   event ChangedDns(string primary, string secondary, string tertiary);
 
+//
+//  Structures
+//
+
   //  Size: kinds of points registered on-chain
+  //
+  //    NOTE: the order matters, because of Solidity enum numbering
   //
   enum Size
   {
-    Galaxy,
-    Star,
-    Planet
+    Galaxy, // = 0
+    Star,   // = 1
+    Planet  // = 2
   }
 
   //  Point: state of a point
   //
+  //    While the ordering of the struct members is semantically chaotic,
+  //    they are ordered to tightly pack them into Ethereum's 32-byte storage
+  //    slots, which reduces gas costs for some function calls.
+  //    The comment ticks indicate assumed slot boundaries.
+  //
   struct Point
   {
-    //  active: whether point can be used
-    //
-    //    false: point belongs to parent, cannot be used
-    //    true: point has been, or can be, used
-    //
-    bool active;
-
-    //  encryptionKey: curve25519 encryption key, or 0 for none
+    //  encryptionKey: (curve25519) encryption public key, or 0 for none
     //
     bytes32 encryptionKey;
-
-    //  authenticationKey: ed25519 authentication key, or 0 for none
+  //
+    //  authenticationKey: (ed25519) authentication public key, or 0 for none
     //
     bytes32 authenticationKey;
-
-    //  cryptoSuiteVersion: version of the crypto suite used for the pubkeys
-    //
-    uint32 cryptoSuiteVersion;
-
-    //  keyRevisionNumber: incremented every time we change the public keys
-    //
-    uint32 keyRevisionNumber;
-
-    //  continuityNumber: incremented to indicate network-side state loss
-    //
-    uint32 continuityNumber;
-
+  //
     //  spawned: for stars and galaxies, all :active children
     //
     uint32[] spawned;
+  //
+    //  hasSponsor: true if the sponsor still supports the point
+    //
+    bool hasSponsor;
+
+    //  active: whether point can be linked
+    //
+    //    false: point belongs to prefix, cannot be configured or linked
+    //    true: point no longer belongs to prefix, can be configured and linked
+    //
+    bool active;
+
+    //  escapeRequested: true if the point has requested to change sponsors
+    //
+    bool escapeRequested;
 
     //  sponsor: the point that supports this one on the network, or,
     //           if :hasSponsor is false, the last point that supported it.
@@ -138,19 +151,25 @@ contract Azimuth is Ownable
     //
     uint32 sponsor;
 
-    //  hasSponsor: true if the sponsor still supports the point
-    //
-    bool hasSponsor;
-
-    //  escapeRequested: true if the point has requested to change sponsors
-    //
-    bool escapeRequested;
-
-    //  escapeRequestedTo: if :escapeRequested is set, new sponsor requested
+    //  escapeRequestedTo: if :escapeRequested is true, new sponsor requested
     //
     uint32 escapeRequestedTo;
+
+    //  cryptoSuiteVersion: version of the crypto suite used for the pubkeys
+    //
+    uint32 cryptoSuiteVersion;
+
+    //  keyRevisionNumber: incremented every time the public keys change
+    //
+    uint32 keyRevisionNumber;
+
+    //  continuityNumber: incremented to indicate network-side state loss
+    //
+    uint32 continuityNumber;
   }
 
+  //  Deed: permissions for a point
+  //
   struct Deed
   {
     //  owner: address that owns this point
@@ -158,22 +177,28 @@ contract Azimuth is Ownable
     address owner;
 
     //  managementProxy: 0, or another address with the right to perform
-    //                   low-impact, managerial tasks
+    //                   low-impact, managerial operations on this point
     //
     address managementProxy;
 
-    //  votingProxy: 0, or another address with the right to vote
-    //
-    address votingProxy;
-
     //  spawnProxy: 0, or another address with the right to spawn children
+    //              of this point
     //
     address spawnProxy;
 
-    //  transferProxy: 0, or another address with the right to transfer owners
+    //  votingProxy: 0, or another address with the right to vote as this point
+    //
+    address votingProxy;
+
+    //  transferProxy: 0, or another address with the right to transfer
+    //                 ownership of this point
     //
     address transferProxy;
   }
+
+//
+//  General state
+//
 
   //  points: per point, general network-relevant point state
   //
@@ -183,58 +208,20 @@ contract Azimuth is Ownable
   //
   mapping(uint32 => Deed) public rights;
 
-  //  pointsOwnedBy: per address, list of points owned
-  //
-  mapping(address => uint32[]) public pointsOwnedBy;
-
-  //  pointOwnerIndexes: per owner per point, (index + 1) in pointsOwnedBy array
-  //
-  //    We delete owners by moving the last entry in the array to the
-  //    newly emptied slot, which is (n - 1) where n is the value of
-  //    pointOwnerIndexes[owner][point].
-  //
-  mapping(address => mapping(uint32 => uint256)) public pointOwnerIndexes;
-
   //  operators: per owner, per address, has the right to transfer ownership
   //             of all the owner's points (ERC721)
   //
   mapping(address => mapping(address => bool)) public operators;
 
-  //  managerFor: per address, the points they are managing
+  //  dnsDomains: base domains for contacting galaxies
   //
-  mapping(address => uint32[]) public managerFor;
+  //    dnsDomains[0] is primary, the others are used as fallbacks
+  //
+  string[3] public dnsDomains;
 
-  //  managerForIndexes: per address, per point, (index + 1) in
-  //                     the managerFor array
-  //
-  mapping(address => mapping(uint32 => uint256)) public managerForIndexes;
-
-  //  votingFor: per address, the points they can vote with
-  //
-  mapping(address => uint32[]) public votingFor;
-
-  //  votingForIndexes: per address, per point, (index + 1) in
-  //                    the votingFor array
-  //
-  mapping(address => mapping(uint32 => uint256)) public votingForIndexes;
-
-  //  transferringFor: per address, the points they are transfer proxy for
-  //
-  mapping(address => uint32[]) public transferringFor;
-
-  //  transferringForIndexes: per address, per point, (index + 1) in
-  //                          the transferringFor array
-  //
-  mapping(address => mapping(uint32 => uint256)) public transferringForIndexes;
-
-  //  spawningFor: per address, the points they are spawn proxy for
-  //
-  mapping(address => uint32[]) public spawningFor;
-
-  //  spawningForIndexes: per address, per point, (index + 1) in
-  //                      the spawningFor array
-  //
-  mapping(address => mapping(uint32 => uint256)) public spawningForIndexes;
+//
+//  Lookups
+//
 
   //  sponsoring: per point, the points they are sponsoring
   //
@@ -254,11 +241,58 @@ contract Azimuth is Ownable
   //
   mapping(uint32 => mapping(uint32 => uint256)) public escapeRequestsIndexes;
 
-  //  dnsDomains: base domains for contacting galaxies
+  //  pointsOwnedBy: per address, the points they own
   //
-  //    dnsDomains[0] is primary, the others are used as fallbacks
+  mapping(address => uint32[]) public pointsOwnedBy;
+
+  //  pointOwnerIndexes: per owner, per point, (index + 1) in
+  //                     the pointsOwnedBy array
   //
-  string[3] public dnsDomains;
+  //    We delete owners by moving the last entry in the array to the
+  //    newly emptied slot, which is (n - 1) where n is the value of
+  //    pointOwnerIndexes[owner][point].
+  //
+  mapping(address => mapping(uint32 => uint256)) public pointOwnerIndexes;
+
+  //  managerFor: per address, the points they are the management proxy for
+  //
+  mapping(address => uint32[]) public managerFor;
+
+  //  managerForIndexes: per address, per point, (index + 1) in
+  //                     the managerFor array
+  //
+  mapping(address => mapping(uint32 => uint256)) public managerForIndexes;
+
+  //  spawningFor: per address, the points they can spawn with
+  //
+  mapping(address => uint32[]) public spawningFor;
+
+  //  spawningForIndexes: per address, per point, (index + 1) in
+  //                      the spawningFor array
+  //
+  mapping(address => mapping(uint32 => uint256)) public spawningForIndexes;
+
+  //  votingFor: per address, the points they can vote with
+  //
+  mapping(address => uint32[]) public votingFor;
+
+  //  votingForIndexes: per address, per point, (index + 1) in
+  //                    the votingFor array
+  //
+  mapping(address => mapping(uint32 => uint256)) public votingForIndexes;
+
+  //  transferringFor: per address, the points they can transfer
+  //
+  mapping(address => uint32[]) public transferringFor;
+
+  //  transferringForIndexes: per address, per point, (index + 1) in
+  //                          the transferringFor array
+  //
+  mapping(address => mapping(uint32 => uint256)) public transferringForIndexes;
+
+//
+//  Logic
+//
 
   //  constructor(): configure default dns domains
   //
@@ -268,50 +302,560 @@ contract Azimuth is Ownable
     setDnsDomains("example.com", "example.com", "example.com");
   }
 
+  //  setDnsDomains(): set the base domains used for contacting galaxies
   //
-  //  Getters, setters and checks
+  //    Note: since a string is really just a byte[], and Solidity can't
+  //    work with two-dimensional arrays yet, we pass in the three
+  //    domains as individual strings.
+  //
+  function setDnsDomains(string _primary, string _secondary, string _tertiary)
+    onlyOwner
+    public
+  {
+    dnsDomains[0] = _primary;
+    dnsDomains[1] = _secondary;
+    dnsDomains[2] = _tertiary;
+    emit ChangedDns(_primary, _secondary, _tertiary);
+  }
+
+  //
+  //  Point reading
   //
 
-    //  setDnsDomains(): set the base domains used for contacting galaxies
+    //  isActive(): return true if _point is active
     //
-    //    Note: since a string is really just a byte[], and Solidity can't
-    //    work with two-dimensional arrays yet, we pass in the three
-    //    domains as individual strings.
+    function isActive(uint32 _point)
+      view
+      external
+      returns (bool equals)
+    {
+      return points[_point].active;
+    }
+
+    //  getKeys(): returns the public keys and their details, as currently
+    //             registered for _point
     //
-    function setDnsDomains(string _primary, string _secondary, string _tertiary)
-      onlyOwner
+    function getKeys(uint32 _point)
+      view
+      external
+      returns (bytes32 crypt, bytes32 auth, uint32 suite, uint32 revision)
+    {
+      Point storage point = points[_point];
+      return (point.encryptionKey,
+              point.authenticationKey,
+              point.cryptoSuiteVersion,
+              point.keyRevisionNumber);
+    }
+
+    //  getKeyRevisionNumber(): gets the revision number of _point's current
+    //                          public keys
+    //
+    function getKeyRevisionNumber(uint32 _point)
+      view
+      external
+      returns (uint32 revision)
+    {
+      return points[_point].keyRevisionNumber;
+    }
+
+    //  hasBeenLinked(): returns true if the point has ever been assigned keys
+    //
+    function hasBeenLinked(uint32 _point)
+      view
+      external
+      returns (bool result)
+    {
+      return ( points[_point].keyRevisionNumber > 0 );
+    }
+
+    //  isLive(): returns true if _point currently has keys properly configured
+    //
+    function isLive(uint32 _point)
+      view
+      external
+      returns (bool result)
+    {
+      Point storage point = points[_point];
+      return ( point.encryptionKey != 0 &&
+               point.authenticationKey != 0 &&
+               point.cryptoSuiteVersion != 0 );
+    }
+
+    //  getContinuityNumber(): returns _point's current continuity number
+    //
+    function getContinuityNumber(uint32 _point)
+      view
+      external
+      returns (uint32 continuityNumber)
+    {
+      return points[_point].continuityNumber;
+    }
+
+    //  getSpawnCount(): return the number of children spawned by _point
+    //
+    function getSpawnCount(uint32 _point)
+      view
+      external
+      returns (uint32 spawnCount)
+    {
+      uint256 len = points[_point].spawned.length;
+      assert(len < 2**32);
+      return uint32(len);
+    }
+
+    //  getSpawned(): return array of points created under _point
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getSpawned(uint32 _point)
+      view
+      external
+      returns (uint32[] spawned)
+    {
+      return points[_point].spawned;
+    }
+
+    //  hasSponsor(): returns true if _point's sponsor is providing it service
+    //
+    function hasSponsor(uint32 _point)
+      view
+      external
+      returns (bool has)
+    {
+      return points[_point].hasSponsor;
+    }
+
+    //  getSponsor(): returns _point's current (or most recent) sponsor
+    //
+    function getSponsor(uint32 _point)
+      view
+      external
+      returns (uint32 sponsor)
+    {
+      return points[_point].sponsor;
+    }
+
+    //  isSponsor(): returns true if _sponsor is currently providing service
+    //               to _point
+    //
+    function isSponsor(uint32 _point, uint32 _sponsor)
+      view
+      external
+      returns (bool result)
+    {
+      Point storage point = points[_point];
+      return ( point.hasSponsor &&
+               (point.sponsor == _sponsor) );
+    }
+
+    //  getSponsoringCount(): returns the number of points _sponsor is
+    //                        providing service to
+    //
+    function getSponsoringCount(uint32 _sponsor)
+      view
+      external
+      returns (uint256 count)
+    {
+      return sponsoring[_sponsor].length;
+    }
+
+    //  getSponsoring(): returns a list of points _sponsor is providing
+    //                   service to
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getSponsoring(uint32 _sponsor)
+      view
+      external
+      returns (uint32[] sponsees)
+    {
+      return sponsoring[_sponsor];
+    }
+
+    //  escaping
+
+    //  isEscaping(): returns true if _point has an outstanding escape request
+    //
+    function isEscaping(uint32 _point)
+      view
+      external
+      returns (bool escaping)
+    {
+      return points[_point].escapeRequested;
+    }
+
+    //  getEscapeRequest(): returns _point's current escape request
+    //
+    //    the returned escape request is only valid as long as isEscaping()
+    //    returns true
+    //
+    function getEscapeRequest(uint32 _point)
+      view
+      external
+      returns (uint32 escape)
+    {
+      return points[_point].escapeRequestedTo;
+    }
+
+    //  isRequestingEscapeTo(): returns true if _point has an outstanding
+    //                          escape request targetting _sponsor
+    //
+    function isRequestingEscapeTo(uint32 _point, uint32 _sponsor)
+      view
       public
+      returns (bool equals)
     {
-      dnsDomains[0] = _primary;
-      dnsDomains[1] = _secondary;
-      dnsDomains[2] = _tertiary;
-      emit ChangedDns(_primary, _secondary, _tertiary);
+      Point storage point = points[_point];
+      return (point.escapeRequested && (point.escapeRequestedTo == _sponsor));
     }
 
-    //  getOwnedPoints(): return array of points that :msg.sender owns
+    //  getEscapeRequestsCount(): returns the number of points _sponsor
+    //                            is providing service to
+    //
+    function getEscapeRequestsCount(uint32 _sponsor)
+      view
+      external
+      returns (uint256 count)
+    {
+      return escapeRequests[_sponsor].length;
+    }
+
+    //  getEscapeRequests(): get the points _sponsor has received escape
+    //                       requests from
     //
     //    Note: only useful for clients, as Solidity does not currently
     //    support returning dynamic arrays.
     //
-    function getOwnedPoints()
+    function getEscapeRequests(uint32 _sponsor)
       view
       external
-      returns (uint32[] ownedAzimuth)
+      returns (uint32[] requests)
     {
-      return pointsOwnedBy[msg.sender];
+      return escapeRequests[_sponsor];
     }
 
-    //  getOwnedPointsByAddress(): return array of points that _whose owns
+  //
+  //  Point writing
+  //
+
+    //  activatePoint(): activate a point, register it as spawned by its prefix
     //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
+    function activatePoint(uint32 _point)
+      onlyOwner
+      external
+    {
+      //  make a point active, setting its sponsor to its prefix
+      //
+      Point storage point = points[_point];
+      require(!point.active);
+      point.active = true;
+      registerSponsor(_point, true, getPrefix(_point));
+      emit Activated(_point);
+    }
+
+    //  setKeys(): set network public keys of _point to _encryptionKey and
+    //            _authenticationKey, with the specified _cryptoSuiteVersion
     //
-    function getOwnedPointsByAddress(address _whose)
+    function setKeys(uint32 _point,
+                     bytes32 _encryptionKey,
+                     bytes32 _authenticationKey,
+                     uint32 _cryptoSuiteVersion)
+      onlyOwner
+      external
+    {
+      Point storage point = points[_point];
+      if ( point.encryptionKey == _encryptionKey &&
+           point.authenticationKey == _authenticationKey &&
+           point.cryptoSuiteVersion == _cryptoSuiteVersion )
+      {
+        return;
+      }
+
+      point.encryptionKey = _encryptionKey;
+      point.authenticationKey = _authenticationKey;
+      point.cryptoSuiteVersion = _cryptoSuiteVersion;
+      point.keyRevisionNumber++;
+
+      emit ChangedKeys(_point,
+                       _encryptionKey,
+                       _authenticationKey,
+                       _cryptoSuiteVersion,
+                       point.keyRevisionNumber);
+    }
+
+    //  incrementContinuityNumber(): break continuity for _point
+    //
+    function incrementContinuityNumber(uint32 _point)
+      onlyOwner
+      external
+    {
+      Point storage point = points[_point];
+      point.continuityNumber++;
+      emit BrokeContinuity(_point, point.continuityNumber);
+    }
+
+    //  registerSpawn(): add a point to its prefix's list of spawned points
+    //
+    function registerSpawned(uint32 _point)
+      onlyOwner
+      external
+    {
+      //  if a point is its own prefix (a galaxy) then don't register it
+      //
+      uint32 prefix = getPrefix(_point);
+      if (prefix == _point)
+      {
+        return;
+      }
+
+      //  register a new spawned point for the prefix
+      //
+      points[prefix].spawned.push(_point);
+      emit Spawned(prefix, _point);
+    }
+
+    //  loseSponsor(): indicates that _point's sponsor is no longer providing
+    //                 it service
+    //
+    function loseSponsor(uint32 _point)
+      onlyOwner
+      external
+    {
+      Point storage point = points[_point];
+      if (!point.hasSponsor)
+      {
+        return;
+      }
+      registerSponsor(_point, false, point.sponsor);
+      emit LostSponsor(_point, point.sponsor);
+    }
+
+    //  setEscapeRequest(): for _point, start an escape request to _sponsor
+    //
+    function setEscapeRequest(uint32 _point, uint32 _sponsor)
+      onlyOwner
+      external
+    {
+      if (isRequestingEscapeTo(_point, _sponsor))
+      {
+        return;
+      }
+      registerEscapeRequest(_point, true, _sponsor);
+      emit EscapeRequested(_point, _sponsor);
+    }
+
+    //  cancelEscape(): for _point, stop the current escape request, if any
+    //
+    function cancelEscape(uint32 _point)
+      onlyOwner
+      external
+    {
+      Point storage point = points[_point];
+      if (!point.escapeRequested)
+      {
+        return;
+      }
+      uint32 request = point.escapeRequestedTo;
+      registerEscapeRequest(_point, false, 0);
+      emit EscapeCanceled(_point, request);
+    }
+
+    //  doEscape(): perform the requested escape
+    //
+    function doEscape(uint32 _point)
+      onlyOwner
+      external
+    {
+      Point storage point = points[_point];
+      require(point.escapeRequested);
+      registerSponsor(_point, true, point.escapeRequestedTo);
+      registerEscapeRequest(_point, false, 0);
+      emit EscapeAccepted(_point, point.sponsor);
+    }
+
+  //
+  //  Point utils
+  //
+
+    //  getPrefix(): compute prefix ("parent") of _point
+    //
+    function getPrefix(uint32 _point)
+      pure
+      public
+      returns (uint16 prefix)
+    {
+      if (_point < 0x10000)
+      {
+        return uint16(_point % 0x100);
+      }
+      return uint16(_point % 0x10000);
+    }
+
+    //  getPointSize(): return the size of _point
+    //
+    function getPointSize(uint32 _point)
+      external
+      pure
+      returns (Size _size)
+    {
+      if (_point < 0x100) return Size.Galaxy;
+      if (_point < 0x10000) return Size.Star;
+      return Size.Planet;
+    }
+
+    //  internal use
+
+    //  registerSponsor(): set the sponsorship state of _point and update the
+    //                     reverse lookup for sponsors
+    //
+    function registerSponsor(uint32 _point, bool _hasSponsor, uint32 _sponsor)
+      internal
+    {
+      Point storage point = points[_point];
+      bool had = point.hasSponsor;
+      uint32 prev = point.sponsor;
+
+      //  if we didn't have a sponsor, and won't get one,
+      //  or if we get the sponsor we already have,
+      //  nothing will change, so jump out early.
+      //
+      if ( (!had && !_hasSponsor) ||
+           (had && _hasSponsor && prev == _sponsor) )
+      {
+        return;
+      }
+
+      //  if the point used to have a different sponsor, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the point from the old
+      //  sponsor's list, then fill that gap with the list tail.
+      //
+      if (had)
+      {
+        //  i: current index in previous sponsor's list of sponsored points
+        //
+        uint256 i = sponsoringIndexes[prev][_point];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :sponsoringIndexes reference
+        //
+        uint32[] storage prevSponsoring = sponsoring[prev];
+        uint256 last = prevSponsoring.length - 1;
+        uint32 moved = prevSponsoring[last];
+        prevSponsoring[i] = moved;
+        sponsoringIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevSponsoring[last]);
+        prevSponsoring.length = last;
+        sponsoringIndexes[prev][_point] = 0;
+      }
+
+      if (_hasSponsor)
+      {
+        uint32[] storage newSponsoring = sponsoring[_sponsor];
+        newSponsoring.push(_point);
+        sponsoringIndexes[_sponsor][_point] = newSponsoring.length;
+      }
+
+      point.sponsor = _sponsor;
+      point.hasSponsor = _hasSponsor;
+    }
+
+    //  registerEscapeRequest(): set the escape state of _point and update the
+    //                           reverse lookup for sponsors
+    //
+    function registerEscapeRequest( uint32 _point,
+                                    bool _isEscaping, uint32 _sponsor )
+      internal
+    {
+      Point storage point = points[_point];
+      bool was = point.escapeRequested;
+      uint32 prev = point.escapeRequestedTo;
+
+      //  if we weren't escaping, and won't be,
+      //  or if we were escaping, and the new target is the same,
+      //  nothing will change, so jump out early.
+      //
+      if ( (!was && !_isEscaping) ||
+           (was && _isEscaping && prev == _sponsor) )
+      {
+        return;
+      }
+
+      //  if the point used to have a different request, do some gymnastics
+      //  to keep the reverse lookup gapless.  delete the point from the old
+      //  sponsor's list, then fill that gap with the list tail.
+      //
+      if (was)
+      {
+        //  i: current index in previous sponsor's list of sponsored points
+        //
+        uint256 i = escapeRequestsIndexes[prev][_point];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :escapeRequestsIndexes reference
+        //
+        uint32[] storage prevRequests = escapeRequests[prev];
+        uint256 last = prevRequests.length - 1;
+        uint32 moved = prevRequests[last];
+        prevRequests[i] = moved;
+        escapeRequestsIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevRequests[last]);
+        prevRequests.length = last;
+        escapeRequestsIndexes[prev][_point] = 0;
+      }
+
+      if (_isEscaping)
+      {
+        uint32[] storage newRequests = escapeRequests[_sponsor];
+        newRequests.push(_point);
+        escapeRequestsIndexes[_sponsor][_point] = newRequests.length;
+      }
+
+      point.escapeRequestedTo = _sponsor;
+      point.escapeRequested = _isEscaping;
+    }
+
+  //
+  //  Deed reading
+  //
+
+    //  owner
+
+    //  getOwner(): return owner of _point
+    //
+    function getOwner(uint32 _point)
       view
       external
-      returns (uint32[] ownedPoints)
+      returns (address owner)
     {
-      return pointsOwnedBy[_whose];
+      return rights[_point].owner;
+    }
+
+    //  isOwner(): true if _point is owned by _address
+    //
+    function isOwner(uint32 _point, address _address)
+      view
+      external
+      returns (bool result)
+    {
+      return (rights[_point].owner == _address);
     }
 
     //  getOwnedPointCount(): return length of array of points that _whose owns
@@ -322,6 +866,19 @@ contract Azimuth is Ownable
       returns (uint256 count)
     {
       return pointsOwnedBy[_whose].length;
+    }
+
+    //  getOwnedPoints(): return array of points that _whose owns
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getOwnedPoints(address _whose)
+      view
+      external
+      returns (uint32[] ownedPoints)
+    {
+      return pointsOwnedBy[_whose];
     }
 
     //  getOwnedPointAtIndex(): get point at _index from array of points that
@@ -337,25 +894,257 @@ contract Azimuth is Ownable
       return owned[_index];
     }
 
-    //  isOwner(): true if _point is owned by _address
+    //  management proxy
+
+    //  getManagementProxy(): returns _point's current management proxy
     //
-    function isOwner(uint32 _point, address _address)
+    function getManagementProxy(uint32 _point)
+      view
+      external
+      returns (address manager)
+    {
+      return rights[_point].managementProxy;
+    }
+
+    //  isManagementProxy(): returns true if _proxy is _point's management proxy
+    //
+    function isManagementProxy(uint32 _point, address _proxy)
       view
       external
       returns (bool result)
     {
-      return (rights[_point].owner == _address);
+      return (rights[_point].managementProxy == _proxy);
     }
 
-    //  getOwner(): return owner of _point
+    //  canManage(): true if _who is the owner or manager of _point
     //
-    function getOwner(uint32 _point)
+    function canManage(uint32 _point, address _who)
       view
       external
-      returns (address owner)
+      returns (bool result)
     {
-      return rights[_point].owner;
+      Deed storage deed = rights[_point];
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.managementProxy) ) );
     }
+
+    //  getManagerForCount(): returns the amount of points _proxy can manage
+    //
+    function getManagerForCount(address _proxy)
+      view
+      external
+      returns (uint256 count)
+    {
+      return managerFor[_proxy].length;
+    }
+
+    //  getManagerFor(): returns the points _proxy can manage
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getManagerFor(address _proxy)
+      view
+      external
+      returns (uint32[] mfor)
+    {
+      return managerFor[_proxy];
+    }
+
+    //  spawn proxy
+
+    //  getSpawnProxy(): returns _point's current spawn proxy
+    //
+    function getSpawnProxy(uint32 _point)
+      view
+      external
+      returns (address spawnProxy)
+    {
+      return rights[_point].spawnProxy;
+    }
+
+    //  isSpawnProxy(): returns true if _proxy is _point's spawn proxy
+    //
+    function isSpawnProxy(uint32 _point, address _proxy)
+      view
+      external
+      returns (bool result)
+    {
+      return (rights[_point].spawnProxy == _proxy);
+    }
+
+    //  canSpawnAs(): true if _who is the owner or spawn proxy of _point
+    //
+    function canSpawnAs(uint32 _point, address _who)
+      view
+      external
+      returns (bool result)
+    {
+      Deed storage deed = rights[_point];
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.spawnProxy) ) );
+    }
+
+    //  getSpawningForCount(): returns the amount of points _proxy
+    //                         can spawn with
+    //
+    function getSpawningForCount(address _proxy)
+      view
+      external
+      returns (uint256 count)
+    {
+      return spawningFor[_proxy].length;
+    }
+
+    //  getSpawningFor(): get the points _proxy can spawn with
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getSpawningFor(address _proxy)
+      view
+      external
+      returns (uint32[] sfor)
+    {
+      return spawningFor[_proxy];
+    }
+
+    //  voting proxy
+
+    //  getVotingProxy(): returns _point's current voting proxy
+    //
+    function getVotingProxy(uint32 _point)
+      view
+      external
+      returns (address voter)
+    {
+      return rights[_point].votingProxy;
+    }
+
+    //  isVotingProxy(): returns true if _proxy is _point's voting proxy
+    //
+    function isVotingProxy(uint32 _point, address _proxy)
+      view
+      external
+      returns (bool result)
+    {
+      return (rights[_point].votingProxy == _proxy);
+    }
+
+    //  canVoteAs(): true if _who is the owner of _point,
+    //               or the voting proxy of _point's owner
+    //
+    function canVoteAs(uint32 _point, address _who)
+      view
+      external
+      returns (bool result)
+    {
+      Deed storage deed = rights[_point];
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.votingProxy) ) );
+    }
+
+    //  getVotingForCount(): returns the amount of points _proxy can vote as
+    //
+    function getVotingForCount(address _proxy)
+      view
+      external
+      returns (uint256 count)
+    {
+      return votingFor[_proxy].length;
+    }
+
+    //  getVotingFor(): returns the points _proxy can vote as
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getVotingFor(address _proxy)
+      view
+      external
+      returns (uint32[] vfor)
+    {
+      return votingFor[_proxy];
+    }
+
+    //  transfer proxy
+
+    //  getTransferProxy(): returns _point's current transfer proxy
+    //
+    function getTransferProxy(uint32 _point)
+      view
+      external
+      returns (address transferProxy)
+    {
+      return rights[_point].transferProxy;
+    }
+
+    //  isTransferProxy(): returns true if _proxy is _point's transfer proxy
+    //
+    function isTransferProxy(uint32 _point, address _proxy)
+      view
+      external
+      returns (bool result)
+    {
+      return (rights[_point].transferProxy == _proxy);
+    }
+
+    //  canTransfer(): true if _who is the owner or transfer proxy of _point,
+    //                 or is an operator for _point's current owner
+    //
+    function canTransfer(uint32 _point, address _who)
+      view
+      external
+      returns (bool result)
+    {
+      Deed storage deed = rights[_point];
+      return ( (0x0 != _who) &&
+               ( (_who == deed.owner) ||
+                 (_who == deed.transferProxy) ||
+                 operators[deed.owner][_who] ) );
+    }
+
+    //  getTransferringForCount(): returns the amount of points _proxy
+    //                             can transfer
+    //
+    function getTransferringForCount(address _proxy)
+      view
+      external
+      returns (uint256 count)
+    {
+      return transferringFor[_proxy].length;
+    }
+
+    //  getTransferringFor(): get the points _proxy can transfer
+    //
+    //    Note: only useful for clients, as Solidity does not currently
+    //    support returning dynamic arrays.
+    //
+    function getTransferringFor(address _proxy)
+      view
+      external
+      returns (uint32[] tfor)
+    {
+      return transferringFor[_proxy];
+    }
+
+    //  isOperator(): returns true if _operator is allowed to transfer
+    //                ownership of _owner's points
+    //
+    function isOperator(address _owner, address _operator)
+      view
+      external
+      returns (bool result)
+    {
+      return operators[_owner][_operator];
+    }
+
+  //
+  //  Deed writing
+  //
 
     //  setOwner(): set owner of _point to _owner
     //
@@ -421,42 +1210,15 @@ contract Azimuth is Ownable
       emit OwnerChanged(_point, _owner);
     }
 
-    function isManagementProxy(uint32 _point, address _manager)
-      view
-      external
-      returns (bool result)
-    {
-      return (rights[_point].managementProxy == _manager);
-    }
-
-    function getManagementProxy(uint32 _point)
-      view
-      external
-      returns (address manager)
-    {
-      return rights[_point].managementProxy;
-    }
-
-    //  canManage(): true if _who is the owner of _point,
-    //               or the manager of _point's owner
+    //  setManagementProxy(): makes _proxy _point's management proxy
     //
-    function canManage(uint32 _point, address _who)
-      view
-      external
-      returns (bool result)
-    {
-      Deed storage deed = rights[_point];
-      return ( (_who == deed.owner) ||
-               (_who == deed.managementProxy) );
-    }
-
-    function setManagementProxy(uint32 _point, address _manager)
+    function setManagementProxy(uint32 _point, address _proxy)
       onlyOwner
       external
     {
       Deed storage deed = rights[_point];
       address prev = deed.managementProxy;
-      if (prev == _manager)
+      if (prev == _proxy)
       {
         return;
       }
@@ -492,74 +1254,81 @@ contract Azimuth is Ownable
         managerForIndexes[prev][_point] = 0;
       }
 
-      if (0x0 != _manager)
+      if (0x0 != _proxy)
       {
-        uint32[] storage mfor = managerFor[_manager];
+        uint32[] storage mfor = managerFor[_proxy];
         mfor.push(_point);
-        managerForIndexes[_manager][_point] = mfor.length;
+        managerForIndexes[_proxy][_point] = mfor.length;
       }
 
-      deed.managementProxy = _manager;
-      emit ChangedManagementProxy(_point, _manager);
+      deed.managementProxy = _proxy;
+      emit ChangedManagementProxy(_point, _proxy);
     }
 
-    function getManagerForCount(address _manager)
-      view
-      external
-      returns (uint256 count)
-    {
-      return managerFor[_manager].length;
-    }
-
-    //  getManagerFor(): get the owners _manager is a manager for
+    //  setSpawnProxy(): makes _proxy _point's spawn proxy
     //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getManagerFor(address _manager)
-      view
+    function setSpawnProxy(uint32 _point, address _proxy)
+      onlyOwner
       external
-      returns (uint32[] mfor)
-    {
-      return managerFor[_manager];
-    }
-
-    function isVotingProxy(uint32 _point, address _voter)
-      view
-      external
-      returns (bool result)
-    {
-      return (rights[_point].votingProxy == _voter);
-    }
-
-    function getVotingProxy(uint32 _point)
-      view
-      external
-      returns (address voter)
-    {
-      return rights[_point].votingProxy;
-    }
-
-    //  canVoteAs(): true if _who is the owner of _point,
-    //               or the voting proxy of _point's owner
-    //
-    function canVoteAs(uint32 _point, address _who)
-      view
-      external
-      returns (bool result)
     {
       Deed storage deed = rights[_point];
-      return ( (_who == deed.owner) ||
-               (_who == deed.votingProxy) );
+      address prev = deed.spawnProxy;
+      if (prev == _proxy)
+      {
+        return;
+      }
+
+      //  if the point used to have a different spawn proxy, do some
+      //  gymnastics to keep the reverse lookup gapless.  delete the point
+      //  from the old proxy's list, then fill that gap with the list tail.
+      //
+      if (0x0 != prev)
+      {
+        //  i: current index in previous proxy's list of spawning points
+        //
+        uint256 i = spawningForIndexes[prev][_point];
+
+        //  we store index + 1, because 0 is the solidity default value
+        //
+        assert(i > 0);
+        i--;
+
+        //  copy the last item in the list into the now-unused slot,
+        //  making sure to update its :spawningForIndexes reference
+        //
+        uint32[] storage prevSfor = spawningFor[prev];
+        uint256 last = prevSfor.length - 1;
+        uint32 moved = prevSfor[last];
+        prevSfor[i] = moved;
+        spawningForIndexes[prev][moved] = i + 1;
+
+        //  delete the last item
+        //
+        delete(prevSfor[last]);
+        prevSfor.length = last;
+        spawningForIndexes[prev][_point] = 0;
+      }
+
+      if (0x0 != _proxy)
+      {
+        uint32[] storage sfor = spawningFor[_proxy];
+        sfor.push(_point);
+        spawningForIndexes[_proxy][_point] = sfor.length;
+      }
+
+      deed.spawnProxy = _proxy;
+      emit ChangedSpawnProxy(_point, _proxy);
     }
 
-    function setVotingProxy(uint32 _point, address _voter)
+    //  setVotingProxy(): makes _proxy _point's voting proxy
+    //
+    function setVotingProxy(uint32 _point, address _proxy)
       onlyOwner
       external
     {
       Deed storage deed = rights[_point];
       address prev = deed.votingProxy;
-      if (prev == _voter)
+      if (prev == _proxy)
       {
         return;
       }
@@ -596,459 +1365,26 @@ contract Azimuth is Ownable
         votingForIndexes[prev][_point] = 0;
       }
 
-      if (0x0 != _voter)
+      if (0x0 != _proxy)
       {
-        uint32[] storage vfor = votingFor[_voter];
+        uint32[] storage vfor = votingFor[_proxy];
         vfor.push(_point);
-        votingForIndexes[_voter][_point] = vfor.length;
+        votingForIndexes[_proxy][_point] = vfor.length;
       }
 
-      deed.votingProxy = _voter;
-      emit ChangedVotingProxy(_point, _voter);
+      deed.votingProxy = _proxy;
+      emit ChangedVotingProxy(_point, _proxy);
     }
 
-    function getVotingForCount(address _voter)
-      view
-      external
-      returns (uint256 count)
-    {
-      return votingFor[_voter].length;
-    }
-
-    //  getVotingFor(): get the owners _voter is a voter for
+    //  setManagementProxy(): makes _proxy _point's transfer proxy
     //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getVotingFor(address _voter)
-      view
-      external
-      returns (uint32[] vfor)
-    {
-      return votingFor[_voter];
-    }
-
-    //  isActive(): return true if point is active
-    //
-    function isActive(uint32 _point)
-      view
-      external
-      returns (bool equals)
-    {
-      return points[_point].active;
-    }
-
-    //  activatePoint(): activate a point, register it as spawned by its parent
-    //
-    function activatePoint(uint32 _point)
-      onlyOwner
-      external
-    {
-      //  make a point active, setting its sponsor to its prefix
-      //
-      Point storage point = points[_point];
-      require(!point.active);
-      point.active = true;
-      registerSponsor(_point, true, getPrefix(_point));
-      emit Activated(_point);
-    }
-
-    //  registerSpawn(): add a point to its parent's list of spawned points
-    //
-    function registerSpawned(uint32 _point)
-      onlyOwner
-      external
-    {
-      //  if a point is its own prefix (a galaxy) then don't register it
-      //
-      uint32 prefix = getPrefix(_point);
-      if (prefix == _point)
-      {
-        return;
-      }
-
-      //  register a new spawned point for the prefix
-      //
-      points[prefix].spawned.push(_point);
-      emit Spawned(prefix, _point);
-    }
-
-    function getKeys(uint32 _point)
-      view
-      external
-      returns (bytes32 crypt, bytes32 auth, uint32 suite, uint32 revision)
-    {
-      Point storage point = points[_point];
-      return (point.encryptionKey,
-              point.authenticationKey,
-              point.cryptoSuiteVersion,
-              point.keyRevisionNumber);
-    }
-
-    function getKeyRevisionNumber(uint32 _point)
-      view
-      external
-      returns (uint32 revision)
-    {
-      return points[_point].keyRevisionNumber;
-    }
-
-    //  hasBeenUsed(): returns true if the point has ever been assigned keys
-    //
-    function hasBeenUsed(uint32 _point)
-      view
-      external
-      returns (bool result)
-    {
-      return ( points[_point].keyRevisionNumber > 0 );
-    }
-
-    //  isLive(): returns true if _point currently has keys properly configured
-    //
-    function isLive(uint32 _point)
-      view
-      external
-      returns (bool result)
-    {
-      Point storage point = points[_point];
-      return ( point.encryptionKey != 0 &&
-               point.authenticationKey != 0 &&
-               point.cryptoSuiteVersion != 0 );
-    }
-
-    //  setKeys(): set network public keys of _point to _encryptionKey and
-    //            _authenticationKey
-    //
-    function setKeys(uint32 _point,
-                     bytes32 _encryptionKey,
-                     bytes32 _authenticationKey,
-                     uint32 _cryptoSuiteVersion)
-      onlyOwner
-      external
-    {
-      Point storage point = points[_point];
-      if ( point.encryptionKey == _encryptionKey &&
-           point.authenticationKey == _authenticationKey &&
-           point.cryptoSuiteVersion == _cryptoSuiteVersion )
-      {
-        return;
-      }
-
-      point.encryptionKey = _encryptionKey;
-      point.authenticationKey = _authenticationKey;
-      point.cryptoSuiteVersion = _cryptoSuiteVersion;
-      point.keyRevisionNumber++;
-
-      emit ChangedKeys(_point,
-                       _encryptionKey,
-                       _authenticationKey,
-                       _cryptoSuiteVersion,
-                       point.keyRevisionNumber);
-    }
-
-    function getContinuityNumber(uint32 _point)
-      view
-      external
-      returns (uint32 continuityNumber)
-    {
-      return points[_point].continuityNumber;
-    }
-
-    function incrementContinuityNumber(uint32 _point)
-      onlyOwner
-      external
-    {
-      Point storage point = points[_point];
-      point.continuityNumber++;
-      emit BrokeContinuity(_point, point.continuityNumber);
-    }
-
-    //  getSpawnCount(): return the number of children spawned by _point
-    //
-    function getSpawnCount(uint32 _point)
-      view
-      external
-      returns (uint32 spawnCount)
-    {
-      uint256 len = points[_point].spawned.length;
-      assert(len < 2**32);
-      return uint32(len);
-    }
-
-    //  getSpawned(): return array of points created under _point
-    //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getSpawned(uint32 _point)
-      view
-      external
-      returns (uint32[] spawned)
-    {
-      return points[_point].spawned;
-    }
-
-    function getSponsor(uint32 _point)
-      view
-      external
-      returns (uint32 sponsor)
-    {
-      return points[_point].sponsor;
-    }
-
-    function hasSponsor(uint32 _point)
-      view
-      external
-      returns (bool has)
-    {
-      return points[_point].hasSponsor;
-    }
-
-    function isSponsor(uint32 _point, uint32 _sponsor)
-      view
-      external
-      returns (bool result)
-    {
-      Point storage point = points[_point];
-      return ( point.hasSponsor &&
-               (point.sponsor == _sponsor) );
-    }
-
-    function loseSponsor(uint32 _point)
-      onlyOwner
-      external
-    {
-      Point storage point = points[_point];
-      if (!point.hasSponsor)
-      {
-        return;
-      }
-      registerSponsor(_point, false, point.sponsor);
-      emit LostSponsor(_point, point.sponsor);
-    }
-
-    function isEscaping(uint32 _point)
-      view
-      external
-      returns (bool escaping)
-    {
-      return points[_point].escapeRequested;
-    }
-
-    function getEscapeRequest(uint32 _point)
-      view
-      external
-      returns (uint32 escape)
-    {
-      return points[_point].escapeRequestedTo;
-    }
-
-    function isRequestingEscapeTo(uint32 _point, uint32 _sponsor)
-      view
-      public
-      returns (bool equals)
-    {
-      Point storage point = points[_point];
-      return (point.escapeRequested && (point.escapeRequestedTo == _sponsor));
-    }
-
-    function setEscapeRequest(uint32 _point, uint32 _sponsor)
-      onlyOwner
-      external
-    {
-      if (isRequestingEscapeTo(_point, _sponsor))
-      {
-        return;
-      }
-      registerEscapeRequest(_point, true, _sponsor);
-      emit EscapeRequested(_point, _sponsor);
-    }
-
-    function cancelEscape(uint32 _point)
-      onlyOwner
-      external
-    {
-      Point storage point = points[_point];
-      if (!point.escapeRequested)
-      {
-        return;
-      }
-      uint32 request = point.escapeRequestedTo;
-      registerEscapeRequest(_point, false, 0);
-      emit EscapeCanceled(_point, request);
-    }
-
-    //  doEscape(): perform the requested escape
-    //
-    function doEscape(uint32 _point)
-      onlyOwner
-      external
-    {
-      Point storage point = points[_point];
-      require(point.escapeRequested);
-      registerSponsor(_point, true, point.escapeRequestedTo);
-      registerEscapeRequest(_point, false, 0);
-      emit EscapeAccepted(_point, point.sponsor);
-    }
-
-    function getSponsoringCount(uint32 _sponsor)
-      view
-      external
-      returns (uint256 count)
-    {
-      return sponsoring[_sponsor].length;
-    }
-
-    //  getSponsoring(): get the points _sponsor is a sponsor for
-    //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getSponsoring(uint32 _sponsor)
-      view
-      external
-      returns (uint32[] sponsees)
-    {
-      return sponsoring[_sponsor];
-    }
-
-    function getEscapeRequestsCount(uint32 _sponsor)
-      view
-      external
-      returns (uint256 count)
-    {
-      return escapeRequests[_sponsor].length;
-    }
-
-    //  getEscapeRequests(): get the points _sponsor has received escape
-    //                       requests from
-    //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getEscapeRequests(uint32 _sponsor)
-      view
-      external
-      returns (uint32[] requests)
-    {
-      return escapeRequests[_sponsor];
-    }
-
-    function isSpawnProxy(uint32 _point, address _spawner)
-      view
-      external
-      returns (bool result)
-    {
-      return (rights[_point].spawnProxy == _spawner);
-    }
-
-    function getSpawnProxy(uint32 _point)
-      view
-      external
-      returns (address spawnProxy)
-    {
-      return rights[_point].spawnProxy;
-    }
-
-    function setSpawnProxy(uint32 _point, address _spawner)
-      onlyOwner
-      external
-    {
-      Deed storage deed = rights[_point];
-      address prev = deed.spawnProxy;
-      if (prev == _spawner)
-      {
-        return;
-      }
-
-      //  if the point used to have a different spawn proxy, do some
-      //  gymnastics to keep the reverse lookup gapless.  delete the point
-      //  from the old proxy's list, then fill that gap with the list tail.
-      //
-      if (0x0 != prev)
-      {
-        //  i: current index in previous proxy's list of spawning points
-        //
-        uint256 i = spawningForIndexes[prev][_point];
-
-        //  we store index + 1, because 0 is the solidity default value
-        //
-        assert(i > 0);
-        i--;
-
-        //  copy the last item in the list into the now-unused slot,
-        //  making sure to update its :spawningForIndexes reference
-        //
-        uint32[] storage prevSfor = spawningFor[prev];
-        uint256 last = prevSfor.length - 1;
-        uint32 moved = prevSfor[last];
-        prevSfor[i] = moved;
-        spawningForIndexes[prev][moved] = i + 1;
-
-        //  delete the last item
-        //
-        delete(prevSfor[last]);
-        prevSfor.length = last;
-        spawningForIndexes[prev][_point] = 0;
-      }
-
-      if (0x0 != _spawner)
-      {
-        uint32[] storage sfor = spawningFor[_spawner];
-        sfor.push(_point);
-        spawningForIndexes[_spawner][_point] = sfor.length;
-      }
-
-      deed.spawnProxy = _spawner;
-      emit ChangedSpawnProxy(_point, _spawner);
-    }
-
-    function getSpawningForCount(address _proxy)
-      view
-      external
-      returns (uint256 count)
-    {
-      return spawningFor[_proxy].length;
-    }
-
-    //  getSpawningFor(): get the points _proxy is a spawn proxy for
-    //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getSpawningFor(address _proxy)
-      view
-      external
-      returns (uint32[] sfor)
-    {
-      return spawningFor[_proxy];
-    }
-
-    function isTransferProxy(uint32 _point, address _transferrer)
-      view
-      external
-      returns (bool result)
-    {
-      return (rights[_point].transferProxy == _transferrer);
-    }
-
-    function getTransferProxy(uint32 _point)
-      view
-      external
-      returns (address transferProxy)
-    {
-      return rights[_point].transferProxy;
-    }
-
-    //  setTransferProxy(): configure _transferrer as transfer proxy for _point
-    //
-    function setTransferProxy(uint32 _point, address _transferrer)
+    function setTransferProxy(uint32 _point, address _proxy)
       onlyOwner
       external
     {
       Deed storage deed = rights[_point];
       address prev = deed.transferProxy;
-      if (prev == _transferrer)
+      if (prev == _proxy)
       {
         return;
       }
@@ -1084,44 +1420,15 @@ contract Azimuth is Ownable
         transferringForIndexes[prev][_point] = 0;
       }
 
-      if (0x0 != _transferrer)
+      if (0x0 != _proxy)
       {
-        uint32[] storage tfor = transferringFor[_transferrer];
+        uint32[] storage tfor = transferringFor[_proxy];
         tfor.push(_point);
-        transferringForIndexes[_transferrer][_point] = tfor.length;
+        transferringForIndexes[_proxy][_point] = tfor.length;
       }
 
-      deed.transferProxy = _transferrer;
-      emit ChangedTransferProxy(_point, _transferrer);
-    }
-
-    function getTransferringForCount(address _proxy)
-      view
-      external
-      returns (uint256 count)
-    {
-      return transferringFor[_proxy].length;
-    }
-
-    //  getTransferringFor(): get the points _proxy is a transfer proxy for
-    //
-    //    Note: only useful for clients, as Solidity does not currently
-    //    support returning dynamic arrays.
-    //
-    function getTransferringFor(address _proxy)
-      view
-      external
-      returns (uint32[] tfor)
-    {
-      return transferringFor[_proxy];
-    }
-
-    function isOperator(address _owner, address _operator)
-      view
-      external
-      returns (bool result)
-    {
-      return operators[_owner][_operator];
+      deed.transferProxy = _proxy;
+      emit ChangedTransferProxy(_point, _proxy);
     }
 
     //  setOperator(): dis/allow _operator to transfer ownership of all points
@@ -1134,150 +1441,5 @@ contract Azimuth is Ownable
       external
     {
       operators[_owner][_operator] = _approved;
-    }
-
-  //
-  //  Utility functions
-  //
-
-    //  registerSponsor(): set the sponsorship state of _point and update the
-    //                reverse lookup for sponsors
-    //
-    function registerSponsor(uint32 _point, bool _hasSponsor, uint32 _sponsor)
-      internal
-    {
-      Point storage point = points[_point];
-      bool had = point.hasSponsor;
-      uint32 prev = point.sponsor;
-      if ( (!had && !_hasSponsor) ||
-           (had && _hasSponsor && prev == _sponsor) )
-      {
-        return;
-      }
-
-      //  if the point used to have a different sponsor, do some gymnastics
-      //  to keep the reverse lookup gapless.  delete the point from the old
-      //  sponsor's list, then fill that gap with the list tail.
-      //
-      if (had)
-      {
-        //  i: current index in previous sponsor's list of sponsored points
-        //
-        uint256 i = sponsoringIndexes[prev][_point];
-
-        //  we store index + 1, because 0 is the solidity default value
-        //
-        assert(i > 0);
-        i--;
-
-        //  copy the last item in the list into the now-unused slot,
-        //  making sure to update its :sponsoringIndexes reference
-        //
-        uint32[] storage prevSponsoring = sponsoring[prev];
-        uint256 last = prevSponsoring.length - 1;
-        uint32 moved = prevSponsoring[last];
-        prevSponsoring[i] = moved;
-        sponsoringIndexes[prev][moved] = i + 1;
-
-        //  delete the last item
-        //
-        delete(prevSponsoring[last]);
-        prevSponsoring.length = last;
-        sponsoringIndexes[prev][_point] = 0;
-      }
-
-      if (_hasSponsor)
-      {
-        uint32[] storage newSponsoring = sponsoring[_sponsor];
-        newSponsoring.push(_point);
-        sponsoringIndexes[_sponsor][_point] = newSponsoring.length;
-      }
-
-      point.sponsor = _sponsor;
-      point.hasSponsor = _hasSponsor;
-    }
-
-    //  registerEscapeRequest(): set the escape state of _point and update the
-    //                           reverse lookup for sponsors
-    //
-    function registerEscapeRequest( uint32 _point,
-                                    bool _isEscaping, uint32 _sponsor )
-      internal
-    {
-      Point storage point = points[_point];
-      bool was = point.escapeRequested;
-      uint32 prev = point.escapeRequestedTo;
-      if ( (!was && !_isEscaping) ||
-           (was && _isEscaping && prev == _sponsor) )
-      {
-        return;
-      }
-
-      //  if the point used to have a different request, do some gymnastics
-      //  to keep the reverse lookup gapless.  delete the point from the old
-      //  sponsor's list, then fill that gap with the list tail.
-      //
-      if (was)
-      {
-        //  i: current index in previous sponsor's list of sponsored points
-        //
-        uint256 i = escapeRequestsIndexes[prev][_point];
-
-        //  we store index + 1, because 0 is the solidity default value
-        //
-        assert(i > 0);
-        i--;
-
-        //  copy the last item in the list into the now-unused slot,
-        //  making sure to update its :escapeRequestsIndexes reference
-        //
-        uint32[] storage prevRequests = escapeRequests[prev];
-        uint256 last = prevRequests.length - 1;
-        uint32 moved = prevRequests[last];
-        prevRequests[i] = moved;
-        escapeRequestsIndexes[prev][moved] = i + 1;
-
-        //  delete the last item
-        //
-        delete(prevRequests[last]);
-        prevRequests.length = last;
-        escapeRequestsIndexes[prev][_point] = 0;
-      }
-
-      if (_isEscaping)
-      {
-        uint32[] storage newRequests = escapeRequests[_sponsor];
-        newRequests.push(_point);
-        escapeRequestsIndexes[_sponsor][_point] = newRequests.length;
-      }
-
-      point.escapeRequestedTo = _sponsor;
-      point.escapeRequested = _isEscaping;
-    }
-
-    //  getPrefix(): compute prefix parent of _point
-    //
-    function getPrefix(uint32 _point)
-      pure
-      public
-      returns (uint16 parent)
-    {
-      if (_point < 65536)
-      {
-        return uint16(_point % 256);
-      }
-      return uint16(_point % 65536);
-    }
-
-    //  getPointSize(): return the size of _point
-    //
-    function getPointSize(uint32 _point)
-      external
-      pure
-      returns (Size _size)
-    {
-      if (_point < 256) return Size.Galaxy;
-      if (_point < 65536) return Size.Star;
-      return Size.Planet;
     }
 }

@@ -52,10 +52,10 @@ contract('Ecliptic', function([owner, user1, user2]) {
   });
 
   it('spawning points', async function() {
-    // can't spawn if parent not live.
+    // can't spawn if prefix not live.
     await assertRevert(eclipt.spawn(256, user1, {from:user1}));
     await eclipt.configureKeys(0, 1, 2, 1, false, {from:user1});
-    // can't spawn if not parent owner.
+    // can't spawn if not prefix owner.
     await assertRevert(eclipt.spawn(256, user1, {from:user2}));
     // can only spawn size directly below prefix
     await assertRevert(eclipt.spawn(65536, user1), {from:user1});
@@ -131,7 +131,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
     assert.isTrue(await azimuth.isTransferProxy(0, 0));
     let claim = await claims.claims(0, 0);
     assert.equal(claim[0], "");
-    // for unused points, keys/continuity aren't incremented
+    // for unlinked points, keys/continuity aren't incremented
     assert.equal(await azimuth.getKeyRevisionNumber(2), 0);
     assert.equal(await azimuth.getContinuityNumber(2), 0);
     await eclipt.transferPoint(2, user2, true, {from:user1});
@@ -189,7 +189,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
   });
 
   it('setting and canceling an escape', async function() {
-    // can't if chosen parent not active.
+    // can't if chosen sponsor not active.
     await assertRevert(eclipt.escape(257, 1, {from:user1}));
     await eclipt.configureKeys(1, 8, 9, 1, false, {from:user1});
     // can't if not owner of point.
@@ -218,18 +218,18 @@ contract('Ecliptic', function([owner, user1, user2]) {
   });
 
   it('adopting or reject an escaping point', async function() {
-    // can't if not owner of parent.
+    // can't if not owner of sponsor.
     await assertRevert(eclipt.adopt(256, {from:user2}));
     await assertRevert(eclipt.reject(512, {from:user2}));
-    // can't if target is not escaping to parent.
+    // can't if target is not escaping to sponsor.
     await assertRevert(eclipt.adopt(258, {from:user1}));
     await assertRevert(eclipt.reject(258, {from:user1}));
-    // adopt as parent owner.
+    // adopt as sponsor owner.
     await eclipt.adopt(256, {from:user1});
     assert.isFalse(await azimuth.isRequestingEscapeTo(256, 1));
     assert.equal(await azimuth.getSponsor(256), 1);
     assert.isTrue(await azimuth.isSponsor(256, 1));
-    // reject as parent owner.
+    // reject as sponsor owner.
     await eclipt.reject(512, {from:user1});
     assert.isFalse(await azimuth.isRequestingEscapeTo(512, 1));
     assert.equal(await azimuth.getSponsor(512), 0);
@@ -262,7 +262,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
     assert.isTrue(await polls.documentHasAchievedMajority(10));
   });
 
-  it('voting on ecliptic poll', async function() {
+  it('voting on upgrade poll', async function() {
     ecliptx = await Ecliptic.new('0x0',
                                      azimuth.address,
                                      polls.address,
@@ -272,19 +272,19 @@ contract('Ecliptic', function([owner, user1, user2]) {
                                      polls.address,
                                      claims.address);
     // can't if upgrade path not correct
-    await assertRevert(eclipt.startEclipticPoll(0, ecliptx.address, {from:user1}));
+    await assertRevert(eclipt.startUpgradePoll(0, ecliptx.address, {from:user1}));
     // can't start if not galaxy owner.
-    await assertRevert(eclipt.startEclipticPoll(0, eclipt2.address, {from:user2}));
-    await eclipt.startEclipticPoll(0, eclipt2.address, {from:user1});
+    await assertRevert(eclipt.startUpgradePoll(0, eclipt2.address, {from:user2}));
+    await eclipt.startUpgradePoll(0, eclipt2.address, {from:user1});
     // can't vote if not galaxy owner
-    await assertRevert(eclipt.castEclipticVote(0, eclipt2.address, true, {from:user2}));
-    await eclipt.castEclipticVote(0, eclipt2.address, true, {from:user1});
-    await eclipt.castEclipticVote(1, eclipt2.address, true, {from:user1});
+    await assertRevert(eclipt.castUpgradeVote(0, eclipt2.address, true, {from:user2}));
+    await eclipt.castUpgradeVote(0, eclipt2.address, true, {from:user1});
+    await eclipt.castUpgradeVote(1, eclipt2.address, true, {from:user1});
     assert.equal(await azimuth.owner(), eclipt2.address);
     assert.equal(await polls.owner(), eclipt2.address);
   });
 
-  it('updating ecliptic poll', async function() {
+  it('updating upgrade poll', async function() {
     let eclipt3 = await Ecliptic.new(eclipt2.address,
                                          azimuth.address,
                                          polls.address,
@@ -292,12 +292,12 @@ contract('Ecliptic', function([owner, user1, user2]) {
     // onUpgrade can only be called by previous ecliptic
     await assertRevert(eclipt3.onUpgrade({from:user2}));
     assert.equal(await azimuth.owner(), eclipt2.address);
-    await eclipt2.startEclipticPoll(0, eclipt3.address, {from:user1});
-    await eclipt2.castEclipticVote(0, eclipt3.address, true, {from:user1});
-    await seeEvents(eclipt2.updateEclipticPoll(eclipt3.address), []);
+    await eclipt2.startUpgradePoll(0, eclipt3.address, {from:user1});
+    await eclipt2.castUpgradeVote(0, eclipt3.address, true, {from:user1});
+    await seeEvents(eclipt2.updateUpgradePoll(eclipt3.address), []);
     assert.equal(await azimuth.owner(), eclipt2.address);
     await increaseTime(pollTime + 5);
-    await seeEvents(eclipt2.updateEclipticPoll(eclipt3.address),
+    await seeEvents(eclipt2.updateUpgradePoll(eclipt3.address),
                     ['Upgraded', 'OwnershipTransferred']);
     assert.equal(await azimuth.owner(), eclipt3.address);
     assert.equal(await polls.owner(), eclipt3.address);

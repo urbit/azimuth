@@ -33,7 +33,7 @@ contract('NFTokenMetadataMock', (accounts) => {
 
   it('returns the correct issuer name', async () => {
     const name = await nftoken.name();
-    assert.equal(name, 'Azimuth Point');
+    assert.equal(name, 'Azimuth Points');
   });
 
   it('returns the correct issuer symbol', async () => {

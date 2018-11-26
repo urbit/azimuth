@@ -1,12 +1,14 @@
 //  the azimuth logic contract
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 
 import './EclipticBase.sol';
 import './Claims.sol';
-import './ERC165Mapping.sol';
-import './interfaces/ERC721Receiver.sol';
+
+import 'openzeppelin-solidity/contracts/introspection/SupportsInterfaceWithLookup.sol';
 import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
+import 'openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
 import 'openzeppelin-solidity/contracts/AddressUtils.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 
@@ -46,15 +48,15 @@ import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 //    allowing points to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
-contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
+contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
 {
   using SafeMath for uint256;
   using AddressUtils for address;
 
   //  Transfer: This emits when ownership of any NFT changes by any mechanism.
   //            This event emits when NFTs are created (`from` == 0) and
-  //            destroyed (`to` == 0). At the time of any transfer, the approved
-  //            address for that NFT (if any) is reset to none.
+  //            destroyed (`to` == 0). At the time of any transfer, the
+  //            approved address for that NFT (if any) is reset to none.
   //
   event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
 
@@ -62,6 +64,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
   //            reaffirmed. The zero address indicates there is no approved
   //            address. When a Transfer event emits, this also indicates that
   //            the approved address for that NFT (if any) is reset to none.
+  //
   event Approval(address indexed _owner, address indexed _approved,
                  uint256 _tokenId);
 
@@ -97,9 +100,9 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
 
     //  register supported interfaces for ERC165
     //
-    supportedInterfaces[0x80ac58cd] = true; // ERC721
-    supportedInterfaces[0x5b5e139f] = true; // ERC721Metadata
-    supportedInterfaces[0x7f5828d0] = true; // ERC173 (ownership)
+    _registerInterface(0x80ac58cd); // ERC721
+    _registerInterface(0x5b5e139f); // ERC721Metadata
+    _registerInterface(0x7f5828d0); // ERC173 (ownership)
   }
 
   //
@@ -132,7 +135,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       //
       require(azimuth.isActive(id));
 
-      owner = azimuth.getOwner(id);
+      return azimuth.getOwner(id);
     }
 
     //  exists(): returns true if point _tokenId is active
@@ -142,7 +145,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       view
       returns (bool doesExist)
     {
-      return ( (_tokenId < 4294967296) &&
+      return ( (_tokenId < 0x100000000) &&
                azimuth.isActive(uint32(_tokenId)) );
     }
 
@@ -189,10 +192,15 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     {
       uint32 id = uint32(_tokenId);
       require(azimuth.isOwner(id, _from));
+
+      //  the ERC721 operator/approved address (if any) is
+      //  accounted for in transferPoint()
+      //
       transferPoint(id, _to, true);
     }
 
-    //  approve(): allow _approved to transfer ownership of point _tokenId
+    //  approve(): allow _approved to transfer ownership of point
+    //             _tokenId
     //
     function approve(address _approved, uint256 _tokenId)
       public
@@ -201,8 +209,9 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       setTransferProxy(uint32(_tokenId), _approved);
     }
 
-    //  setApprovalForAll(): allow or disallow _operator to transfer ownership
-    //                       of ALL points owned by :msg.sender
+    //  setApprovalForAll(): allow or disallow _operator to
+    //                       transfer ownership of ALL points
+    //                       owned by :msg.sender
     //
     function setApprovalForAll(address _operator, bool _approved)
       public
@@ -212,7 +221,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       emit ApprovalForAll(msg.sender, _operator, _approved);
     }
 
-    //  getApproved(): get the transfer proxy for point _tokenId
+    //  getApproved(): get the approved address for point _tokenId
     //
     function getApproved(uint256 _tokenId)
       public
@@ -220,11 +229,15 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       validPointId(_tokenId)
       returns (address approved)
     {
+      //NOTE  redundant, transfer proxy cannot be set for
+      //      inactive points
+      //
       require(azimuth.isActive(uint32(_tokenId)));
       return azimuth.getTransferProxy(uint32(_tokenId));
     }
 
-    //  isApprovedForAll(): returns true if _operator is an operator for _owner
+    //  isApprovedForAll(): returns true if _operator is an
+    //                      operator for _owner
     //
     function isApprovedForAll(address _owner, address _operator)
       public
@@ -238,23 +251,26 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
   //  ERC721Metadata interface
   //
 
+    //  name(): returns the name of a collection of points
+    //
     function name()
-      public
+      external
       view
       returns (string)
     {
-      return "Azimuth Point";
+      return "Azimuth Points";
     }
 
+    //  symbol(): returns an abbreviates name for points
     function symbol()
-      public
+      external
       view
       returns (string)
     {
       return "AZP";
     }
 
-    //  tokenURI(): produce a URL to a standard JSON file
+    //  tokenURI(): returns a URL to an ERC-721 standard JSON file
     //
     function tokenURI(uint256 _tokenId)
       public
@@ -277,21 +293,8 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     }
 
   //
-  //  Azimuth functions for all points
+  //  Points interface
   //
-
-    //  setManagementProxy(): configure the management proxy for _point
-    //
-    //    The management proxy may perform "reversible" operations on
-    //    behalf of the owner. This includes public key configuration and
-    //    operations relating to sponsorship.
-    //
-    function setManagementProxy(uint32 _point, address _manager)
-      external
-      activePointOwner(_point)
-    {
-      azimuth.setManagementProxy(_point, _manager);
-    }
 
     //  configureKeys(): configure _point with network public keys
     //                   _encryptionKey, _authenticationKey,
@@ -316,14 +319,18 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
                       _cryptoSuiteVersion);
     }
 
-    //  spawn(): spawn _point, giving ownership to _target
+    //  spawn(): spawn _point, then either give, or allow _target to take,
+    //           ownership of _point
+    //
+    //    if _target is the :msg.sender, _targets owns the _point right away.
+    //    otherwise, _target becomes the transfer proxy of _point.
     //
     //    Requirements:
-    //    - _point must not be active,
-    //    - _point must not be a planet with a galaxy prefix,
-    //    - _point's prefix must be used and under its spawn limit,
+    //    - _point must not be active
+    //    - _point must not be a planet with a galaxy prefix
+    //    - _point's prefix must be linked and under its spawn limit
     //    - :msg.sender must be either the owner of _point's prefix,
-    //      or an authorized spawn proxy for it.
+    //      or an authorized spawn proxy for it
     //
     function spawn(uint32 _point, address _target)
       external
@@ -350,9 +357,9 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       require( (uint8(azimuth.getPointSize(prefix)) + 1) ==
                uint8(azimuth.getPointSize(_point)) );
 
-      //  prefix point must be live and able to spawn
+      //  prefix point must be linked and able to spawn
       //
-      require( (azimuth.hasBeenUsed(prefix)) &&
+      require( (azimuth.hasBeenLinked(prefix)) &&
                ( azimuth.getSpawnCount(prefix) <
                  getSpawnLimit(prefix, block.timestamp) ) );
 
@@ -360,8 +367,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       //  other addresses need explicit permission (the role
       //  of "spawnProxy" in the Azimuth contract)
       //
-      require( azimuth.isOwner(prefix, msg.sender) ||
-               azimuth.isSpawnProxy(prefix, msg.sender) );
+      require( azimuth.canSpawnAs(prefix, msg.sender) );
 
       //  if the caller is spawning the point to themselves,
       //  assume it knows what it's doing and resolve right away
@@ -372,7 +378,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       }
       //
       //  when sending to a "foreign" address, enforce a withdraw pattern
-      //  making the _point parent's owner the _point owner in the mean time
+      //  making the _point prefix's owner the _point owner in the mean time
       //
       else
       {
@@ -381,7 +387,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     }
 
     //  doSpawn(): actual spawning logic, used in spawn(). creates _point,
-    //             making the _target its own if _direct, or making the
+    //             making the _target its owner if _direct, or making the
     //             _holder the owner and the _target the transfer proxy
     //             if not _direct.
     //
@@ -417,7 +423,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       //
       else
       {
-        //  have _holder hold on to the point while _target gets to transfer
+        //  have _holder hold on to the _point while _target gets to transfer
         //  ownership of it
         //
         azimuth.setOwner(_point, _holder);
@@ -428,8 +434,182 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       }
     }
 
-    //  getSpawnLimit(): returns the total number of children the point _point
-    //                   is allowed to spawn at datetime _time.
+    //  transferPoint(): transfer _point to _target, clearing all permissions
+    //                   data and keys if _reset is true
+    //
+    //    Note: the _reset flag is useful when transferring the point to
+    //    a recipient who doesn't trust the previous owner.
+    //
+    //    Requirements:
+    //    - :msg.sender must be either _point's current owner, authorized
+    //      to transfer _point, or authorized to transfer the current
+    //      owner's points (as in ERC721's operator)
+    //    - _target must not be the zero address
+    //
+    function transferPoint(uint32 _point, address _target, bool _reset)
+      public
+    {
+      //  transfer is legitimate if the caller is the current owner, or
+      //  an operator for the current owner, or the _point's transfer proxy
+      //
+      require(azimuth.canTransfer(_point, msg.sender));
+
+      //  if the point wasn't active yet, that means transferring it
+      //  is part of the "spawn" flow, so we need to activate it
+      //
+      if ( !azimuth.isActive(_point) )
+      {
+        azimuth.activatePoint(_point);
+      }
+
+      //  if the owner would actually change, change it
+      //
+      //    the only time this deliberately wouldn't be the case is when a
+      //    prefix owner wants to activate a spawned but untransferred child.
+      //
+      if ( !azimuth.isOwner(_point, _target) )
+      {
+        //  remember the previous owner, to be included in the Transfer event
+        //
+        address old = azimuth.getOwner(_point);
+
+        azimuth.setOwner(_point, _target);
+
+        //  according to ERC721, the approved address (here, transfer proxy)
+        //  gets cleared during every Transfer event
+        //
+        azimuth.setTransferProxy(_point, 0);
+
+        emit Transfer(old, _target, uint256(_point));
+      }
+
+      //  reset sensitive data
+      //  used when transferring the point to a new owner
+      //
+      if ( _reset )
+      {
+        //  clear the network public keys and break continuity,
+        //  but only if the point has already been linked
+        //
+        if ( azimuth.hasBeenLinked(_point) )
+        {
+          azimuth.incrementContinuityNumber(_point);
+          azimuth.setKeys(_point, 0, 0, 0);
+        }
+
+        //  clear management proxy
+        //
+        azimuth.setManagementProxy(_point, 0);
+
+        //  clear voting proxy
+        //
+        azimuth.setVotingProxy(_point, 0);
+
+        //  clear transfer proxy
+        //
+        //    in most cases this is done above, during the ownership transfer,
+        //    but we might not hit that and still be expected to reset the
+        //    transfer proxy.
+        //    doing it a second time is a no-op in Azimuth.
+        //
+        azimuth.setTransferProxy(_point, 0);
+
+        //  clear spawning proxy
+        //
+        azimuth.setSpawnProxy(_point, 0);
+
+        //  clear claims
+        //
+        claims.clearClaims(_point);
+      }
+    }
+
+    //  escape(): request escape as _point to _sponsor
+    //
+    //    if an escape request is already active, this overwrites
+    //    the existing request
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner or manager of _point,
+    //    - _point must be able to escape to _sponsor as per to canEscapeTo()
+    //
+    function escape(uint32 _point, uint32 _sponsor)
+      external
+      activePointManager(_point)
+    {
+      require(canEscapeTo(_point, _sponsor));
+      azimuth.setEscapeRequest(_point, _sponsor);
+    }
+
+    //  cancelEscape(): cancel the currently set escape for _point
+    //
+    function cancelEscape(uint32 _point)
+      external
+      activePointManager(_point)
+    {
+      azimuth.cancelEscape(_point);
+    }
+
+    //  adopt(): as the relevant sponsor, accept the _point
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner or management proxy
+    //      of _point's requested sponsor
+    //
+    function adopt(uint32 _point)
+      external
+    {
+      require( azimuth.isEscaping(_point) &&
+               azimuth.canManage( azimuth.getEscapeRequest(_point),
+                                  msg.sender ) );
+
+      //  _sponsor becomes _point's sponsor
+      //  its escape request is reset to "not escaping"
+      //
+      azimuth.doEscape(_point);
+    }
+
+    //  reject(): as the relevant sponsor, deny the _point's request
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner or management proxy
+    //      of _point's requested sponsor
+    //
+    function reject(uint32 _point)
+      external
+    {
+      require( azimuth.isEscaping(_point) &&
+               azimuth.canManage( azimuth.getEscapeRequest(_point),
+                                  msg.sender ) );
+
+      //  reset the _point's escape request to "not escaping"
+      //
+      azimuth.cancelEscape(_point);
+    }
+
+    //  detach(): as the _sponsor, stop sponsoring the _point
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner or management proxy
+    //      of _point's current sponsor
+    //
+    function detach(uint32 _point)
+      external
+    {
+      require( azimuth.hasSponsor(_point) &&
+               azimuth.canManage(azimuth.getSponsor(_point), msg.sender) );
+
+      //  signal that its sponsor no longer supports _point
+      //
+      azimuth.loseSponsor(_point);
+    }
+
+  //
+  //  Point rules
+  //
+
+    //  getSpawnLimit(): returns the total number of children the _point
+    //                   is allowed to spawn at _time.
     //
     function getSpawnLimit(uint32 _point, uint256 _time)
       public
@@ -468,161 +648,31 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       }
     }
 
-    //  setSpawnProxy(): give _spawnProxy the right to spawn points
-    //                   with the prefix _prefix
-    //
-    function setSpawnProxy(uint16 _prefix, address _spawnProxy)
-      external
-      activePointOwner(_prefix)
-    {
-      azimuth.setSpawnProxy(_prefix, _spawnProxy);
-    }
-
-    //  transferPoint(): transfer _point to _target, clearing all permissions
-    //                  data and keys if _reset is true
-    //
-    //    Note: the _reset flag is useful when transferring the point to
-    //    a recipient who doesn't trust the previous owner.
-    //
-    //    Requirements:
-    //    - :msg.sender must be either _point's current owner, authorized
-    //      to transfer _point, or authorized to transfer the current
-    //      owner's points.
-    //    - _target must not be the zero address.
-    //
-    function transferPoint(uint32 _point, address _target, bool _reset)
-      public
-    {
-      //  old: current point owner
-      //
-      address old = azimuth.getOwner(_point);
-
-      //  transfer is legitimate if the caller is the old owner, or
-      //  has operator or transfer rights
-      //
-      require((old == msg.sender)
-              || azimuth.isOperator(old, msg.sender)
-              || azimuth.isTransferProxy(_point, msg.sender));
-
-      //  if the point wasn't active yet, that means transferring it
-      //  is part of the "spawn" flow, so we need to activate it
-      //
-      if ( !azimuth.isActive(_point) )
-      {
-        azimuth.activatePoint(_point);
-      }
-
-      //  if the owner would actually change, change it
-      //
-      //    the only time this deliberately wouldn't be the case is when a
-      //    parent point wants to activate a spawned but untransferred child.
-      //
-      if ( !azimuth.isOwner(_point, _target) )
-      {
-        azimuth.setOwner(_point, _target);
-
-        //  according to ERC721, the transferrer gets cleared during every
-        //  Transfer event
-        //
-        azimuth.setTransferProxy(_point, 0);
-
-        emit Transfer(old, _target, uint256(_point));
-      }
-
-      //  reset sensitive data
-      //  used when transferring the point to a new owner
-      //
-      if ( _reset )
-      {
-        //  clear the network public keys and break continuity,
-        //  but only if the point has already been used
-        //
-        if ( azimuth.hasBeenUsed(_point) )
-        {
-          azimuth.incrementContinuityNumber(_point);
-          azimuth.setKeys(_point, 0, 0, 0);
-        }
-
-        //  clear management proxy
-        //
-        azimuth.setManagementProxy(_point, 0);
-
-        //  clear voting proxy
-        //
-        azimuth.setVotingProxy(_point, 0);
-
-        //  clear transfer proxy
-        //
-        //    in most cases this is done above, during the ownership transfer,
-        //    but we might not hit that and still be expected to reset the
-        //    transfer proxy.
-        //    doing it a second time is a no-op in Azimuth.
-        //
-        azimuth.setTransferProxy(_point, 0);
-
-        //  clear spawning proxy
-        //
-        azimuth.setSpawnProxy(_point, 0);
-
-        //  clear claims
-        //
-        claims.clearClaims(_point);
-      }
-    }
-
-    //  setTransferProxy(): give _transferProxy the right to transfer _point
-    //
-    //    Requirements:
-    //    - :msg.sender must be either _point's current owner, or be
-    //      allowed to operate the current owner's points.
-    //
-    function setTransferProxy(uint32 _point, address _transferProxy)
-      public
-    {
-      //  owner: owner of _point
-      //
-      address owner = azimuth.getOwner(_point);
-
-      //  caller must be :owner, or an operator designated by the owner.
-      //
-      require((owner == msg.sender) || azimuth.isOperator(owner, msg.sender));
-
-      //  set transferrer field in Azimuth contract
-      //
-      azimuth.setTransferProxy(_point, _transferProxy);
-
-      //  emit Approval event
-      //
-      emit Approval(owner, _transferProxy, uint256(_point));
-    }
-
     //  canEscapeTo(): true if _point could try to escape to _sponsor
-    //
-    //    Note: public to help with clients
     //
     function canEscapeTo(uint32 _point, uint32 _sponsor)
       public
       view
       returns (bool canEscape)
     {
-      //  can't escape to a sponsor that hasn't been born
+      //  can't escape to a sponsor that hasn't been linked
       //
-      if ( !azimuth.hasBeenUsed(_sponsor) ) return false;
+      if ( !azimuth.hasBeenLinked(_sponsor) ) return false;
 
       //  Can only escape to a point one size higher than ourselves,
       //  except in the special case where the escaping point hasn't
-      //  been used yet -- in that case we may escape to points of
+      //  been linked yet -- in that case we may escape to points of
       //  the same size, to support lightweight invitation chains.
       //
       //  The use case for lightweight invitations is that a planet
       //  owner should be able to invite their friends onto an
       //  Azimuth network in a two-party transaction, without a new
       //  star relationship.
-      //  The lightweight invitation process works by escaping
-      //  your own active, but never used, point, to yourself,
-      //  then transferring it to your friend.
+      //  The lightweight invitation process works by escaping your
+      //  own active (but never linked) point to one of your own
+      //  points, then transferring the point to your friend.
       //
-      //  These planets can, in turn, sponsor other unused planets,
+      //  These planets can, in turn, sponsor other unlinked planets,
       //  so the "planet sponsorship chain" can grow to arbitrary
       //  length. Most users, especially deep down the chain, will
       //  want to improve their performance by switching to direct
@@ -638,92 +688,38 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
                //
                ( (sponsorSize == pointSize) &&
                  //
-                 //  peer escape is only for points that haven't been used yet,
-                 //  because it's only for lightweight invitation chains
+                 //  peer escape is only for points that haven't been linked
+                 //  yet, because it's only for lightweight invitation chains
                  //
-                 !azimuth.hasBeenUsed(_point) ) );
-    }
-
-    //  escape(): request escape from _point to _sponsor
-    //
-    //    if an escape request is already active, this overwrites
-    //    the existing request
-    //
-    //    Requirements:
-    //    - :msg.sender must be the owner of _point,
-    //    - _point must be able to escape to _sponsor as per to canEscapeTo().
-    //
-    function escape(uint32 _point, uint32 _sponsor)
-      external
-      activePointManager(_point)
-    {
-      require(canEscapeTo(_point, _sponsor));
-      azimuth.setEscapeRequest(_point, _sponsor);
-    }
-
-    //  cancelEscape(): cancel the currently set escape for _point
-    //
-    function cancelEscape(uint32 _point)
-      external
-      activePointManager(_point)
-    {
-      azimuth.cancelEscape(_point);
-    }
-
-    //  adopt(): as the _sponsor, accept the _point
-    //
-    //    Requirements:
-    //    - :msg.sender must be the owner of _point's requested sponsor.
-    //
-    function adopt(uint32 _point)
-      external
-    {
-      require( azimuth.isEscaping(_point) &&
-               azimuth.canManage( azimuth.getEscapeRequest(_point),
-                                  msg.sender ) );
-
-      //  _sponsor becomes _point's sponsor
-      //  its escape request is reset to "not escaping"
-      //
-      azimuth.doEscape(_point);
-    }
-
-    //  reject(): as the _sponsor, deny the _point's request
-    //
-    //    Requirements:
-    //    - :msg.sender must be the owner of _point's requested sponsor.
-    //
-    function reject(uint32 _point)
-      external
-    {
-      require( azimuth.isEscaping(_point) &&
-               azimuth.canManage( azimuth.getEscapeRequest(_point),
-                                  msg.sender ) );
-
-      //  reset the _point's escape request to "not escaping"
-      //
-      azimuth.cancelEscape(_point);
-    }
-
-    //  detach(): as the _sponsor, stop sponsoring the _point
-    //
-    //    Requirements:
-    //    - :msg.sender must be the owner of _point's current sponsor.
-    //
-    function detach(uint32 _point)
-      external
-    {
-      require( azimuth.hasSponsor(_point) &&
-               azimuth.canManage(azimuth.getSponsor(_point), msg.sender) );
-
-      //  signal that _sponsor no longer supports _point
-      //
-      azimuth.loseSponsor(_point);
+                 !azimuth.hasBeenLinked(_point) ) );
     }
 
   //
-  //  Poll actions
+  //  Permission management
   //
+
+    //  setManagementProxy(): configure the management proxy for _point
+    //
+    //    The management proxy may perform "reversible" operations on
+    //    behalf of the owner. This includes public key configuration and
+    //    operations relating to sponsorship.
+    //
+    function setManagementProxy(uint32 _point, address _manager)
+      external
+      activePointOwner(_point)
+    {
+      azimuth.setManagementProxy(_point, _manager);
+    }
+
+    //  setSpawnProxy(): give _spawnProxy the right to spawn points
+    //                   with the prefix _prefix
+    //
+    function setSpawnProxy(uint16 _prefix, address _spawnProxy)
+      external
+      activePointOwner(_prefix)
+    {
+      azimuth.setSpawnProxy(_prefix, _spawnProxy);
+    }
 
     //  setVotingProxy(): configure the voting proxy for _galaxy
     //
@@ -737,25 +733,58 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       azimuth.setVotingProxy(_galaxy, _voter);
     }
 
-    //  startEclipticPoll(): as _galaxy, start a poll for the ecliptic
-    //                       upgrade _proposal
+    //  setTransferProxy(): give _transferProxy the right to transfer _point
     //
     //    Requirements:
-    //    - :msg.sender must be the owner of _galaxy,
-    //    - the _proposal must expect to be upgraded from this specific
-    //      contract, as indicated by its previousEcliptic attribute.
+    //    - :msg.sender must be either _point's current owner,
+    //      or be an operator for the current owner
     //
-    function startEclipticPoll(uint8 _galaxy, EclipticBase _proposal)
+    function setTransferProxy(uint32 _point, address _transferProxy)
+      public
+    {
+      //  owner: owner of _point
+      //
+      address owner = azimuth.getOwner(_point);
+
+      //  caller must be :owner, or an operator designated by the owner.
+      //
+      require((owner == msg.sender) || azimuth.isOperator(owner, msg.sender));
+
+      //  set transfer proxy field in Azimuth contract
+      //
+      azimuth.setTransferProxy(_point, _transferProxy);
+
+      //  emit Approval event
+      //
+      emit Approval(owner, _transferProxy, uint256(_point));
+    }
+
+  //
+  //  Poll actions
+  //
+
+    //  startUpgradePoll(): as _galaxy, start a poll for the ecliptic
+    //                      upgrade _proposal
+    //
+    //    Requirements:
+    //    - :msg.sender must be the owner or voting proxy of _galaxy,
+    //    - the _proposal must expect to be upgraded from this specific
+    //      contract, as indicated by its previousEcliptic attribute
+    //
+    function startUpgradePoll(uint8 _galaxy, EclipticBase _proposal)
       external
       activePointVoter(_galaxy)
     {
       //  ensure that the upgrade target expects this contract as the source
       //
       require(_proposal.previousEcliptic() == address(this));
-      polls.startEclipticPoll(_proposal);
+      polls.startUpgradePoll(_proposal);
     }
 
     //  startDocumentPoll(): as _galaxy, start a poll for the _proposal
+    //
+    //    the _proposal argument is the keccak-256 hash of any arbitrary
+    //    document or string of text
     //
     function startDocumentPoll(uint8 _galaxy, bytes32 _proposal)
       external
@@ -764,15 +793,15 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       polls.startDocumentPoll(_proposal);
     }
 
-    //  castEclipticVote(): as _galaxy, cast a _vote on the ecliptic
-    //                          upgrade _proposal
+    //  castUpgradeVote(): as _galaxy, cast a _vote on the ecliptic
+    //                     upgrade _proposal
     //
     //    _vote is true when in favor of the proposal, false otherwise
     //
     //    If this vote results in a majority for the _proposal, it will
     //    be upgraded to immediately.
     //
-    function castEclipticVote(uint8 _galaxy,
+    function castUpgradeVote(uint8 _galaxy,
                               EclipticBase _proposal,
                               bool _vote)
       external
@@ -780,7 +809,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     {
       //  majority: true if the vote resulted in a majority, false otherwise
       //
-      bool majority = polls.castEclipticVote(_galaxy, _proposal, _vote);
+      bool majority = polls.castUpgradeVote(_galaxy, _proposal, _vote);
 
       //  if a majority is in favor of the upgrade, it happens as defined
       //  in the ecliptic base contract
@@ -802,15 +831,15 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
       polls.castDocumentVote(_galaxy, _proposal, _vote);
     }
 
-    //  updateEclipticPoll(): check whether the _proposal has achieved
-    //                        majority, upgrading to it if it has
+    //  updateUpgradePoll(): check whether the _proposal has achieved
+    //                      majority, upgrading to it if it has
     //
-    function updateEclipticPoll(EclipticBase _proposal)
+    function updateUpgradePoll(EclipticBase _proposal)
       external
     {
       //  majority: true if the poll ended in a majority, false otherwise
       //
-      bool majority = polls.updateEclipticPoll(_proposal);
+      bool majority = polls.updateUpgradePoll(_proposal);
 
       //  if a majority is in favor of the upgrade, it happens as defined
       //  in the ecliptic base contract
@@ -885,7 +914,7 @@ contract Ecliptic is EclipticBase, ERC165Mapping, ERC721Metadata
     //
     modifier validPointId(uint256 _id)
     {
-      require(_id < 4294967296);
+      require(_id < 0x100000000);
       _;
     }
 

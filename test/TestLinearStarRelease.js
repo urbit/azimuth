@@ -40,10 +40,10 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     await lsr.register(user3, windup, 8, 2, rateUnit);
     let bat = await lsr.batches(user1);
     assert.equal(bat[0], windup);
-    assert.equal(bat[1], 2);
-    assert.equal(bat[2], rateUnit);
-    assert.equal(bat[3], 8);
-    assert.equal(bat[4], 0);
+    assert.equal(bat[1], rateUnit);
+    assert.equal(bat[2], 0);
+    assert.equal(bat[3], 2);
+    assert.equal(bat[4], 8);
     assert.isFalse(await lsr.verifyBalance(user1));
     // can always withdraw at least one star
     assert.equal(await lsr.withdrawLimit(user1), 1);
@@ -110,11 +110,11 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     await assertRevert(lsr.withdraw({from:owner}));
     await lsr.withdraw({from:user2});
     assert.isTrue(await azimuth.isOwner(2048, user2));
-    assert.equal((await lsr.batches(user2))[4], 1);
+    assert.equal((await lsr.batches(user2))[2], 1);
     await lsr.withdraw({from:user2});
     await lsr.withdraw({from:user2});
     await lsr.withdraw({from:user2});
-    assert.equal((await lsr.batches(user2))[4], 4);
+    assert.equal((await lsr.batches(user2))[2], 4);
     assert.equal(await lsr.withdrawLimit(user2), 4);
     // can't withdraw over limit
     await assertRevert(lsr.withdraw({from:user2}));

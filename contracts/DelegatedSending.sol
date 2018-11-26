@@ -1,4 +1,5 @@
 //  simple planet invitation management contract
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 
@@ -14,17 +15,18 @@ import './Ecliptic.sol';
 //    to a value higher than zero can help the network grow by providing
 //    regular users with a way to get their friends and family onto it.
 //
-//    To allow planets to be sent my this contract, stars must set it as
+//    To allow planets to be sent by this contract, stars must set it as
 //    their spawnProxy using the Ecliptic.
 //
 contract DelegatedSending is ReadsAzimuth
 {
   //  Sent: :by sent :point
   //
-  event Sent( uint64 indexed fromPool,
-              uint32 indexed by,
+  event Sent( uint16 indexed prefix,
+              uint64 indexed fromPool,
+              uint32 by,
               uint32 point,
-              address indexed to);
+              address to);
 
   //  limits: per star, the maximum amount of planets any of its planets may
   //          give away
@@ -40,7 +42,7 @@ contract DelegatedSending is ReadsAzimuth
   //
   mapping(uint64 => uint16) public pools;
 
-  //  fromPool: per planet, the pool from which they were sent
+  //  fromPool: per planet, the pool from which they were sent/invited
   //
   //    when invited by planet n, the invitee is registered in pool n + 1.
   //    a pool of 0 means the planet has its own invite pool.
@@ -105,7 +107,7 @@ contract DelegatedSending is ReadsAzimuth
     //  increment the sent counter for _as.
     //
     uint64 pool = getPool(_as);
-    pools[pool] = pools[pool] + 1;
+    pools[pool]++;
 
     //  associate the _point with this pool
     //
@@ -115,7 +117,7 @@ contract DelegatedSending is ReadsAzimuth
     //
     Ecliptic(azimuth.owner()).spawn(_point, _to);
 
-    emit Sent(pool, _as, _point, _to);
+    emit Sent(azimuth.getPrefix(_point), pool, _as, _point, _to);
   }
 
   //  canSend(): check whether current conditions allow _as to send _point
@@ -143,15 +145,15 @@ contract DelegatedSending is ReadsAzimuth
              //
              azimuth.isSpawnProxy(prefix, this) &&
              //
+             //  the prefix must be linked
+             //
+             azimuth.hasBeenLinked(prefix) &&
+             //
              //  the prefix must not have hit its spawn limit yet
              //
              ( azimuth.getSpawnCount(prefix) <
                Ecliptic(azimuth.owner())
-               .getSpawnLimit(prefix, block.timestamp) ) &&
-             //
-             //  the prefix must be live
-             //
-             azimuth.isLive(prefix) );
+               .getSpawnLimit(prefix, block.timestamp) ) );
   }
 
   //  getPool(): get the invite pool _point belongs to
@@ -173,9 +175,11 @@ contract DelegatedSending is ReadsAzimuth
       //
       return uint64(_point) + 1;
     }
+
+    return pool;
   }
 
-  //  canReceive(): wether the _recipient is eligible to receive a planet
+  //  canReceive(): whether the _recipient is eligible to receive a planet
   //                from this contract or not
   //
   //    only those who don't own or are entitled to any points may receive

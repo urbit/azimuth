@@ -2,8 +2,8 @@
 
 pragma solidity 0.4.24;
 
-import './ReadsAzimuth.sol';
 import './Ecliptic.sol';
+import './ReadsAzimuth.sol';
 
 contract TakesPoints is ReadsAzimuth
 {
@@ -15,43 +15,45 @@ contract TakesPoints is ReadsAzimuth
   }
 
   //  takePoint(): transfer _point to this contract. if _clean is true, require
-  //              that the point be unused.
-  //              returns true if this succeeds, false otherwise.
+  //               that the point be unlinked.
+  //               returns true if this succeeds, false otherwise.
   //
   function takePoint(uint32 _point, bool _clean)
     internal
     returns (bool success)
   {
+    Ecliptic ecliptic = Ecliptic(azimuth.owner());
+
     //  There are two ways for a contract to get a point.
-    //  One way is for a parent point to grant the contract permission to
+    //  One way is for a prefix point to grant the contract permission to
     //  spawn its points.
     //  The contract will spawn the point directly to itself.
     //
     uint16 prefix = azimuth.getPrefix(_point);
     if ( azimuth.isOwner(_point, 0x0) &&
          azimuth.isOwner(prefix, msg.sender) &&
-         azimuth.isSpawnProxy(prefix, this) )
-         //NOTE  this might still fail because of spawn limit
+         azimuth.isSpawnProxy(prefix, this) &&
+         (ecliptic.getSpawnLimit(prefix, now) > azimuth.getSpawnCount(prefix)) )
     {
       //  first model: spawn _point to :this contract
       //
-      Ecliptic(azimuth.owner()).spawn(_point, this);
+      ecliptic.spawn(_point, this);
       return true;
     }
 
-    //  The second way is to accept existing points, optionally requiring
-    //  they be unused.
+    //  The second way is to accept existing points, optionally
+    //  requiring they be unlinked.
     //  To deposit a point this way, the owner grants the contract
     //  permission to transfer ownership of the point.
     //  The contract will transfer the point to itself.
     //
-    if ( (!_clean || !azimuth.hasBeenUsed(_point)) &&
+    if ( (!_clean || !azimuth.hasBeenLinked(_point)) &&
          azimuth.isOwner(_point, msg.sender) &&
-         azimuth.isTransferProxy(_point, this) )
+         azimuth.canTransfer(_point, this) )
     {
-      //  second model: transfer active, unused _point to :this contract
+      //  second model: transfer active, unlinked _point to :this contract
       //
-      Ecliptic(azimuth.owner()).transferPoint(_point, this, true);
+      ecliptic.transferPoint(_point, this, true);
       return true;
     }
 
@@ -61,7 +63,11 @@ contract TakesPoints is ReadsAzimuth
   }
 
   //  givePoint(): transfer a _point we own to _to, optionally resetting.
-  //              returns true if this succeeds, false otherwise.
+  //               returns true if this succeeds, false otherwise.
+  //
+  //    Note that _reset is unnecessary if the point was taken
+  //    using this contract's takePoint() function, which always
+  //    resets, and not touched since.
   //
   function givePoint(uint32 _point, address _to, bool _reset)
     internal
