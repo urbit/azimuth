@@ -253,11 +253,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
         address old = azimuth.getOwner(_point);
 
         azimuth.setOwner(_point, _target);
-
-        //  according to ERC721, the approved address (here, transfer proxy)
-        //  gets cleared during every Transfer event
-        //
-        azimuth.setTransferProxy(_point, 0);
       }
 
       //  reset sensitive data
