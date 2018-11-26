@@ -133,10 +133,10 @@ contract Azimuth is Ownable
     //
     bool hasSponsor;
 
-    //  active: whether point can be used
+    //  active: whether point can be linked
     //
-    //    false: point belongs to prefix, cannot be configured and used
-    //    true: point no longer belongs to prefix, can be configured and used
+    //    false: point belongs to prefix, cannot be configured or linked
+    //    true: point no longer belongs to prefix, can be configured and linked
     //
     bool active;
 
@@ -357,9 +357,9 @@ contract Azimuth is Ownable
       return points[_point].keyRevisionNumber;
     }
 
-    //  hasBeenUsed(): returns true if the point has ever been assigned keys
+    //  hasBeenLinked(): returns true if the point has ever been assigned keys
     //
-    function hasBeenUsed(uint32 _point)
+    function hasBeenLinked(uint32 _point)
       view
       external
       returns (bool result)

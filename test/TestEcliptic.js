@@ -131,7 +131,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
     assert.isTrue(await azimuth.isTransferProxy(0, 0));
     let claim = await claims.claims(0, 0);
     assert.equal(claim[0], "");
-    // for unused points, keys/continuity aren't incremented
+    // for unlinked points, keys/continuity aren't incremented
     assert.equal(await azimuth.getKeyRevisionNumber(2), 0);
     assert.equal(await azimuth.getContinuityNumber(2), 0);
     await eclipt.transferPoint(2, user2, true, {from:user1});

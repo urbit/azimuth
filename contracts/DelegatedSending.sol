@@ -144,9 +144,9 @@ contract DelegatedSending is ReadsAzimuth
              //
              azimuth.isSpawnProxy(prefix, this) &&
              //
-             //  the prefix must be in use
+             //  the prefix must be linked
              //
-             azimuth.hasBeenUsed(prefix) &&
+             azimuth.hasBeenLinked(prefix) &&
              //
              //  the prefix must not have hit its spawn limit yet
              //

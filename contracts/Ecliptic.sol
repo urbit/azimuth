@@ -327,7 +327,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    Requirements:
     //    - _point must not be active
     //    - _point must not be a planet with a galaxy prefix
-    //    - _point's prefix must be used and under its spawn limit
+    //    - _point's prefix must be linked and under its spawn limit
     //    - :msg.sender must be either the owner of _point's prefix,
     //      or an authorized spawn proxy for it
     //
@@ -356,9 +356,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       require( (uint8(azimuth.getPointSize(prefix)) + 1) ==
                uint8(azimuth.getPointSize(_point)) );
 
-      //  prefix point must be in use and able to spawn
+      //  prefix point must be linked and able to spawn
       //
-      require( (azimuth.hasBeenUsed(prefix)) &&
+      require( (azimuth.hasBeenLinked(prefix)) &&
                ( azimuth.getSpawnCount(prefix) <
                  getSpawnLimit(prefix, block.timestamp) ) );
 
@@ -488,9 +488,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       if ( _reset )
       {
         //  clear the network public keys and break continuity,
-        //  but only if the point has already been used
+        //  but only if the point has already been linked
         //
-        if ( azimuth.hasBeenUsed(_point) )
+        if ( azimuth.hasBeenLinked(_point) )
         {
           azimuth.incrementContinuityNumber(_point);
           azimuth.setKeys(_point, 0, 0, 0);
@@ -654,13 +654,13 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       view
       returns (bool canEscape)
     {
-      //  can't escape to a sponsor that hasn't been used
+      //  can't escape to a sponsor that hasn't been linked
       //
-      if ( !azimuth.hasBeenUsed(_sponsor) ) return false;
+      if ( !azimuth.hasBeenLinked(_sponsor) ) return false;
 
       //  Can only escape to a point one size higher than ourselves,
       //  except in the special case where the escaping point hasn't
-      //  been used yet -- in that case we may escape to points of
+      //  been linked yet -- in that case we may escape to points of
       //  the same size, to support lightweight invitation chains.
       //
       //  The use case for lightweight invitations is that a planet
@@ -668,10 +668,10 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //  Azimuth network in a two-party transaction, without a new
       //  star relationship.
       //  The lightweight invitation process works by escaping your
-      //  own active (but never used) point to one of your own
+      //  own active (but never linked) point to one of your own
       //  points, then transferring the point to your friend.
       //
-      //  These planets can, in turn, sponsor other unused planets,
+      //  These planets can, in turn, sponsor other unlinked planets,
       //  so the "planet sponsorship chain" can grow to arbitrary
       //  length. Most users, especially deep down the chain, will
       //  want to improve their performance by switching to direct
@@ -687,10 +687,10 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
                //
                ( (sponsorSize == pointSize) &&
                  //
-                 //  peer escape is only for points that haven't been used yet,
-                 //  because it's only for lightweight invitation chains
+                 //  peer escape is only for points that haven't been linked
+                 //  yet, because it's only for lightweight invitation chains
                  //
-                 !azimuth.hasBeenUsed(_point) ) );
+                 !azimuth.hasBeenLinked(_point) ) );
     }
 
   //

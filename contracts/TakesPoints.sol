@@ -15,7 +15,7 @@ contract TakesPoints is ReadsAzimuth
   }
 
   //  takePoint(): transfer _point to this contract. if _clean is true, require
-  //               that the point be unused.
+  //               that the point be unlinked.
   //               returns true if this succeeds, false otherwise.
   //
   function takePoint(uint32 _point, bool _clean)
@@ -42,16 +42,16 @@ contract TakesPoints is ReadsAzimuth
     }
 
     //  The second way is to accept existing points, optionally
-    //  requiring they be unused.
+    //  requiring they be unlinked.
     //  To deposit a point this way, the owner grants the contract
     //  permission to transfer ownership of the point.
     //  The contract will transfer the point to itself.
     //
-    if ( (!_clean || !azimuth.hasBeenUsed(_point)) &&
+    if ( (!_clean || !azimuth.hasBeenLinked(_point)) &&
          azimuth.isOwner(_point, msg.sender) &&
          azimuth.canTransfer(_point, this) )
     {
-      //  second model: transfer active, unused _point to :this contract
+      //  second model: transfer active, unlinked _point to :this contract
       //
       ecliptic.transferPoint(_point, this, true);
       return true;
