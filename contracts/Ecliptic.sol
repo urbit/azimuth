@@ -674,6 +674,17 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
       azimuth.setDnsDomains(_primary, _secondary, _tertiary);
     }
 
+    //  upgradeTo(): instantly upgrade to a new constitution
+    //
+    //    temporary function for use during launch ceremony
+    //
+    function upgradeTo(EclipticBase _to)
+      external
+      onlyOwner
+    {
+      upgrade(_to);
+    }
+
   //
   //  Function modifiers for this contract
   //
