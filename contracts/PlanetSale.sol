@@ -2,19 +2,19 @@
 
 pragma solidity 0.4.24;
 
+import './Ecliptic.sol';
+
 import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 
-import './Constitution.sol';
-
-//  PlanetSale: a practically stateless ship sale contract
+//  PlanetSale: a practically stateless point sale contract
 //
-//    This contract facilitates the sale of ships (most commonly planets).
-//    Instead of "depositing" ships into this contract, ships are
+//    This contract facilitates the sale of points (most commonly planets).
+//    Instead of "depositing" points into this contract, points are
 //    available for sale when this contract is able to spawn them.
-//    This is the case when the ship is inactive and its prefix has
+//    This is the case when the point is inactive and its prefix has
 //    allowed this contract to spawn for it.
 //
-//    The contract owner can determine the price per ship, withdraw funds
+//    The contract owner can determine the price per point, withdraw funds
 //    that have been sent to this contract, and shut down the contract
 //    to prevent further sales.
 //
@@ -27,22 +27,22 @@ contract PlanetSale is Ownable
   //
   event PlanetSold(uint32 indexed prefix, uint32 indexed planet);
 
-  //  ships: ships state data store
+  //  azimuth: points state data store
   //
-  Ships public ships;
+  Azimuth public azimuth;
 
   //  price: ether per planet, in wei
   //
   uint256 public price;
 
-  //  constructor(): configure the ships data store and initial sale price
+  //  constructor(): configure the points data store and initial sale price
   //
-  constructor(Ships _ships, uint256 _price)
+  constructor(Azimuth _azimuth, uint256 _price)
     public
   {
     require(0 < _price);
-    ships = _ships;
-    price = _price;
+    azimuth = _azimuth;
+    setPrice(_price);
   }
 
   //
@@ -56,19 +56,19 @@ contract PlanetSale is Ownable
       view
       returns (bool result)
     {
-      uint16 prefix = ships.getPrefix(_planet);
+      uint16 prefix = azimuth.getPrefix(_planet);
 
       return ( //  planet must not have an owner yet
                //
-               ships.isOwner(_planet, 0x0) &&
+               azimuth.isOwner(_planet, 0x0) &&
                //
                //  this contract must be allowed to spawn for the prefix
                //
-               ships.isSpawnProxy(prefix, this) &&
+               azimuth.isSpawnProxy(prefix, this) &&
                //
-               //  prefix must be live
+               //  prefix must be linked
                //
-               ships.isLive(prefix) );
+               azimuth.hasBeenLinked(prefix) );
     }
 
     //  purchase(): pay the :price, acquire ownership of the _planet
@@ -89,13 +89,13 @@ contract PlanetSale is Ownable
 
       //  spawn the planet to us, then immediately transfer to the caller
       //
-      //    spawning to the caller would give the ship's parent a
-      //    window off opportunity to cancel the transfer
+      //    spawning to the caller would give the point's prefix's owner
+      //    a window of opportunity to cancel the transfer
       //
-      Constitution constitution = Constitution(ships.owner());
-      constitution.spawn(_planet, this);
-      constitution.transferShip(_planet, msg.sender, false);
-      emit PlanetSold(ships.getPrefix(_planet), _planet);
+      Ecliptic ecliptic = Ecliptic(azimuth.owner());
+      ecliptic.spawn(_planet, this);
+      ecliptic.transferPoint(_planet, msg.sender, false);
+      emit PlanetSold(azimuth.getPrefix(_planet), _planet);
     }
 
   //
@@ -105,7 +105,7 @@ contract PlanetSale is Ownable
     //  setPrice(): configure the price in wei per planet
     //
     function setPrice(uint256 _price)
-      external
+      public
       onlyOwner
     {
       require(0 < _price);
@@ -122,7 +122,7 @@ contract PlanetSale is Ownable
       _target.transfer(address(this).balance);
     }
 
-    //  close(): end the sale by destroying this contract and transfering
+    //  close(): end the sale by destroying this contract and transferring
     //           remaining funds to _target
     //
     function close(address _target)

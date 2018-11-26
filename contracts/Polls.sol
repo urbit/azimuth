@@ -1,4 +1,5 @@
 //  the azimuth polls data store
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 
@@ -32,7 +33,7 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    to the voting itself (that is, determining who is eligible to vote)
 //    is expected to be implemented by this contract's owner.
 //
-//    This contract will be owned by the Constitution contract.
+//    This contract will be owned by the Ecliptic contract.
 //
 contract Polls is Ownable
 {
@@ -40,17 +41,17 @@ contract Polls is Ownable
   using SafeMath16 for uint16;
   using SafeMath8 for uint8;
 
-  //  ConstitutionPollStarted: a poll on :proposal has opened
+  //  UpgradePollStarted: a poll on :proposal has opened
   //
-  event ConstitutionPollStarted(address proposal);
+  event UpgradePollStarted(address proposal);
 
   //  DocumentPollStarted: a poll on :proposal has opened
   //
   event DocumentPollStarted(bytes32 proposal);
 
-  //  ConstitutionMajority: :proposal has achieved majority
+  //  UpgradeMajority: :proposal has achieved majority
   //
-  event ConstitutionMajority(address proposal);
+  event UpgradeMajority(address proposal);
 
   //  DocumentMajority: :proposal has achieved majority
   //
@@ -97,23 +98,37 @@ contract Polls is Ownable
   //
   uint16 public totalVoters;
 
-  //  constitutionPolls: per address, poll held to determine if that address
-  //                 will become the new constitution
+  //  upgradeProposals: list of all upgrades ever proposed
   //
-  mapping(address => Poll) public constitutionPolls;
+  //    this allows clients to discover the existence of polls.
+  //    from there, they can do liveness checks on the polls themselves.
+  //
+  address[] public upgradeProposals;
 
-  //  constitutionHasAchievedMajority: per address, whether that address
-  //                                   has everachieved majority
+  //  upgradePolls: per address, poll held to determine if that address
+  //                will become the new ecliptic
   //
-  //    if we did not store this, we would have to look at old poll data
+  mapping(address => Poll) public upgradePolls;
+
+  //  upgradeHasAchievedMajority: per address, whether that address
+  //                              has ever achieved majority
+  //
+  //    If we did not store this, we would have to look at old poll data
   //    to see whether or not a proposal has ever achieved majority.
-  //    since the outcome of a poll is calculated based on :totalVoters,
-  //    which may not be consistent accross time, we need to store outcomes
-  //    explicitly instead of re-calculating them, so that we can always
+  //    Since the outcome of a poll is calculated based on :totalVoters,
+  //    which may not be consistent across time, we need to store outcomes
+  //    explicitly instead of re-calculating them. This allows us to always
   //    tell with certainty whether or not a majority was achieved,
   //    regardless of the current :totalVoters.
   //
-  mapping(address => bool) public constitutionHasAchievedMajority;
+  mapping(address => bool) public upgradeHasAchievedMajority;
+
+  //  documentProposals: list of all documents ever proposed
+  //
+  //    this allows clients to discover the existence of polls.
+  //    from there, they can do liveness checks on the polls themselves.
+  //
+  bytes32[] public documentProposals;
 
   //  documentPolls: per hash, poll held to determine if the corresponding
   //                 document is accepted by the galactic senate
@@ -123,7 +138,7 @@ contract Polls is Ownable
   //  documentHasAchievedMajority: per hash, whether that hash has ever
   //                               achieved majority
   //
-  //    the note for constitutionHasAchievedMajority above applies here as well
+  //    the note for upgradeHasAchievedMajority above applies here as well
   //
   mapping(bytes32 => bool) public documentHasAchievedMajority;
 
@@ -161,6 +176,52 @@ contract Polls is Ownable
     totalVoters = totalVoters.add(1);
   }
 
+  //  getAllUpgradeProposals(): return array of all upgrade proposals ever made
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
+  function getUpgradeProposals()
+    external
+    view
+    returns (address[] proposals)
+  {
+    return upgradeProposals;
+  }
+
+  //  getUpgradeProposalCount(): get the number of unique proposed upgrades
+  //
+  function getUpgradeProposalCount()
+    external
+    view
+    returns (uint256 count)
+  {
+    return upgradeProposals.length;
+  }
+
+  //  getAllDocumentProposals(): return array of all upgrade proposals ever made
+  //
+  //    Note: only useful for clients, as Solidity does not currently
+  //    support returning dynamic arrays.
+  //
+  function getDocumentProposals()
+    external
+    view
+    returns (bytes32[] proposals)
+  {
+    return documentProposals;
+  }
+
+  //  getDocumentProposalCount(): get the number of unique proposed upgrades
+  //
+  function getDocumentProposalCount()
+    external
+    view
+    returns (uint256 count)
+  {
+    return documentProposals.length;
+  }
+
   //  getDocumentMajorities(): return array of all document majorities
   //
   //    Note: only useful for clients, as Solidity does not currently
@@ -174,15 +235,15 @@ contract Polls is Ownable
     return documentMajorities;
   }
 
-  //  hasVotedOnConstitutionPoll(): returns true if _galaxy has voted
-  //                                on the _proposal
+  //  hasVotedOnUpgradePoll(): returns true if _galaxy has voted
+  //                           on the _proposal
   //
-  function hasVotedOnConstitutionPoll(uint8 _galaxy, address _proposal)
+  function hasVotedOnUpgradePoll(uint8 _galaxy, address _proposal)
     external
     view
     returns (bool result)
   {
-    return constitutionPolls[_proposal].voted[_galaxy];
+    return upgradePolls[_proposal].voted[_galaxy];
   }
 
   //  hasVotedOnDocumentPoll(): returns true if _galaxy has voted
@@ -196,21 +257,27 @@ contract Polls is Ownable
     return documentPolls[_proposal].voted[_galaxy];
   }
 
-  //  startConstitutionPoll(): open a poll on making _proposal the new constitution
+  //  startUpgradePoll(): open a poll on making _proposal the new ecliptic
   //
-  function startConstitutionPoll(address _proposal)
+  function startUpgradePoll(address _proposal)
     external
     onlyOwner
   {
     //  _proposal must not have achieved majority before
     //
-    require(!constitutionHasAchievedMajority[_proposal]);
+    require(!upgradeHasAchievedMajority[_proposal]);
 
-    //  start the poll
+    Poll storage poll = upgradePolls[_proposal];
+
+    //  if the proposal is being made for the first time, register it.
     //
-    Poll storage poll = constitutionPolls[_proposal];
+    if (0 == poll.start)
+    {
+      upgradeProposals.push(_proposal);
+    }
+
     startPoll(poll);
-    emit ConstitutionPollStarted(_proposal);
+    emit UpgradePollStarted(_proposal);
   }
 
   //  startDocumentPoll(): open a poll on accepting the document
@@ -224,9 +291,15 @@ contract Polls is Ownable
     //
     require(!documentHasAchievedMajority[_proposal]);
 
-    //  start the poll
-    //
     Poll storage poll = documentPolls[_proposal];
+
+    //  if the proposal is being made for the first time, register it.
+    //
+    if (0 == poll.start)
+    {
+      documentProposals.push(_proposal);
+    }
+
     startPoll(poll);
     emit DocumentPollStarted(_proposal);
   }
@@ -254,18 +327,18 @@ contract Polls is Ownable
     _poll.cooldown = pollCooldown;
   }
 
-  //  castConstitutionVote(): as galaxy _as, cast a vote on the _proposal
+  //  castUpgradeVote(): as galaxy _as, cast a vote on the _proposal
   //
   //    _vote is true when in favor of the proposal, false otherwise
   //
-  function castConstitutionVote(uint8 _as, address _proposal, bool _vote)
+  function castUpgradeVote(uint8 _as, address _proposal, bool _vote)
     external
     onlyOwner
     returns (bool majority)
   {
-    Poll storage poll = constitutionPolls[_proposal];
+    Poll storage poll = upgradePolls[_proposal];
     processVote(poll, _as, _vote);
-    return updateConstitutionPoll(_proposal);
+    return updateUpgradePoll(_proposal);
   }
 
   //  castDocumentVote(): as galaxy _as, cast a vote on the _proposal
@@ -312,30 +385,30 @@ contract Polls is Ownable
     }
   }
 
-  //  updateConstitutionPoll(): check whether the _proposal has achieved
+  //  updateUpgradePoll(): check whether the _proposal has achieved
   //                            majority, updating state, sending an event,
   //                            and returning true if it has
   //
-  function updateConstitutionPoll(address _proposal)
+  function updateUpgradePoll(address _proposal)
     public
     onlyOwner
     returns (bool majority)
   {
     //  _proposal must not have achieved majority before
     //
-    require(!constitutionHasAchievedMajority[_proposal]);
+    require(!upgradeHasAchievedMajority[_proposal]);
 
     //  check for majority in the poll
     //
-    Poll storage poll = constitutionPolls[_proposal];
+    Poll storage poll = upgradePolls[_proposal];
     majority = checkPollMajority(poll);
 
     //  if majority was achieved, update the state and send an event
     //
     if (majority)
     {
-      constitutionHasAchievedMajority[_proposal] = true;
-      emit ConstitutionMajority(_proposal);
+      upgradeHasAchievedMajority[_proposal] = true;
+      emit UpgradeMajority(_proposal);
     }
     return majority;
   }
@@ -343,7 +416,7 @@ contract Polls is Ownable
   //  updateDocumentPoll(): check whether the _proposal has achieved majority,
   //                        updating the state and sending an event if it has
   //
-  //    this can be called by anyone, because the constitution does not
+  //    this can be called by anyone, because the ecliptic does not
   //    need to be aware of the result
   //
   function updateDocumentPoll(bytes32 _proposal)
@@ -378,11 +451,6 @@ contract Polls is Ownable
     view
     returns (bool majority)
   {
-    //  remainingVotes: amount of votes that can still be cast
-    //
-    int16 remainingVotes = int16(totalVoters.sub( _poll.yesVotes.add(_poll.noVotes) ));
-    int16 score = int16(_poll.yesVotes) - int16(_poll.noVotes);
-
     return ( //  poll must have at least the minimum required yes-votes
              //
              (_poll.yesVotes >= (totalVoters / 4)) &&
@@ -397,9 +465,8 @@ contract Polls is Ownable
                //
                (block.timestamp > _poll.start.add(_poll.duration)) ||
                //
-               //  or because there aren't enough remaining voters to
-               //  tip the scale
+               //  or there are more yes votes than there can be no votes
                //
-               (score > remainingVotes) ) );
+               ( _poll.yesVotes > totalVoters.sub(_poll.yesVotes) ) ) );
   }
 }

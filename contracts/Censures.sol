@@ -1,22 +1,23 @@
 //  simple reputations store
+//  https://azimuth.network
 
 pragma solidity 0.4.24;
 
-import './ReadsShips.sol';
+import './ReadsAzimuth.sol';
 
 //  Censures: simple reputation management
 //
 //    This contract allows stars and galaxies to assign a negative
-//    reputation (censure) to other ships of the same or lower rank.
+//    reputation (censure) to other points of the same or lower rank.
 //    These censures are not permanent, they can be forgiven.
 //
 //    Since Azimuth-based networks provide incentives for good behavior,
 //    making bad behavior the exception rather than the rule, this
 //    contract only provides registration of negative reputation.
 //
-contract Censures is ReadsShips
+contract Censures is ReadsAzimuth
 {
-  //  Censured: :who got censures by :by
+  //  Censured: :who got censured by :by
   //
   event Censured(uint16 indexed by, uint32 indexed who);
 
@@ -24,32 +25,32 @@ contract Censures is ReadsShips
   //
   event Forgiven(uint16 indexed by, uint32 indexed who);
 
-  //  censuring: per ship, the ships they're censuring
+  //  censuring: per point, the points they're censuring
   //
   mapping(uint16 => uint32[]) public censuring;
 
-  //  censuredBy: per ship, those who have censured them
+  //  censuredBy: per point, those who have censured them
   //
   mapping(uint32 => uint16[]) public censuredBy;
 
-  //  censuringIndexes: per ship per censure, (index + 1) in censures array
+  //  censuringIndexes: per point per censure, (index + 1) in censures array
   //
   //    We delete censures by moving the last entry in the array to the
   //    newly emptied slot, which is (n - 1) where n is the value of
-  //    indexes[ship][censure].
+  //    indexes[point][censure].
   //
   mapping(uint16 => mapping(uint32 => uint256)) public censuringIndexes;
 
-  //  censuredByIndexes: per censure per ship, (index + 1) in censured array
+  //  censuredByIndexes: per censure per point, (index + 1) in censured array
   //
   //    see also explanation for indexes_censures above
   //
   mapping(uint32 => mapping(uint16 => uint256)) public censuredByIndexes;
 
-  //  constructor(): register the ships contract
+  //  constructor(): register the azimuth contract
   //
-  constructor(Ships _ships)
-    ReadsShips(_ships)
+  constructor(Azimuth _azimuth)
+    ReadsAzimuth(_azimuth)
     public
   {
     //
@@ -105,7 +106,7 @@ contract Censures is ReadsShips
   //
   function censure(uint16 _as, uint32 _who)
     external
-    activeShipManager(_as)
+    activePointManager(_as)
   {
     require( //  can't censure self
              //
@@ -116,12 +117,12 @@ contract Censures is ReadsShips
              (censuringIndexes[_as][_who] == 0) );
 
     //  only stars and galaxies may censure, and only galaxies may censure
-    //  other galaxies. (enum gets smaller for higher ship classes)
+    //  other galaxies. (enum gets smaller for higher point sizes)
     //  this function's signature makes sure planets cannot censure.
     //
-    Ships.Class asClass = ships.getShipClass(_as);
-    Ships.Class whoClass = ships.getShipClass(_who);
-    require( whoClass >= asClass );
+    Azimuth.Size asSize = azimuth.getPointSize(_as);
+    Azimuth.Size whoSize = azimuth.getPointSize(_who);
+    require( whoSize >= asSize );
 
     //  update contract state with the new censure
     //
@@ -140,13 +141,13 @@ contract Censures is ReadsShips
   //
   function forgive(uint16 _as, uint32 _who)
     external
-    activeShipManager(_as)
+    activePointManager(_as)
   {
     //  below, we perform the same logic twice: once on the canonical data,
     //  and once on the reverse lookup
     //
     //  i: current index in _as's list of censures
-    //  j: current index in _who's list of ships that have censured it
+    //  j: current index in _who's list of points that have censured it
     //
     uint256 i = censuringIndexes[_as][_who];
     uint256 j = censuredByIndexes[_who][_as];

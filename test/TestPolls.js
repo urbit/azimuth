@@ -38,59 +38,65 @@ contract('Polls', function([owner, user]) {
     await assertRevert(polls.reconfigure(duration, 7776001));
   });
 
-  it('constitution poll start & majority', async function() {
-    assert.isFalse(await polls.constitutionHasAchievedMajority(concrProp));
+  it('upgrade poll start & majority', async function() {
+    assert.isFalse(await polls.upgradeHasAchievedMajority(concrProp));
     // non-owner can't do this.
-    await assertRevert(polls.startConstitutionPoll(concrProp, {from:user}));
-    await polls.startConstitutionPoll(concrProp);
-    let cPoll = await polls.constitutionPolls(concrProp);
+    await assertRevert(polls.startUpgradePoll(concrProp, {from:user}));
+    await polls.startUpgradePoll(concrProp);
+    let cPoll = await polls.upgradePolls(concrProp);
     assert.notEqual(cPoll[0], 0);
+    assert.equal(await polls.getUpgradeProposalCount(), 1);
+    assert.equal((await polls.getUpgradeProposals())[0], concrProp);
     // non-owner can't do this.
-    await assertRevert(polls.castConstitutionVote(0, concrProp, true, {from:user}));
+    await assertRevert(polls.castUpgradeVote(0, concrProp, true, {from:user}));
     // cast votes.
     // we use .call to check the result first, then actually transact.
-    assert.isFalse(await polls.castConstitutionVote.call(0, concrProp, true));
-    await polls.castConstitutionVote(0, concrProp, true);
-    assert.isTrue(await polls.hasVotedOnConstitutionPoll(0, concrProp));
+    assert.isFalse(await polls.castUpgradeVote.call(0, concrProp, true));
+    await polls.castUpgradeVote(0, concrProp, true);
+    assert.isTrue(await polls.hasVotedOnUpgradePoll(0, concrProp));
     // can't vote twice.
-    await assertRevert(polls.castConstitutionVote(0, concrProp, true));
-    assert.isFalse(await polls.castConstitutionVote.call(1, concrProp, false));
-    await polls.castConstitutionVote(1, concrProp, false);
-    assert.isTrue(await polls.castConstitutionVote.call(2, concrProp, true));
-    await polls.castConstitutionVote(2, concrProp, true);
-    assert.isTrue(await polls.constitutionHasAchievedMajority(concrProp));
-    cPoll = await polls.constitutionPolls(concrProp);
+    await assertRevert(polls.castUpgradeVote(0, concrProp, true));
+    assert.isFalse(await polls.castUpgradeVote.call(1, concrProp, false));
+    await polls.castUpgradeVote(1, concrProp, false);
+    assert.isTrue(await polls.castUpgradeVote.call(2, concrProp, true));
+    await polls.castUpgradeVote(2, concrProp, true);
+    assert.isTrue(await polls.upgradeHasAchievedMajority(concrProp));
+    cPoll = await polls.upgradePolls(concrProp);
     assert.equal(cPoll[1], 2);
     assert.equal(cPoll[2], 1);
     // can't vote on finished poll
-    await assertRevert(polls.castConstitutionVote(3, concrProp, true));
+    await assertRevert(polls.castUpgradeVote(3, concrProp, true));
   });
 
-  it('constitution poll minority & restart', async function() {
+  it('upgrade poll minority & restart', async function() {
     // start poll and wait for it to time out
-    await polls.startConstitutionPoll(concrProp2);
-    await polls.castConstitutionVote(0, concrProp2, false);
+    await polls.startUpgradePoll(concrProp2);
+    await polls.castUpgradeVote(0, concrProp2, false);
     await increaseTime(duration);
     // can't vote on finished poll
-    await assertRevert(polls.castConstitutionVote(1, concrProp2, true));
+    await assertRevert(polls.castUpgradeVote(1, concrProp2, true));
     // can't recreate right away.
-    await assertRevert(polls.startConstitutionPoll(concrProp2));
+    await assertRevert(polls.startUpgradePoll(concrProp2));
     await increaseTime(cooldown + 5);
     // recreate poll.
-    await polls.startConstitutionPoll(concrProp2);
-    let cPoll = await polls.constitutionPolls(concrProp2);
+    await polls.startUpgradePoll(concrProp2);
+    let cPoll = await polls.upgradePolls(concrProp2);
     assert.equal(cPoll[1], 0);
     assert.equal(cPoll[2], 0);
-    assert.isFalse(await polls.hasVotedOnConstitutionPoll(0, concrProp2));
+    assert.isFalse(await polls.hasVotedOnUpgradePoll(0, concrProp2));
+    assert.equal(await polls.getUpgradeProposalCount(), 2);
+    let props = await polls.getUpgradeProposals();
+    assert.equal(props[0], concrProp);
+    assert.equal(props[1], concrProp2);
     // test timeout majority
-    await polls.castConstitutionVote(0, concrProp2, true);
-    assert.isTrue(await polls.hasVotedOnConstitutionPoll(0, concrProp2));
+    await polls.castUpgradeVote(0, concrProp2, true);
+    assert.isTrue(await polls.hasVotedOnUpgradePoll(0, concrProp2));
     await increaseTime(duration + 5);
-    assert.isTrue(await polls.updateConstitutionPoll.call(concrProp2));
-    await polls.updateConstitutionPoll(concrProp2);
-    assert.isTrue(await polls.constitutionHasAchievedMajority(concrProp2));
+    assert.isTrue(await polls.updateUpgradePoll.call(concrProp2));
+    await polls.updateUpgradePoll(concrProp2);
+    assert.isTrue(await polls.upgradeHasAchievedMajority(concrProp2));
     // can't recreate once majority happened
-    await assertRevert(polls.startConstitutionPoll(concrProp2));
+    await assertRevert(polls.startUpgradePoll(concrProp2));
   });
 
   it('document poll start & majority', async function() {
@@ -102,6 +108,8 @@ contract('Polls', function([owner, user]) {
     await polls.startDocumentPoll(abstrProp);
     let aPoll = await polls.documentPolls(abstrProp);
     assert.notEqual(aPoll[0], 0);
+    assert.equal(await polls.getDocumentProposalCount(), 1);
+    assert.equal((await polls.getDocumentProposals())[0], abstrProp);
     // non-owner can't do this.
     await assertRevert(polls.castDocumentVote(0, abstrProp, true, {from:user}));
     // cast votes.
@@ -140,11 +148,27 @@ contract('Polls', function([owner, user]) {
     assert.equal(aPoll[1], 0);
     assert.equal(aPoll[2], 0);
     assert.isFalse(await polls.hasVotedOnDocumentPoll(0, abstrProp2));
+    assert.equal(await polls.getDocumentProposalCount(), 2);
+    let props = await polls.getDocumentProposals();
+    assert.equal(props[0], abstrProp);
+    assert.equal(props[1], abstrProp2);
     // test timeout majority
     await polls.castDocumentVote(0, abstrProp2, true);
     assert.isTrue(await polls.hasVotedOnDocumentPoll(0, abstrProp2));
     await increaseTime(duration + 5);
     await polls.updateDocumentPoll(abstrProp2);
     assert.isTrue(await polls.documentHasAchievedMajority(abstrProp2));
+  });
+
+  it('strong minority case', async function() {
+    // this test stretches the calculation in checkPollMajority to their limits
+    let pox = await Polls.new(432111, 432222);
+    for (let i = 0; i <= 255; i++) {
+      await pox.incrementTotalVoters();
+    }
+    await pox.startDocumentPoll(abstrProp2);
+    for (let i = 0; i <= 255; i++) {
+      await pox.castDocumentVote(i, abstrProp2, false);
+    }
   });
 });

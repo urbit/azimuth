@@ -8,9 +8,9 @@ This is a work in progress nearing completion. Feel free to poke around and open
 
 This is just a quick summary of the different contracts and their purposes. For more detailed descriptions, check out the contracts themselves.
 
-* **Ships**: contains all on-chain state for ships. Most notably, ownership and public keys. Can't be modified directly, you must use the Constitution.
-* **Constitution**: is used as an interface for interacting with your ships on-chain. Allows you to configure keys, transfer ownership, etc.
-* **Polls**: registers votes by the senate on proposals. These can be either static documents or Constitution upgrades.
+* **Azimuth**: contains all on-chain state for azimuth. Most notably, ownership and public keys. Can't be modified directly, you must use the Ecliptic.
+* **Ecliptic**: is used as an interface for interacting with your points on-chain. Allows you to configure keys, transfer ownership, etc.
+* **Polls**: registers votes by the senate on proposals. These can be either static documents or Ecliptic upgrades.
 * **Delegated Sending**: allows stars to let their planets send brand new planets to their friends and family.
 * **Linear Star Release**: facilitates the release of blocks of stars to their owners over a period of time.
 * **Conditional Star Release**: facilitates the release of blocks of stars to their owners based on milestones.

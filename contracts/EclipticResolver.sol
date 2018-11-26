@@ -1,29 +1,32 @@
-//  ENS resolver for the Constitution contract
+//  ENS resolver for the Ecliptic contract
 
 pragma solidity 0.4.24;
 
 import './interfaces/ResolverInterface.sol';
-import './Ships.sol';
+import './Azimuth.sol';
 
-contract ConstitutionResolver
+contract EclipticResolver is ResolverInterface
 {
-  Ships ships;
+  Azimuth azimuth;
 
-  constructor(Ships _ships)
+  constructor(Azimuth _azimuth)
+    public
   {
-    ships = _ships;
+    azimuth = _azimuth;
   }
 
   function addr(bytes32 node)
     constant
+    public
     returns (address)
   {
-    //  resolve to the Constitution contract
-    return ships.owner();
+    //  resolve to the Ecliptic contract
+    return azimuth.owner();
   }
 
   function supportsInterface(bytes4 interfaceID)
-    constant
+    pure
+    public
     returns (bool)
   {
     //  supports ERC-137 addr() and ERC-165
@@ -32,6 +35,7 @@ contract ConstitutionResolver
 
   //  ERC-137 resolvers MUST specify a fallback function that throws
   function()
+    public
   {
     revert();
   }

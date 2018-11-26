@@ -1,20 +1,20 @@
-const Ships = artifacts.require('../contracts/Ships.sol');
+const Azimuth = artifacts.require('../contracts/Azimuth.sol');
 const Claims = artifacts.require('../contracts/Claims.sol');
 
 const assertRevert = require('./helpers/assertRevert');
 
 contract('Claims', function([owner, user]) {
-  let ships, claims;
+  let azimuth, claims;
 
   before('setting up for tests', async function() {
-    ships = await Ships.new();
-    await ships.setOwner(0, owner);
-    await ships.activateShip(0);
-    claims = await Claims.new(ships.address);
+    azimuth = await Azimuth.new();
+    await azimuth.setOwner(0, owner);
+    await azimuth.activatePoint(0);
+    claims = await Claims.new(azimuth.address);
   });
 
   it('claiming', async function() {
-    // only ship owner can do this.
+    // only point owner can do this.
     await assertRevert(claims.addClaim(0, "prot1", "claim", "0x0", {from:user}));
     await claims.addClaim(0, "prot1", "claim", "0x0");
     // can update the proof.
@@ -37,7 +37,7 @@ contract('Claims', function([owner, user]) {
   });
 
   it('removing claim', async function() {
-    // only ship owner can do this.
+    // only point owner can do this.
     await assertRevert(claims.removeClaim(0, "prot2", "claim", {from:user}));
     // can't remove non-existent claim
     await assertRevert(claims.removeClaim(0, "prot2", "!!!"));
@@ -64,7 +64,7 @@ contract('Claims', function([owner, user]) {
     assert.equal(clam16[0], "some protocol");
     assert.equal(clam16[1], "some claim "+(15-4));
     assert.equal(clam16[2], "0x");
-    // only ship owner (and constitution) can clear
+    // only point owner (and ecliptic) can clear
     await assertRevert(claims.clearClaims(0, {from:user}));
     await claims.clearClaims(0);
     for (var i = 0; i < 16; i++) {
