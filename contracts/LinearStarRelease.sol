@@ -33,7 +33,7 @@ contract LinearStarRelease is Ownable, TakesPoints
   //
   uint256 constant escapeHatchTime = 10 * 365 days;
 
-  //  start: time of contract launch
+  //  start: global release start time
   //
   uint256 public start;
 
@@ -52,7 +52,8 @@ contract LinearStarRelease is Ownable, TakesPoints
     uint16[] stars;
   //
     //  windup: amount of time it takes for stars to start becoming
-    //          available for withdrawal (start unlocking)
+    //          available for withdrawal (start unlocking), after the
+    //          release has started globally (:start)
     //
     uint256 windup;
   //
@@ -82,13 +83,13 @@ contract LinearStarRelease is Ownable, TakesPoints
   //
   mapping(address => Batch) public batches;
 
-  //  constructor(): register azimuth contract and set starting date
+  //  constructor(): register azimuth contract
   //
   constructor(Azimuth _azimuth)
     TakesPoints(_azimuth)
     public
   {
-    start = block.timestamp;
+    //
   }
 
   //
@@ -154,6 +155,18 @@ contract LinearStarRelease is Ownable, TakesPoints
       batch.stars.push(_star);
     }
 
+    //  startReleasing(): start the process of releasing stars
+    //
+    function startReleasing()
+      external
+      onlyOwner
+    {
+      //  make sure we haven't started yet
+      //
+      require(0 == start);
+      start = block.timestamp;
+    }
+
     //  withdrawOverdue(): withdraw arbitrary star from the contract
     //
     //    this functions acts as an escape hatch in the case of key loss,
@@ -163,9 +176,10 @@ contract LinearStarRelease is Ownable, TakesPoints
       external
       onlyOwner
     {
-      //  this can only be done :escapeHatchTime after the contract launch
+      //  this can only be done :escapeHatchTime after the release start
       //
-      require(block.timestamp > start.add(escapeHatchTime));
+      require( (0 < start) &&
+               (block.timestamp > start.add(escapeHatchTime)) );
 
       //  withdraw a star from the batch
       //
@@ -271,19 +285,27 @@ contract LinearStarRelease is Ownable, TakesPoints
       view
       returns (uint16 limit)
     {
+      //  if we haven't started releasing yet, limit is always zero
+      //
+      if (0 == start)
+      {
+        return 0;
+      }
+
       uint256 allowed = 0;
       Batch storage batch = batches[_participant];
 
       //  only do real calculations if the windup time is over
       //
-      if ( block.timestamp > start.add(batch.windup) )
+      uint256 realStart = start.add(batch.windup);
+      if ( block.timestamp > realStart )
       {
         //  calculate the amount of stars available from this batch by
         //  multiplying the release rate (stars per :rateUnit) by the number
         //  of :rateUnits that have passed since the windup period ended
         //
         allowed = uint256(batch.rate).mul(
-                  ( block.timestamp.sub(start.add(batch.windup)) /
+                  ( block.timestamp.sub(realStart) /
                     batch.rateUnit ) );
       }
 

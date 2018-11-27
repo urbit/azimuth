@@ -26,6 +26,7 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     await eclipt.spawn(2560, owner);
     await eclipt.configureKeys(2560, 1, 2, 1, false);
     lsr = await LSR.new(azimuth.address);
+    lsr.startReleasing();
     await eclipt.setSpawnProxy(0, lsr.address);
     await eclipt.setTransferProxy(256, lsr.address);
   });
