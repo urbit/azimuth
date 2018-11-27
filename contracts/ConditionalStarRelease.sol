@@ -66,9 +66,10 @@ contract ConditionalStarRelease is Ownable, TakesPoints
   //
   event ConditionCompleted(uint8 indexed condition, uint256 when);
 
-  //  Forfeit: :who has chosen to forfeit :stars number of stars
+  //  Forfeit: :who has chosen to forfeit :batch, which contained
+  //           :stars number of stars
   //
-  event Forfeit(address indexed who, uint16 stars);
+  event Forfeit(address indexed who, uint8 batch, uint16 stars);
 
   //  maxConditions: the max amount of conditions that can be configured
   //  escapeHatchTime: amount of time after the first condition completes, after
@@ -122,14 +123,23 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     //
     uint16[] batches;
   //
+    //  withdrawn: number of stars withdrawn per batch
+    //
+    uint16[] withdrawn;
+  //
+    //  forfeited: whether the stars in a batch have been forfeited
+    //             by the recipiet
+    //
+    bool[] forfeited;
+  //
     //  rateUnit: amount of time it takes for the next :rate stars to be
     //            released
     //
     uint256 rateUnit;
   //
-    //  withdrawn: number of stars withdrawn by the participant
+    //  approvedTransferTo: batch can be transferred to this address
     //
-    uint16 withdrawn;
+    address approvedTransferTo;
 
     //  total: sum of stars in all batches
     //
@@ -138,19 +148,6 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     //  rate: number of stars released per unlocked batch per :rateUnit
     //
     uint16 rate;
-
-    //  forfeited: number of forfeited stars not yet withdrawn by
-    //             the contract owner
-    //
-    uint16 forfeited;
-
-    //  forfeit: true if this commitment has forfeited any future stars
-    //
-    bool forfeit;
-
-    //  approvedTransferTo: batch can be transferred to this address
-    //
-    address approvedTransferTo;
   }
 
   //  commitments: per participant, the registered purchase agreement
@@ -220,13 +217,14 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
       //  make sure we're not promising more than we can possibly give
       //
-      uint16 total = totalStars(_batches, 0);
+      uint16 total = arraySum(_batches);
       require( (total > 0) &&
                (total <= 0xff00) );
 
       Commitment storage com = commitments[_participant];
       com.batches = _batches;
       com.total = total;
+      com.withdrawn.length = _batches.length;
       com.rate = _rate;
       com.rateUnit = _rateUnit;
     }
@@ -244,7 +242,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //
       require( (_star > 0xff) &&
                ( com.stars.length <
-                 com.total.sub( com.withdrawn.add(com.forfeited) ) ) );
+                 com.total.sub( arraySum(com.withdrawn) ) ) );
 
       //  have the contract take ownership of the star if possible,
       //  reverting if that fails.
@@ -256,25 +254,25 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       com.stars.push(_star);
     }
 
-    //  withdrawForfeited(): withdraw one star from forfeiting _participant,
-    //                       to :this contract owner's address _to
+    //  withdrawForfeited(): withdraw one star, from _participant's forfeited
+    //                       _batch, to _to
     //
-    function withdrawForfeited(address _participant, address _to)
+    function withdrawForfeited(address _participant, uint8 _batch, address _to)
       external
       onlyOwner
     {
       Commitment storage com = commitments[_participant];
 
-      //  withdraw is possible only if the participant has forfeited,
-      //  the owner has not yet withdrawn all forfeited stars, and
-      //  the participant still has stars left to withdraw
+      //  withdraw is possible only if the participant has forfeited this batch,
+      //  and there's still stars there left to withdraw
       //
-      require( com.forfeit &&
-               (com.forfeited > 0) );
+      require( com.forfeited[_batch] &&
+               (com.withdrawn[_batch] < com.batches[_batch]) &&
+               (0 < com.stars.length) );
 
       //  update contract state
       //
-      com.forfeited = com.forfeited.sub(1);
+      com.withdrawn[_batch] = com.withdrawn[_batch].add(1);
 
       //  withdraw a star from the commitment (don't reset it because
       //  no one whom we don't trust has ever had control of it)
@@ -287,6 +285,10 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     //    this functions as an escape hatch in the case of key loss,
     //    to prevent blocks of address space from being lost permanently.
     //
+    //    we don't bother with specifying a batch or doing any kind of
+    //    book-keeping, because at this point in time we don't care about
+    //    that anymore.
+    //
     function withdrawOverdue(address _participant, address _to)
       external
       onlyOwner
@@ -297,10 +299,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       require( ( 0 != timestamps[0] ) &&
                ( block.timestamp > timestamps[0].add(escapeHatchTime) ) );
 
-      //  update contract state
-      //
       Commitment storage com = commitments[_participant];
-      com.withdrawn = com.withdrawn.add(1);
+      require(0 < com.stars.length);
 
       //  withdraw a star from the commitment (don't reset it because
       //  no one whom we don't trust has ever had control of it)
@@ -345,20 +345,21 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       Commitment storage com = commitments[_from];
       commitments[msg.sender] = com;
       commitments[_from] = Commitment(new uint16[](0), new uint16[](0),
-                                      0, 0, 0, 0, 0, false, 0x0);
+                                      new uint16[](0), new bool[](0),
+                                      0, 0, 0, 0x0);
     }
 
     //  withdraw(): withdraw one star to the sender's address
     //
-    function withdraw()
+    function withdraw(uint8 _batch)
       external
     {
-      withdraw(msg.sender);
+      withdraw(msg.sender, _batch);
     }
 
     //  withdraw(): withdraw one star from the sender's commitment to _to
     //
-    function withdraw(address _to)
+    function withdraw(address _to, uint8 _batch)
       public
     {
       Commitment storage com = commitments[msg.sender];
@@ -368,53 +369,46 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //  withdraw forfeited stars
       //
       require( (com.stars.length > 0) &&
-               (com.withdrawn < withdrawLimit(msg.sender)) &&
-               (!com.forfeit || (com.stars.length > com.forfeited)) );
+               (com.withdrawn[_batch] < withdrawLimit(msg.sender, _batch)) &&
+               !com.forfeited[_batch] );
 
       //  update contract state
       //
-      com.withdrawn = com.withdrawn.add(1);
+      com.withdrawn[_batch] = com.withdrawn[_batch].add(1);
 
       //  withdraw a star from the commitment
       //
       performWithdraw(com, _to, true);
     }
 
-    //  forfeit(): forfeit all remaining stars from batch number _batch
-    //             and all batches after it
+    //  forfeit(): forfeit all stars in the specified _batch, but only if
+    //             none have been withdrawn yet
     //
     function forfeit(uint8 _batch)
       external
     {
       Commitment storage com = commitments[msg.sender];
 
+      //  ensure the commitment has actually been configured
+      //
+      require(0 < com.total);
+
       //  the participant can forfeit if and only if the condition deadline
-      //  is missed (has passed without confirmation), and has not
-      //  previously forfeited
+      //  is missed (has passed without confirmation), no stars have
+      //  been withdrawn from the batch yet, and this batch has not yet
+      //  been forfeited
       //
       require( (deadlines[_batch] == timestamps[_batch]) &&
-               !com.forfeit );
-
-      //  forfeited: number of stars the participant will forfeit
-      //
-      uint16 forfeited = totalStars(com.batches, _batch);
-
-      //  restrict :forfeited to the number of stars not withdrawn
-      //
-      uint16 remaining = com.total.sub(com.withdrawn);
-      if ( forfeited > remaining )
-      {
-        forfeited = remaining;
-      }
+               0 == com.withdrawn[_batch] &&
+               !com.forfeited[_batch] );
 
       //  update commitment metadata
       //
-      com.forfeited = forfeited;
-      com.forfeit = true;
+      com.forfeited[_batch] = true;
 
       //  emit event
       //
-      emit Forfeit(msg.sender, forfeited);
+      emit Forfeit(msg.sender, _batch, com.batches[_batch]);
     }
 
   //
@@ -505,31 +499,32 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     }
 
     //  withdrawLimit(): return the number of stars _participant can withdraw
-    //                   at the current block timestamp
+    //                   from _batch at the current block timestamp
     //
-    function withdrawLimit(address _participant)
+    function withdrawLimit(address _participant, uint8 _batch)
       public
       view
       returns (uint16 limit)
     {
       Commitment storage com = commitments[_participant];
 
-      //  for each batch, calculate the current limit and add it to the total.
+      //  if _participant has no commitment, they can't withdraw anything
       //
-      for (uint256 i = 0; i < timestamps.length; i++)
+      if (0 == com.total)
       {
-        uint256 ts = timestamps[i];
+        return 0;
+      }
 
-        //  if a condition hasn't completed yet, there is nothing to add.
-        //
-        //    we don't break, because technically conditions can be met in
-        //    any arbitrary order.
-        //
-        if ( ts == 0 )
-        {
-          continue;
-        }
+      uint256 ts = timestamps[_batch];
 
+      //  if the condition hasn't completed yet, there is nothing to add.
+      //
+      if ( ts == 0 )
+      {
+        limit = 0;
+      }
+      else
+      {
         //  a condition can't have been completed in the future
         //
         assert(ts <= block.timestamp);
@@ -543,19 +538,13 @@ contract ConditionalStarRelease is Ownable, TakesPoints
 
         //  bound the release rate by the batch amount
         //
-        if ( num > com.batches[i] )
+        if ( num > com.batches[_batch] )
         {
-          num = com.batches[i];
+          num = com.batches[_batch];
         }
 
-        //  add it to the total limit
-        //
-        limit = limit.add(uint16(num));
+        limit = uint16(num);
       }
-
-      //  limit can't be higher than the total amount of stars made available
-      //
-      assert(limit <= com.total);
 
       //  allow at least one star
       //
@@ -567,17 +556,19 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       return limit;
     }
 
-    //  totalStars(): return the number of stars available after batch _from
-    //                in the _batches array
+    //  arraySum(): return the sum of all numbers in _array
     //
-    function totalStars(uint16[] _batches, uint8 _from)
+    //    only supports sums that fit into a uint16, which is all
+    //    this contract needs
+    //
+    function arraySum(uint16[] _array)
       public
       pure
       returns (uint16 total)
     {
-      for (uint256 i = _from; i < _batches.length; i++)
+      for (uint256 i = 0; i < _array.length; i++)
       {
-        total = total.add(_batches[i]);
+        total = total.add(_array[i]);
       }
       return total;
     }
@@ -598,7 +589,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //  return true if this contract holds as many stars as we'll ever
       //  be entitled to withdraw
       //
-      return ( com.total.sub(com.withdrawn) == com.stars.length );
+      return ( com.stars.length ==
+               com.total.sub( arraySum(com.withdrawn) ) );
     }
 
     //  getBatches(): get the configured batch sizes for a commitment
