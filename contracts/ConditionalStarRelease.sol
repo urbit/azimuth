@@ -232,6 +232,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       com.batches = _batches;
       com.total = total;
       com.withdrawn.length = _batches.length;
+      com.forfeited.length = _batches.length;
       com.rate = _rate;
       com.rateUnit = _rateUnit;
     }
