@@ -205,6 +205,12 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       external
       onlyOwner
     {
+      Commitment storage com = commitments[_participant];
+
+      //  make sure this participant doesn't already have a commitment
+      //
+      require(0 == com.total);
+
       //  for every condition/deadline, a batch release amount must be
       //  specified, even if it's zero
       //
@@ -221,7 +227,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       require( (total > 0) &&
                (total <= 0xff00) );
 
-      Commitment storage com = commitments[_participant];
+      //  register into state
+      //
       com.batches = _batches;
       com.total = total;
       com.withdrawn.length = _batches.length;
