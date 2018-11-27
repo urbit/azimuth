@@ -82,12 +82,12 @@ contract('Ecliptic', function([owner, user1, user2]) {
     // check the spawn limits.
     assert.equal(await eclipt.getSpawnLimit(0, 0), 255);
     assert.equal(await eclipt.getSpawnLimit(123455, 0), 0);
-    assert.equal(await eclipt.getSpawnLimit(512, 1514764800), 1024); // 2018
-    assert.equal(await eclipt.getSpawnLimit(512, 1546214400), 1024); // 2018-12
-    assert.equal(await eclipt.getSpawnLimit(512, 1546300800), 2048); // 2019
-    assert.equal(await eclipt.getSpawnLimit(512, 1672444800), 32768); // 2023
-    assert.equal(await eclipt.getSpawnLimit(512, 1703980800), 65535); // 2024
-    assert.equal(await eclipt.getSpawnLimit(512, 1735516800), 65535); // 2025
+    assert.equal(await eclipt.getSpawnLimit(512, new Date('2019-01-01 UTC').valueOf() / 1000), 1024);
+    assert.equal(await eclipt.getSpawnLimit(512, new Date('2019-12-31 UTC').valueOf() / 1000), 1024);
+    assert.equal(await eclipt.getSpawnLimit(512, new Date('2020-01-01 UTC').valueOf() / 1000), 2048);
+    assert.equal(await eclipt.getSpawnLimit(512, new Date('2024-01-01 UTC').valueOf() / 1000), 32768);
+    assert.equal(await eclipt.getSpawnLimit(512, new Date('2025-01-01 UTC').valueOf() / 1000), 65535);
+    assert.equal(await eclipt.getSpawnLimit(512, new Date('2026-01-01 UTC').valueOf() / 1000), 65535);
   });
 
   it('setting spawn proxy', async function() {
