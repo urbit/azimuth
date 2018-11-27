@@ -617,6 +617,54 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       return commitments[_participant].batches;
     }
 
+    //  getBatch(): get the configured size of _batch
+    //
+    function getBatch(address _participant, uint8 _batch)
+      external
+      view
+      returns (uint16 batch)
+    {
+      return commitments[_participant].batches[_batch];
+    }
+
+    //  getWithdrawn(): get the amounts of stars that have been withdrawn
+    //                  from each batch
+    //
+    function getWithdrawn(address _participant)
+      external
+      view
+      returns (uint16[] withdrawn)
+    {
+      return commitments[_participant].withdrawn;
+    }
+
+    //  getWithdrawnFromBatch(): get the amount of stars that have been
+    //                           withdrawn from _batch
+    //
+    function getWithdrawnFromBatch(address _participant, uint8 _batch)
+      external
+      view
+      returns (uint16 withdrawn)
+    {
+      return commitments[_participant].withdrawn[_batch];
+    }
+
+    function getForfeited(address _participant)
+      external
+      view
+      returns (bool[] forfeited)
+    {
+      return commitments[_participant].forfeited;
+    }
+
+    function hasForfeitedBatch(address _participant, uint8 _batch)
+      external
+      view
+      returns (bool forfeited)
+    {
+      return commitments[_participant].forfeited[_batch];
+    }
+
     //  getRemainingStars(): get the stars deposited into the commitment
     //
     //    Note: only useful for clients, as Solidity does not currently
