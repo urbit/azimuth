@@ -297,14 +297,15 @@ contract LinearStarRelease is Ownable, TakesPoints
 
       //  only do real calculations if the windup time is over
       //
-      if ( block.timestamp > start.add(batch.windup) )
+      uint256 realStart = start.add(batch.windup);
+      if ( block.timestamp > realStart )
       {
         //  calculate the amount of stars available from this batch by
         //  multiplying the release rate (stars per :rateUnit) by the number
         //  of :rateUnits that have passed since the windup period ended
         //
         allowed = uint256(batch.rate).mul(
-                  ( block.timestamp.sub(start.add(batch.windup)) /
+                  ( block.timestamp.sub(realStart) /
                     batch.rateUnit ) );
       }
 
