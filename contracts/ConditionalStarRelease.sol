@@ -546,9 +546,10 @@ contract ConditionalStarRelease is Ownable, TakesPoints
         limit = uint16(num);
       }
 
-      //  allow at least one star
+      //  allow at least one star, from the first batch
       //
-      if ( limit < 1 )
+      if ( (0 == _batch) &&
+           (limit < 1) )
       {
         return 1;
       }
