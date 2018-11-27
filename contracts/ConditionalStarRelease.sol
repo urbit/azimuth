@@ -357,17 +357,19 @@ contract ConditionalStarRelease is Ownable, TakesPoints
                                       0, 0, 0, 0x0);
     }
 
-    //  withdraw(): withdraw one star to the sender's address
+    //  withdraw(): withdraw one star from the :msg.sender's commitment's
+    //              _batch to :msg.sender
     //
     function withdraw(uint8 _batch)
       external
     {
-      withdraw(msg.sender, _batch);
+      withdraw(_batch, msg.sender);
     }
 
-    //  withdraw(): withdraw one star from the sender's commitment to _to
+    //  withdraw(): withdraw one star from the :msg.sender's commitment's
+    //              _batch to _to
     //
-    function withdraw(address _to, uint8 _batch)
+    function withdraw(uint8 _batch, address _to)
       public
     {
       Commitment storage com = commitments[msg.sender];
