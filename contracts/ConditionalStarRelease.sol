@@ -72,11 +72,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
   event Forfeit(address indexed who, uint8 batch, uint16 stars);
 
   //  maxConditions: the max amount of conditions that can be configured
-  //  escapeHatchTime: amount of time after the first condition completes, after
-  //                   which the contract owner can withdraw arbitrary stars
   //
   uint8 constant maxConditions = 8;
-  uint256 constant escapeHatchTime = 10 * 365 days;
 
   //  conditions: hashes for document proposals that must achieve majority
   //              in the polls contract
@@ -100,6 +97,11 @@ contract ConditionalStarRelease is Ownable, TakesPoints
   //              the deadline was missed.
   //
   uint256[] public timestamps;
+
+  //  escapeHatchTime: date after which the contract owner can withdraw
+  //                   arbitrary stars
+  //
+  uint256 public escapeHatchDate;
 
   //  Commitment: structure that mirrors a signed paper contract
   //
@@ -155,16 +157,19 @@ contract ConditionalStarRelease is Ownable, TakesPoints
   constructor( Azimuth _azimuth,
                bytes32[] _conditions,
                uint256[] _livelines,
-               uint256[] _deadlines )
+               uint256[] _deadlines,
+               uint256 _escapeHatchDate )
     TakesPoints(_azimuth)
     public
   {
-    //  sanity check: condition per deadline
+    //  sanity check: limited conditions, liveline and deadline per condition,
+    //  and fair escape hatch
     //
     require( _conditions.length > 0 &&
              _conditions.length <= maxConditions &&
              _livelines.length == _conditions.length &&
-             _deadlines.length == _conditions.length );
+             _deadlines.length == _conditions.length &&
+             _escapeHatchDate > _deadlines[_deadlines.length.sub(1)] );
 
     //  install conditions and deadlines, and prepare timestamps array
     //
@@ -172,6 +177,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     livelines = _livelines;
     deadlines = _deadlines;
     timestamps.length = _conditions.length;
+    escapeHatchDate = _escapeHatchDate;
 
     //  check if the first condition is met, it might get cleared immediately
     //
@@ -293,11 +299,9 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       external
       onlyOwner
     {
-      //  this can only be done :escapeHatchTime after the first
-      //  condition has been met
+      //  this can only be done after the :escapeHatchDate
       //
-      require( ( 0 != timestamps[0] ) &&
-               ( block.timestamp > timestamps[0].add(escapeHatchTime) ) );
+      require(block.timestamp > escapeHatchDate);
 
       Commitment storage com = commitments[_participant];
       require(0 < com.stars.length);

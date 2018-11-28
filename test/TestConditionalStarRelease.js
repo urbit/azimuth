@@ -10,7 +10,7 @@ const increaseTime = require('./helpers/increaseTime');
 contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   let azimuth, azimuth2, polls, eclipt, eclipt2, csr, csr2,
       deadline1, deadline2, deadline3, condit2, rateUnit,
-      deadlineStep;
+      deadlineStep, escapeHatchTime, escapeHatchDate;
 
   function assertInvalid(error) {
     assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode must be returned, but got ' + error);
@@ -54,22 +54,30 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     deadline2 = deadline1 + deadlineStep;
     deadline3 = deadline2 + deadlineStep;
     deadline4 = deadline3 + deadlineStep;
-    csr = await CSR.new(azimuth.address, [0, condit2, "miss me", "too"],
+    escapeHatchTime = deadlineStep * 100;
+    escapeHatchDate = web3.toDecimal(await getChainTime()) + escapeHatchTime;
+    csr = await CSR.new( azimuth.address, [0, condit2, "miss me", "too"],
                          [0, 0, 0, 0],
-                         [deadline1, deadline2, deadline3, deadline4]);
-    csr2 = await CSR.new(azimuth2.address, [0, condit2, "miss me", "too"],
-                         [0, 0, 0, 0],
-                         [deadline1, deadline2, deadline3, deadline4]);
+                         [deadline1, deadline2, deadline3, deadline4],
+                         escapeHatchDate );
+    csr2 = await CSR.new( azimuth2.address, [0, condit2, "miss me", "too"],
+                          [0, 0, 0, 0],
+                          [deadline1, deadline2, deadline3, deadline4],
+                          escapeHatchDate );
     await eclipt.setSpawnProxy(0, csr.address);
     await eclipt.setTransferProxy(256, csr.address);
   });
 
   it('creation sanity check', async function() {
     // need as many deadlines as conditions
-    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0, 0], [0]));
-    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0], [0, 0]));
-    var many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertRevert(CSR.new(azimuth.address, many, many, many));
+    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0, 0], [0], 1));
+    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0], [0, 0], 1));
+    // can't have too many conditions
+    let many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    await assertRevert(CSR.new(azimuth.address, many, many, many, 1));
+    // can't have unfair escape hatch
+    let few = [2, 2, 2];
+    await assertRevert(CSR.new(azimuth.address, few, few, few, 1));
   });
 
   it('analyzing conditions', async function() {
@@ -223,7 +231,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('escape hatch', async function() {
     await assertRevert(csr.withdrawOverdue(user2, owner));
-    await increaseTime(10*365*24*60*60);
+    await increaseTime(escapeHatchTime);
     await csr.withdrawOverdue(user2, owner);
     assert.isTrue(await azimuth.isOwner(2560, owner));
   });
