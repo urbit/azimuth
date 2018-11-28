@@ -348,9 +348,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //
       Commitment storage com = commitments[_from];
       commitments[msg.sender] = com;
-      commitments[_from] = Commitment(new uint16[](0), new uint16[](0),
-                                      new uint16[](0), new bool[](0),
-                                      0, 0, 0, 0x0);
+      delete commitments[_from];
     }
 
     //  withdrawToSelf(): withdraw one star from the :msg.sender's commitment's
@@ -573,7 +571,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     //    this contract needs
     //
     function arraySum(uint16[] _array)
-      public
+      internal
       pure
       returns (uint16 total)
     {
