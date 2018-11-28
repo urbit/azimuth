@@ -645,6 +645,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       return commitments[_participant].withdrawn[_batch];
     }
 
+    //  getForfeited(): for all of _participant's batches, get the forfeit flag
+    //
     function getForfeited(address _participant)
       external
       view
@@ -653,6 +655,8 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       return commitments[_participant].forfeited;
     }
 
+    //  getForfeited(): for _participant's _batch, get the forfeit flag
+    //
     function hasForfeitedBatch(address _participant, uint8 _batch)
       external
       view
