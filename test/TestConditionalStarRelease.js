@@ -176,16 +176,17 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await increaseTime(rateUnit);
     assert.equal(await csr.withdrawLimit(user1, 0), 3);
     // only commitment participant can do this
-    await assertRevert(csr.withdraw(0, {from:owner}));
-    await csr.withdraw(0, {from:user1});
+    await assertRevert(csr.withdrawToSelf(0, {from:owner}));
+    await csr.withdrawToSelf(0, {from:user1});
     assert.isTrue(await azimuth.isOwner(2048, user1));
     assert.equal((await csr.getWithdrawn(user1))[0], 1);
     // can't withdraw over limit
     assert.equal(await csr.withdrawLimit(user1, 0), 3);
-    await csr.withdraw(0, {from:user1});
-    await csr.withdraw(0, {from:user1});
+    await csr.withdraw(0, user1, {from:user1});
+    assert.isTrue(await azimuth.isOwner(1792, user1));
+    await csr.withdrawToSelf(0, {from:user1});
     assert.equal(await csr.getWithdrawnFromBatch(user1, 0), 3);
-    await assertRevert(csr.withdraw(0, {from:user1}));
+    await assertRevert(csr.withdrawToSelf(0, {from:user1}));
   });
 
   it('transferring commitment', async function() {
@@ -217,11 +218,11 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     // can't forfeit twice
     await assertRevert(csr.forfeit(2, {from:user2}));
     // can't withdraw because of forfeit
-    await assertRevert(csr.withdraw(2, {from:user2}));
+    await assertRevert(csr.withdrawToSelf(2, {from:user2}));
     // can't forfeit when we've withdrawn
     await csr.analyzeCondition(3);
     assert.equal(await csr.timestamps(3), deadline4);
-    await csr.withdraw(3, {from:user2});
+    await csr.withdrawToSelf(3, {from:user2});
     await assertRevert(csr.forfeit(3, {from:user2}));
     // only owner can still withdraw
     await assertRevert(csr.withdrawForfeited(user2, 2, user2, {from:user2}));
