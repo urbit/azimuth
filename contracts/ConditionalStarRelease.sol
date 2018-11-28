@@ -78,10 +78,6 @@ contract ConditionalStarRelease is Ownable, TakesPoints
   uint8 constant maxConditions = 8;
   uint256 constant escapeHatchTime = 10 * 365 days;
 
-  //  polls: public contract which registers polls
-  //
-  Polls public polls;
-
   //  conditions: hashes for document proposals that must achieve majority
   //              in the polls contract
   //
@@ -169,10 +165,6 @@ contract ConditionalStarRelease is Ownable, TakesPoints
              _conditions.length <= maxConditions &&
              _livelines.length == _conditions.length &&
              _deadlines.length == _conditions.length );
-
-    //  reference points and polls contracts
-    //
-    polls = Ecliptic(azimuth.owner()).polls();
 
     //  install conditions and deadlines, and prepare timestamps array
     //
@@ -495,7 +487,11 @@ contract ConditionalStarRelease is Ownable, TakesPoints
       //
       else
       {
-        met = polls.documentHasAchievedMajority(condition);
+        //  we check using the polls contract from the current ecliptic
+        //
+        met = Ecliptic(azimuth.owner())
+              .polls()
+              .documentHasAchievedMajority(condition);
       }
 
       //  if the condition is met, set :timestamps[_condition] to the
