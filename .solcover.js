@@ -1,10 +1,10 @@
 module.exports = {
-    copyPackages: ['zeppelin-solidity'],
+    copyPackages: ['openzeppelin-solidity'],
     skipFiles: [ 'interfaces/',
-                 'ERC165Mapping.sol',
                  'ENSRegistry.sol',
                  'NFTokenReceiverTestMock.sol',
                  'PublicResolver.sol',
+                 'EclipticResolver.sol',
                  'SafeMath8.sol',
                  'SafeMath16.sol' ]
 };
