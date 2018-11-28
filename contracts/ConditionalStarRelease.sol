@@ -41,10 +41,10 @@ import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
 //    withdraw are treated on a last-in first-out basis.
 //
 //    If a condition's timestamp is equal to its deadline, participants
-//    have the option to forfeit any stars that remain in their commitment
-//    from that condition's batch and onward. The participant will no
-//    longer be able to withdraw any of the forfeited stars (they are to
-//    be collected by the contract owner), and will settle compensation
+//    have the option to forfeit the stars in the associated batch, only
+//    if they have not yet withdrawn from that batch. The participant will
+//    no longer be able to withdraw stars from the forfeited batch (they are
+//    to be collected by the contract owner), and will settle compensation
 //    with the contract owner off-chain.
 //
 //    The contract owner can register commitments, deposit stars into
