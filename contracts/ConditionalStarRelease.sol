@@ -553,12 +553,34 @@ contract ConditionalStarRelease is Ownable, TakesPoints
         limit = uint16(num);
       }
 
-      //  allow at least one star, from the first batch
+      //  allow at least one star, from the first batch that has stars
       //
-      if ( (0 == _batch) &&
-           (limit < 1) )
+      if (limit < 1)
       {
-        return 1;
+        //  first: whether this _batch is the first sequential one to contain
+        //         any stars
+        //
+        bool first = false;
+
+        //  check to see if any batch up to this _batch has stars
+        //
+        for (uint8 i = 0; i <= _batch; i++)
+        {
+          //  if this batch has stars, that's the first batch we found
+          //
+          if (0 < com.batches[i])
+          {
+            //  maybe it's _batch, but in any case we stop searching here
+            //
+            first = (i == _batch);
+            break;
+          }
+        }
+
+        if (first)
+        {
+          return 1;
+        }
       }
 
       return limit;

@@ -122,14 +122,16 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await assertRevert(csr.register(user1, [0, 0, 0, 0], 1, rateUnit));
     assert.isTrue(await csr.verifyBalance(user1));
     await csr.register(user1, [4, 1, 2, 1], 1, rateUnit);
-    await csr.register(user3, [4, 1, 2, 1], 1, rateUnit);
+    await csr.register(user3, [0, 1, 2, 1], 1, rateUnit);
     // can't register twice
     await assertRevert(csr.register(user3, [4, 1, 2, 1], 1, rateUnit));
     assert.equal((await csr.commitments(user1))[2], 8);
     assert.isFalse(await csr.verifyBalance(user1));
-    // can always withdraw at least one star from the first batch
+    // can always withdraw at least one star from the first batch that has stars
     assert.equal(await csr.withdrawLimit(user1, 0), 1);
     assert.equal(await csr.withdrawLimit(user1, 1), 0);
+    assert.equal(await csr.withdrawLimit(user3, 0), 0);
+    assert.equal(await csr.withdrawLimit(user3, 1), 1);
     let batches = await csr.getBatches(user1);
     assert.equal(batches[0], 4);
     assert.equal(batches[1], 1);
