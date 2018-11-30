@@ -10,7 +10,7 @@ const increaseTime = require('./helpers/increaseTime');
 contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   let azimuth, azimuth2, polls, eclipt, eclipt2, csr, csr2,
       deadline1, deadline2, deadline3, condit2, rateUnit,
-      deadlineStep;
+      deadlineStep, escapeHatchTime, escapeHatchDate;
 
   function assertInvalid(error) {
     assert.isAbove(error.message.search('invalid opcode'), -1, 'Invalid opcode must be returned, but got ' + error);
@@ -53,22 +53,31 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     deadline1 = web3.toDecimal(await getChainTime()) + 10;
     deadline2 = deadline1 + deadlineStep;
     deadline3 = deadline2 + deadlineStep;
-    csr = await CSR.new(azimuth.address, [0, condit2, "miss me", "too"],
+    deadline4 = deadline3 + deadlineStep;
+    escapeHatchTime = deadlineStep * 100;
+    escapeHatchDate = web3.toDecimal(await getChainTime()) + escapeHatchTime;
+    csr = await CSR.new( azimuth.address, [0, condit2, "miss me", "too"],
                          [0, 0, 0, 0],
-                         [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
-    csr2 = await CSR.new(azimuth2.address, [0, condit2, "miss me", "too"],
-                         [0, 0, 0, 0],
-                         [deadline1, deadline2, deadline3, deadline3+deadlineStep]);
+                         [deadline1, deadline2, deadline3, deadline4],
+                         escapeHatchDate );
+    csr2 = await CSR.new( azimuth2.address, [0, condit2, "miss me", "too"],
+                          [0, 0, 0, 0],
+                          [deadline1, deadline2, deadline3, deadline4],
+                          escapeHatchDate );
     await eclipt.setSpawnProxy(0, csr.address);
     await eclipt.setTransferProxy(256, csr.address);
   });
 
   it('creation sanity check', async function() {
     // need as many deadlines as conditions
-    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0, 0], [0]));
-    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0], [0, 0]));
-    var many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertRevert(CSR.new(azimuth.address, many, many, many));
+    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0, 0], [0], 1));
+    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0], [0, 0], 1));
+    // can't have too many conditions
+    let many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    await assertRevert(CSR.new(azimuth.address, many, many, many, 1));
+    // can't have unfair escape hatch
+    let few = [2, 2, 2];
+    await assertRevert(CSR.new(azimuth.address, few, few, few, 1));
   });
 
   it('analyzing conditions', async function() {
@@ -91,26 +100,43 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await increaseTime((deadlineStep * 2) + 10);
     await csr.analyzeCondition(2);
     assert.equal(await csr.timestamps(2), deadline3);
+    // verify contract state getters work
+    let [conds, lives, deads, times] = await csr.getConditionsState();
+    assert.equal(conds[3],
+      // "too"
+      "0x746f6f0000000000000000000000000000000000000000000000000000000000");
+    assert.equal(lives[3], 0);
+    assert.equal(deads[3], deadline4);
+    assert.equal(times[2], deadline3);
+    assert.equal(times[3], 0);
   });
 
   it('registering commitments', async function() {
     // only owner can do this
-    await assertRevert(csr.register(user1, [1, 1, 5, 1], 1, rateUnit, {from:user1}));
+    await assertRevert(csr.register(user1, [4, 1, 2, 1], 1, rateUnit, {from:user1}));
     // need right amount of conditions
-    await assertRevert(csr.register(user1, [1, 1, 5], 1, rateUnit));
+    await assertRevert(csr.register(user1, [4, 1, 2], 1, rateUnit));
     // need a sane rate
-    await assertRevert(csr.register(user1, [1, 1, 5, 1], 0, rateUnit));
+    await assertRevert(csr.register(user1, [4, 1, 2, 1], 0, rateUnit));
+    // must contain stars
+    await assertRevert(csr.register(user1, [0, 0, 0, 0], 1, rateUnit));
     assert.isTrue(await csr.verifyBalance(user1));
-    await csr.register(user1, [1, 1, 5, 1], 1, rateUnit);
-    await csr.register(user3, [1, 1, 5, 1], 1, rateUnit);
+    await csr.register(user1, [4, 1, 2, 1], 1, rateUnit);
+    await csr.register(user3, [0, 1, 2, 1], 1, rateUnit);
+    // can't register twice
+    await assertRevert(csr.register(user3, [4, 1, 2, 1], 1, rateUnit));
     assert.equal((await csr.commitments(user1))[2], 8);
     assert.isFalse(await csr.verifyBalance(user1));
-    // can always withdraw at least one star
-    assert.equal(await csr.withdrawLimit(user1), 1);
+    // can always withdraw at least one star from the first batch that has stars
+    assert.equal(await csr.withdrawLimit(user1, 0), 1);
+    assert.equal(await csr.withdrawLimit(user1, 1), 0);
+    assert.equal(await csr.withdrawLimit(user3, 0), 0);
+    assert.equal(await csr.withdrawLimit(user3, 1), 1);
     let batches = await csr.getBatches(user1);
-    assert.equal(batches[0], 1);
+    assert.equal(batches[0], 4);
     assert.equal(batches[1], 1);
-    assert.equal(batches[2], 5);
+    assert.equal(batches[2], 2);
+    assert.equal(await csr.getBatch(user1, 2), 2);
     assert.equal(batches[3], 1);
     assert.equal(batches.length, 4);
   });
@@ -121,17 +147,12 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   });
 
   it('withdraw limit', async function() {
-    await csr.register(owner, [1, 0, 5, 0], 2, rateUnit);
-    assert.equal(await csr.withdrawLimit(user1), 1);
-    await increaseTime(rateUnit);
-    assert.equal(await csr.withdrawLimit(user1), 3);
+    assert.equal(await csr.withdrawLimit(user1, 0), 1);
+    assert.equal(await csr.withdrawLimit(user1, 3), 0);
+    await increaseTime(rateUnit*2);
+    assert.equal(await csr.withdrawLimit(user1, 0), 2);
     // unregistered address should not yet have a withdraw limit
-    try {
-      await csr.withdrawLimit(user2);
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assertInvalid(err);
-    }
+    assert.equal(await csr.withdrawLimit(user2, 0), 0);
   });
 
   it('depositing stars', async function() {
@@ -154,33 +175,35 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
   });
 
   it('withdrawing', async function() {
-    assert.equal(await csr.withdrawLimit(user1), 3);
+    await increaseTime(rateUnit);
+    assert.equal(await csr.withdrawLimit(user1, 0), 3);
     // only commitment participant can do this
-    await assertRevert(csr.withdraw({from:owner}));
-    await csr.withdraw({from:user1});
+    await assertRevert(csr.withdrawToSelf(0, {from:owner}));
+    await csr.withdrawToSelf(0, {from:user1});
     assert.isTrue(await azimuth.isOwner(2048, user1));
-    assert.equal((await csr.commitments(user1))[1], 1);
+    assert.equal((await csr.getWithdrawn(user1))[0], 1);
     // can't withdraw over limit
-    await assertRevert(csr.withdraw());
-    assert.equal(await csr.withdrawLimit(user1), 3);
-    await csr.withdraw({from:user1});
-    await csr.withdraw({from:user1});
-    assert.equal((await csr.commitments(user1))[1], 3);
+    assert.equal(await csr.withdrawLimit(user1, 0), 3);
+    await csr.withdraw(0, user1, {from:user1});
+    assert.isTrue(await azimuth.isOwner(1792, user1));
+    await csr.withdrawToSelf(0, {from:user1});
+    assert.equal(await csr.getWithdrawnFromBatch(user1, 0), 3);
+    await assertRevert(csr.withdrawToSelf(0, {from:user1}));
   });
 
   it('transferring commitment', async function() {
-    assert.equal((await csr.commitments(user1))[6], 0);
+    assert.equal((await csr.commitments(user1))[1], 0);
     // can't transfer to other participant
     await assertRevert(csr.approveCommitmentTransfer(user3, {from:user1}));
     // can't transfer without permission
     await assertRevert(csr.transferCommitment(user1, {from:user2}));
     await csr.approveCommitmentTransfer(user2, {from:user1});
     await csr.approveCommitmentTransfer(user2, {from:user3});
-    assert.equal((await csr.commitments(user1))[6], user2);
+    assert.equal((await csr.commitments(user1))[1], user2);
     await csr.transferCommitment(user1, {from:user2});
+    assert.notEqual(await csr.withdrawLimit(user2, 0), 0);
     // can't if we became a participant in the mean time
     await assertRevert(csr.transferCommitment(user3, {from:user2}));
-    await csr.withdrawLimit(user2);
     // unregistered address should no longer have batches, etc
     let batches = await csr.getBatches(user1);
     assert.equal(batches.length, 0);
@@ -188,29 +211,31 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('forfeiting and withdrawing', async function() {
     // owner can't withdraw if not forfeited
-    await assertRevert(csr.withdrawForfeited(user2, owner));
+    assert.isFalse((await csr.getForfeited(user2))[2]);
+    await assertRevert(csr.withdrawForfeited(user2, 2, owner));
+    // can't forfeit if no commitment
+    await assertRevert(csr.forfeit(2, {from:user1}));
     await csr.forfeit(2, {from:user2});
+    assert.isTrue(await csr.hasForfeitedBatch(user2, 2));
     // can't forfeit twice
     await assertRevert(csr.forfeit(2, {from:user2}));
-    let com = await csr.commitments(user2);
-    assert.isTrue(com[5]);
-    assert.equal(com[4], com[2] - com[1]);
-    assert.equal(com[4], 5);
-    await increaseTime(rateUnit);
     // can't withdraw because of forfeit
-    await assertRevert(csr.withdraw({from:user2}));
+    await assertRevert(csr.withdrawToSelf(2, {from:user2}));
+    // can't forfeit when we've withdrawn
+    await csr.analyzeCondition(3);
+    assert.equal(await csr.timestamps(3), deadline4);
+    await csr.withdrawToSelf(3, {from:user2});
+    await assertRevert(csr.forfeit(3, {from:user2}));
     // only owner can still withdraw
-    await assertRevert(csr.withdrawForfeited(user2, owner, {from:user2}));
-    for (var i = 0; i < 4; i++) {
-      await csr.withdrawForfeited(user2, owner);
-    }
-    assert.isTrue(await azimuth.isOwner(512, owner));
+    await assertRevert(csr.withdrawForfeited(user2, 2, user2, {from:user2}));
+    await csr.withdrawForfeited(user2, 2, owner);
+    assert.isTrue(await azimuth.isOwner(1024, owner));
   });
 
   it('escape hatch', async function() {
     await assertRevert(csr.withdrawOverdue(user2, owner));
-    await increaseTime(10*365*24*60*60);
+    await increaseTime(escapeHatchTime);
     await csr.withdrawOverdue(user2, owner);
-    assert.isTrue(await azimuth.isOwner(256, owner));
+    assert.isTrue(await azimuth.isOwner(2560, owner));
   });
 });
