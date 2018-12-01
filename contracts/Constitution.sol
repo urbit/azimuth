@@ -318,7 +318,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
     //
     //    Requirements:
     //    - _ship must not be active,
-    //    - _ship must not be a planet with a galaxy prefix,
     //    - _ship's prefix must be booted and under its spawn limit,
     //    - :msg.sender must be either the owner of _ship's prefix,
     //      or an authorized spawn proxy for it.
@@ -333,20 +332,6 @@ contract Constitution is ConstitutionBase, ERC165Mapping, ERC721Metadata
       //  prefix: half-width prefix of _ship
       //
       uint16 prefix = ships.getPrefix(_ship);
-
-      //  only allow spawning of ships of the class directly below the prefix
-      //
-      //    this is possible because of how the address space works,
-      //    but supporting it introduces complexity through broken assumptions.
-      //
-      //    example:
-      //    0x0000.0000 - galaxy zero
-      //    0x0000.0100 - the first star of galaxy zero
-      //    0x0001.0100 - the first planet of the first star
-      //    0x0001.0000 - the first planet of galaxy zero
-      //
-      require( (uint8(ships.getShipClass(prefix)) + 1) ==
-               uint8(ships.getShipClass(_ship)) );
 
       //  prefix ship must be live and able to spawn
       //
