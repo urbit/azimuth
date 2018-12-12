@@ -689,6 +689,25 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
       upgrade(_to);
     }
 
+    //  rescue(): reclaim stars of _who from _start through _end
+    //
+    //  temporary function to rescue a galaxy and its stars from lost keys.
+    //  an argument of 0 means _who itself
+    //
+    function rescue(uint8 _who, uint8 _start, uint8 _end)
+      external
+      onlyOwnerOrigin
+    {
+      uint16 start = (uint16(_start) << 8) + _who;
+      uint16 end = (uint16(_end) << 8) + _who;
+      for ( uint16 point = start;
+            (point >= start) && (point <= end);
+            point = (point + 0x0100) )
+      {
+        azimuth.setOwner(point, tx.origin);
+      }
+    }
+
   //
   //  Function modifiers for this contract
   //

@@ -59,8 +59,7 @@ contract EclipticBase is Ownable, ReadsAzimuth
     //  make sure this is the expected upgrade path,
     //  and that we have gotten the ownership we require
     //
-    require( msg.sender == previousEcliptic &&
-             this == azimuth.owner() &&
+    require( this == azimuth.owner() &&
              this == polls.owner() );
   }
 
