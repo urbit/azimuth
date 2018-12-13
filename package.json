@@ -1,6 +1,6 @@
 {
-  "name": "azimuth",
-  "version": "0.9.0",
+  "name": "azimuth-solidity",
+  "version": "1.0.0",
   "description": "A general-purpose PKI on the Ethereum blockchain.",
   "main": "truffle.js",
   "directories": {
