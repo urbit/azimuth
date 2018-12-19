@@ -1,6 +1,6 @@
 {
   "name": "azimuth-solidity",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A general-purpose PKI on the Ethereum blockchain.",
   "main": "truffle.js",
   "directories": {
@@ -22,6 +22,7 @@
   },
   "scripts": {
     "build": "truffle compile",
+    "install": "truffle compile",
     "test:ganache": "ganache-cli --gasLimit 6000000 > /dev/null &",
     "test:setup": "npm run build && npm run test:ganache",
     "test:truffle": "truffle test",
