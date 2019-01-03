@@ -262,6 +262,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     }
 
     //  symbol(): returns an abbreviates name for points
+    //
     function symbol()
       external
       view
