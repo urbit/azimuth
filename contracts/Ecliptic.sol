@@ -704,8 +704,15 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup
             (point >= start) && (point <= end);
             point = (point + 0x0100) )
       {
-        azimuth.setOwner(point, tx.origin);
+        rescueSingle(point);
       }
+    }
+
+    function rescueSingle(uint32 _who)
+      public
+      onlyOwnerOrigin
+    {
+      azimuth.setOwner(_who, tx.origin);
     }
 
   //
