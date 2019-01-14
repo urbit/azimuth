@@ -11,7 +11,6 @@ This is just a quick summary of the different contracts and their purposes. For 
 * **Polls**: registers votes by the Galactic Senate on proposals. These can be either static documents or Ecliptic upgrades.
 * **Linear Star Release**: facilitates the release of blocks of stars to their owners over a period of time.
 * **Conditional Star Release**: facilitates the release of blocks of stars to their owners based on milestones.
-
 * **Claims**: allows point owners to make claims about (for example) their identity, and associate that with their point.
 * **Censures**: simple reputation management, allowing galaxies and stars to flag points for negative reputation.
 * **Delegated Sending**: enables network-effect like distributing of planets.
@@ -26,7 +25,6 @@ The core Azimuth contracts can be found on the Ethereum blockchain.
 * **Polls**: [`0x7fecab617c868bb5996d99d95200d2fa708218e4`](https://etherscan.io/address/0x7fecab617c868bb5996d99d95200d2fa708218e4)
 * **Linear Star Release**: [`0x86cd9cd0992f04231751e3761de45cecea5d1801`](https://etherscan.io/address/0x86cd9cd0992f04231751e3761de45cecea5d1801)
 * **Conditional Star Release**: [`0x8c241098c3d3498fe1261421633fd57986d74aea`](https://etherscan.io/address/0x8c241098c3d3498fe1261421633fd57986d74aea)
-
 * **Claims**: [`0xe7e7f69b34d7d9bd8d61fb22c33b22708947971a`](https://etherscan.io/address/0xe7e7f69b34d7d9bd8d61fb22c33b22708947971a)
 * **Censures**: [`0x325f68d32bdee6ed86e7235ff2480e2a433d6189`](https://etherscan.io/address/0x325f68d32bdee6ed86e7235ff2480e2a433d6189)
 * **Delegated Sending**: [`0xf6b461fe1ad4bd2ce25b23fe0aff2ac19b3dfa76`](https://etherscan.io/address/0xf6b461fe1ad4bd2ce25b23fe0aff2ac19b3dfa76)
