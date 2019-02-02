@@ -30,6 +30,10 @@ The core Azimuth contracts can be found on the Ethereum blockchain.
 * **Delegated Sending**: [`0xf6b461fe1ad4bd2ce25b23fe0aff2ac19b3dfa76`](https://etherscan.io/address/0xf6b461fe1ad4bd2ce25b23fe0aff2ac19b3dfa76)
 * **Planet Sale**: Deploy It Yourself!
 
+## Galactic Senate
+
+A suggested process for publicizing the proposals voted on by the Galactic Senate is described in [`senate.md`](./senate.md). Following that process, proposals that have been voted on and achieved majority can be found in [`proposals/`](./proposals/).
+
 ## Running
 
 Install dependencies. Most notable inclusion is [Zeppelin-Solidity](https://openzeppelin.org/).
