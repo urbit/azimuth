@@ -10,16 +10,22 @@ import './Ecliptic.sol';
 //    This contract allows planet owners to gift planets to their friends,
 //    if their prefix has allowed it.
 //
-//    Star owners can set a limit, the amount of "invite planets" each of
-//    their planets is allowed to send. Enabling this by setting the limit
-//    to a value higher than zero can help the network grow by providing
-//    regular users with a way to get their friends and family onto it.
+//    Star owners can give a number of "invites" to their child planets. An
+//    "invite" in the context of this contract means a planet from the same
+//    parent star.
+//    Planets that were sent as invites are also allowed to send invites, but
+//    instead of adhering to a star-set limit, they will use up invites from
+//    the same "pool" as their inviter.
 //
 //    To allow planets to be sent by this contract, stars must set it as
 //    their spawnProxy using the Ecliptic.
 //
 contract DelegatedSending is ReadsAzimuth
 {
+  //  Pool: :who was given their own pool, of :size invites
+  //
+  event Pool(uint16 indexed prefix, uint32 indexed who, uint16 size);
+
   //  Sent: :by sent :point
   //
   event Sent( uint16 indexed prefix,
@@ -28,13 +34,8 @@ contract DelegatedSending is ReadsAzimuth
               uint32 point,
               address to);
 
-  //  limits: per star, the maximum amount of planets any of its planets may
-  //          give away
-  //
-  mapping(uint16 => uint16) public limits;
-
-  //  pools: per pool, the amount of planets that have been given away by
-  //         the pool's planet itself or the ones it invited
+  //  pools: per pool, the amount of planets that can still be given away
+  //         by the pool's planet itself or the ones it invited
   //
   //    pools are associated with planets by number, pool n belongs to
   //    planet n - 1.
@@ -42,14 +43,10 @@ contract DelegatedSending is ReadsAzimuth
   //
   mapping(uint64 => uint16) public pools;
 
-  //  fromPool: per planet, the pool from which they were sent/invited
+  //  fromPool: per planet, the pool from which they send invites
   //
   //    when invited by planet n, the invitee is registered in pool n + 1.
   //    a pool of 0 means the planet has its own invite pool.
-  //    this is done so that all planets that were born outside of this
-  //    contract start out with their own pool (0, solidity default),
-  //    while we configure planets created through this contract to use
-  //    their inviter's pool.
   //
   mapping(uint32 => uint64) public fromPool;
 
@@ -62,25 +59,17 @@ contract DelegatedSending is ReadsAzimuth
     //
   }
 
-  //  configureLimit(): as the owner of a star, configure the amount of
-  //                    planets that may be given away per point.
+  //  setPoolSize(): give _for their own pool if they don't have one already,
+  //                 and allow them to send _size more points
   //
-  function configureLimit(uint16 _prefix, uint16 _limit)
-    external
-    activePointOwner(_prefix)
-  {
-    limits[_prefix] = _limit;
-  }
-
-  //  resetPool(): grant _for their own invite pool in case they still
-  //               share one and reset its counter to zero
-  //
-  function resetPool(uint32 _for)
+  function setPoolSize(uint32 _for, uint16 _size)
     external
     activePointOwner(azimuth.getPrefix(_for))
   {
     fromPool[_for] = 0;
-    pools[uint64(_for) + 1] = 0;
+    pools[uint64(_for) + 1] = _size;
+
+    emit Pool(azimuth.getPrefix(_for), _for, _size);
   }
 
   //  sendPoint(): as the point _as, spawn the point _point to _to.
@@ -104,10 +93,10 @@ contract DelegatedSending is ReadsAzimuth
     //
     require(canReceive(_to));
 
-    //  increment the sent counter for _as.
+    //  remove an invite from _as' current pool
     //
     uint64 pool = getPool(_as);
-    pools[pool]++;
+    pools[pool]--;
 
     //  associate the _point with this pool
     //
@@ -133,9 +122,9 @@ contract DelegatedSending is ReadsAzimuth
              //
              (prefix == azimuth.getPrefix(_point)) &&
              //
-             //  _as must not have hit the allowed limit yet
+             //  _as' pool must not have been exhausted yet
              //
-             (pools[pool] < limits[prefix]) &&
+             (0 < pools[pool]) &&
              //
              //  _point needs to not be (in the process of being) spawned
              //
