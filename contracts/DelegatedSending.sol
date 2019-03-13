@@ -50,6 +50,22 @@ contract DelegatedSending is ReadsAzimuth
   //
   mapping(uint32 => uint64) public fromPool;
 
+  //  inviters: points with their own pools, invite tree roots
+  //
+  uint32[] public inviters;
+
+  //  isInviter: whether or not a point is in the :inviters list
+  //
+  mapping(uint32 => bool) public isInviter;
+
+  //  invited: for each point, the points they invited
+  //
+  mapping(uint32 => uint32[]) public invited;
+
+  //  invitedBy: for each point, the point they were invited by
+  //
+  mapping(uint32 => uint32) public invitedBy;
+
   //  constructor(): register the azimuth contract
   //
   constructor(Azimuth _azimuth)
@@ -68,6 +84,14 @@ contract DelegatedSending is ReadsAzimuth
   {
     fromPool[_for] = 0;
     pools[uint64(_for) + 1] = _size;
+
+    //  add _for as an invite tree root
+    //
+    if (!isInviter[_for])
+    {
+      isInviter[_for] = true;
+      inviters.push(_for);
+    }
 
     emit Pool(azimuth.getPrefix(_for), _for, _size);
   }
@@ -101,6 +125,11 @@ contract DelegatedSending is ReadsAzimuth
     //  associate the _point with this pool
     //
     fromPool[_point] = pool;
+
+    //  add _point to _as' invite tree
+    //
+    invited[_as].push(_point);
+    invitedBy[_point] = _as;
 
     //  spawn _point to _to, they still need to accept the transfer manually
     //
@@ -180,5 +209,25 @@ contract DelegatedSending is ReadsAzimuth
   {
     return ( 0 == azimuth.getOwnedPointCount(_recipient) &&
              0 == azimuth.getTransferringForCount(_recipient) );
+  }
+
+  //  getInviters(): returns a list of all points with their own pools
+  //
+  function getInviters()
+    external
+    view
+    returns (uint32[] invs)
+  {
+    return inviters;
+  }
+
+  //  getInvited(): returns a list of points invited by _who
+  //
+  function getInvited(uint32 _who)
+    external
+    view
+    returns (uint32[] invd)
+  {
+    return invited[_who];
   }
 }
