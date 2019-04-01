@@ -29,7 +29,7 @@ contract DelegatedSending is ReadsAzimuth
   //  Sent: :by sent :point
   //
   event Sent( uint16 indexed prefix,
-              uint64 indexed fromPool,
+              uint32 indexed fromPool,
               uint32 by,
               uint32 point,
               address to);
@@ -37,18 +37,17 @@ contract DelegatedSending is ReadsAzimuth
   //  pools: per pool, the amount of planets that can still be given away
   //         by the pool's planet itself or the ones it invited
   //
-  //    pools are associated with planets by number, pool n belongs to
-  //    planet n - 1.
+  //    pools are associated with planets by number.
   //    pool 0 does not exist, and is used symbolically by :fromPool.
   //
-  mapping(uint64 => uint16) public pools;
+  mapping(uint32 => uint16) public pools;
 
   //  fromPool: per planet, the pool from which they send invites
   //
-  //    when invited by planet n, the invitee is registered in pool n + 1.
+  //    when invited by planet n, the invitee sends from n's pool.
   //    a pool of 0 means the planet has its own invite pool.
   //
-  mapping(uint32 => uint64) public fromPool;
+  mapping(uint32 => uint32) public fromPool;
 
   //  inviters: points with their own pools, invite tree roots
   //
@@ -83,10 +82,12 @@ contract DelegatedSending is ReadsAzimuth
     activePointOwner(azimuth.getPrefix(_for))
   {
     fromPool[_for] = 0;
-    pools[uint64(_for) + 1] = _size;
+    pools[_for] = _size;
 
     //  add _for as an invite tree root
     //
+    //NOTE  maybe want to do this in sendPoint instead?
+    //      but more elaborate check there...
     if (!isInviter[_for])
     {
       isInviter[_for] = true;
@@ -119,7 +120,7 @@ contract DelegatedSending is ReadsAzimuth
 
     //  remove an invite from _as' current pool
     //
-    uint64 pool = getPool(_as);
+    uint32 pool = getPool(_as);
     pools[pool]--;
 
     //  associate the _point with this pool
@@ -146,7 +147,7 @@ contract DelegatedSending is ReadsAzimuth
     returns (bool result)
   {
     uint16 prefix = azimuth.getPrefix(_as);
-    uint64 pool = getPool(_as);
+    uint32 pool = getPool(_as);
     return ( //  can only send points with the same prefix
              //
              (prefix == azimuth.getPrefix(_point)) &&
@@ -179,7 +180,7 @@ contract DelegatedSending is ReadsAzimuth
   function getPool(uint32 _point)
     internal
     view
-    returns (uint64 pool)
+    returns (uint32 pool)
   {
     pool = fromPool[_point];
 
@@ -189,9 +190,9 @@ contract DelegatedSending is ReadsAzimuth
     //
     if (0 == pool)
     {
-      //  the pool for planet n is n + 1, see also :fromPool
+      //  send from the planet's own pool, see also :fromPool
       //
-      return uint64(_point) + 1;
+      return _point;
     }
 
     return pool;

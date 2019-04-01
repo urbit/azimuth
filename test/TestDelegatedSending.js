@@ -37,12 +37,12 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
   });
 
   it('configuring', async function() {
-    assert.equal(await dese.pools(p1+1), 0);
+    assert.equal(await dese.pools(p1), 0);
     assert.isFalse(await dese.canSend(p1, p2));
     // can only be done by prefix star owner.
     await assertRevert(dese.setPoolSize(p1, 3, {from:user1}));
     await dese.setPoolSize(p1, 3);
-    assert.equal(await dese.pools(p1+1), 3);
+    assert.equal(await dese.pools(p1), 3);
     let inviters = await dese.getInviters();
     assert.equal(inviters.length, 1);
     assert.equal(inviters[0], p1);
@@ -58,8 +58,8 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     assert.isTrue(await dese.canReceive(user1));
     await seeEvents(dese.sendPoint(p1, p2, user1), ['Sent']);
     assert.isTrue(await azimuth.isTransferProxy(p2, user1));
-    assert.equal(await dese.pools(p1+1), 2);
-    assert.equal(await dese.fromPool(p2), p1+1);
+    assert.equal(await dese.pools(p1), 2);
+    assert.equal(await dese.fromPool(p2), p1);
     let invited = await dese.getInvited(p1);
     assert.equal(invited.length, 1);
     assert.equal(invited[0], p2);
@@ -76,15 +76,15 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     await assertRevert(dese.sendPoint(p1, p3, user1));
     // send as invited planet
     await dese.sendPoint(p2, p3, user2, {from:user1});
-    assert.equal(await dese.pools(p1+1), 1);
-    assert.equal(await dese.fromPool(p3), p1+1);
+    assert.equal(await dese.pools(p1), 1);
+    assert.equal(await dese.fromPool(p3), p1);
     invited = await dese.getInvited(p2);
     assert.equal(invited.length, 1);
     assert.equal(invited[0], p3);
     assert.equal(await dese.invitedBy(p3), p2);
     await eclipt.transferPoint(p3, user2, true);
     await dese.sendPoint(p3, p4, user3, {from:user2});
-    assert.equal(await dese.pools(p1+1), 0);
+    assert.equal(await dese.pools(p1), 0);
     await eclipt.transferPoint(p4, user3, true);
     // can't send more than the limit
     assert.isFalse(await dese.canSend(p1, p5));
