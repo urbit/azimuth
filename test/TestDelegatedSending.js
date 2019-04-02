@@ -37,12 +37,15 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
   });
 
   it('configuring', async function() {
-    assert.equal(await dese.limits(256), 0);
+    assert.equal(await dese.pools(p1), 0);
     assert.isFalse(await dese.canSend(p1, p2));
-    // can only be done by star owner.
-    await assertRevert(dese.configureLimit(256, 1, {from:user1}));
-    await dese.configureLimit(256, 3);
-    assert.equal(await dese.limits(256), 3);
+    // can only be done by prefix star owner.
+    await assertRevert(dese.setPoolSize(p1, 3, {from:user1}));
+    await dese.setPoolSize(p1, 3);
+    assert.equal(await dese.pools(p1), 3);
+    let inviters = await dese.getInviters();
+    assert.equal(inviters.length, 1);
+    assert.equal(inviters[0], p1);
     assert.isTrue(await dese.canSend(p1, p2));
   });
 
@@ -55,6 +58,12 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     assert.isTrue(await dese.canReceive(user1));
     await seeEvents(dese.sendPoint(p1, p2, user1), ['Sent']);
     assert.isTrue(await azimuth.isTransferProxy(p2, user1));
+    assert.equal(await dese.pools(p1), 2);
+    assert.equal(await dese.fromPool(p2), p1);
+    let invited = await dese.getInvited(p1);
+    assert.equal(invited.length, 1);
+    assert.equal(invited[0], p2);
+    assert.equal(await dese.invitedBy(p2), p1);
     assert.isFalse(await dese.canSend(p1, p2));
     await assertRevert(dese.sendPoint(p1, p2, user1));
     // can't send to users with pending transfers
@@ -67,8 +76,15 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     await assertRevert(dese.sendPoint(p1, p3, user1));
     // send as invited planet
     await dese.sendPoint(p2, p3, user2, {from:user1});
+    assert.equal(await dese.pools(p1), 1);
+    assert.equal(await dese.fromPool(p3), p1);
+    invited = await dese.getInvited(p2);
+    assert.equal(invited.length, 1);
+    assert.equal(invited[0], p3);
+    assert.equal(await dese.invitedBy(p3), p2);
     await eclipt.transferPoint(p3, user2, true);
     await dese.sendPoint(p3, p4, user3, {from:user2});
+    assert.equal(await dese.pools(p1), 0);
     await eclipt.transferPoint(p4, user3, true);
     // can't send more than the limit
     assert.isFalse(await dese.canSend(p1, p5));
@@ -76,10 +92,8 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4]) {
     await assertRevert(dese.sendPoint(p3, p5, user4));
   });
 
-  it('resetting a pool', async function() {
-    // can only be done by owner of the target's prefix
-    await assertRevert(dese.resetPool(p3, {from:user1}));
-    await dese.resetPool(p3);
+  it('resetting an invitee\'s pool', async function() {
+    await dese.setPoolSize(p3, 3);
     assert.isTrue(await dese.canSend(p3, p5));
     // shouldn't affect the pool it came from
     assert.isFalse(await dese.canSend(p1, p5));
