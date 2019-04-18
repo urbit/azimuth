@@ -1,6 +1,6 @@
 {
   "name": "azimuth-solidity",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A general-purpose PKI on the Ethereum blockchain.",
   "main": "truffle.js",
   "directories": {
@@ -36,7 +36,7 @@
     "url": "git+https://github.com/urbit/azimuth.git"
   },
   "author": "Tlon",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/urbit/azimuth/issues"
   },
