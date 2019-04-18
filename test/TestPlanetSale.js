@@ -61,10 +61,11 @@ contract('Planet Sale', function([owner, user]) {
     await assertRevert(sale.withdraw(user, {from:user}));
     // can't withdraw to zero address
     await assertRevert(sale.withdraw(0));
-    let userBal = web3.eth.getBalance(user).toNumber();
-    let saleBal = web3.eth.getBalance(sale.address).toNumber();
+    let userBal = web3.eth.getBalance(user);
+    let saleBal = web3.eth.getBalance(sale.address);
+    let expected = userBal.add(saleBal);
     await sale.withdraw(user, {gasPrice:0});
-    assert.equal(web3.eth.getBalance(user).toNumber(), userBal + saleBal);
+    assert.isTrue(expected.eq(web3.eth.getBalance(user)));
   });
 
   it('ending', async function() {
@@ -73,16 +74,12 @@ contract('Planet Sale', function([owner, user]) {
     // can't send remaining funds to zero address
     await assertRevert(sale.close(0));
     await sale.purchase(131328, {from:user,value:price});
-    let userBal = web3.eth.getBalance(user).toNumber();
-    let saleBal = web3.eth.getBalance(sale.address).toNumber();
+    let userBal = web3.eth.getBalance(user);
+    let saleBal = web3.eth.getBalance(sale.address);
+    let expected = userBal.add(saleBal);
     await sale.close(user, {gasPrice:0});
-    assert.equal(web3.eth.getBalance(user).toNumber(), userBal + saleBal);
+    assert.isTrue(expected.eq(web3.eth.getBalance(user)));
     // should no longer exist
-    try {
-      await sale.price();
-      assert.fail('should have thrown before');
-    } catch(err) {
-      assert.isAbove(err.message.search('not a contract'), -1, 'Not a contract must be returned, but got ' + err);
-    }
+    assert.equal(await web3.eth.getCode(sale.address), '0x');
   });
 });
