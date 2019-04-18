@@ -178,7 +178,7 @@ contract DelegatedSending is ReadsAzimuth
   //  getPool(): get the invite pool _point belongs to
   //
   function getPool(uint32 _point)
-    internal
+    public
     view
     returns (uint32 pool)
   {

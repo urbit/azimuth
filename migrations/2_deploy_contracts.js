@@ -3,6 +3,7 @@ var Polls = artifacts.require("./Polls.sol");
 var Claims = artifacts.require("./Claims.sol");
 var Censures = artifacts.require("./Censures.sol");
 var Ecliptic = artifacts.require("./Ecliptic.sol");
+var DelegatedSending = artifacts.require("./DelegatedSending.sol");
 
 module.exports = async function(deployer) {
   // deployer.deploy([Azimuth, Polls]);
@@ -56,6 +57,9 @@ module.exports = async function(deployer) {
     var own = await ecliptic.owner();
     console.log('remember owner ' + own);
     console.log('of ecliptic ' + ecliptic.address);
+  }).then(function() {
+    return deployer.deploy(DelegatedSending, azimuth.address);
+  }).then(function() {
     // await ecliptic.createGalaxy(0, own);
     // await ecliptic.configureKeys(0, 123, 456, 1, false);
     // await ecliptic.spawn(256, own);
