@@ -22,7 +22,7 @@ import './Ecliptic.sol';
 //
 contract DelegatedSending is ReadsAzimuth
 {
-  //  Pool: :who was given their own pool, of :size invites
+  //  Pool: :who was given their own pool by :prefix, of :size invites
   //
   event Pool(uint16 indexed prefix, uint32 indexed who, uint16 size);
 
@@ -35,12 +35,13 @@ contract DelegatedSending is ReadsAzimuth
               address to);
 
   //  pools: per pool, the amount of planets that can still be given away
-  //         by the pool's planet itself or the ones it invited
+  //         per star by the pool's planet itself or the ones it invited
   //
-  //    pools are associated with planets by number.
+  //    pools are associated with planets by number,
+  //    then with stars by number.
   //    pool 0 does not exist, and is used symbolically by :fromPool.
   //
-  mapping(uint32 => uint16) public pools;
+  mapping(uint32 => mapping(uint16 => uint16)) public pools;
 
   //  fromPool: per planet, the pool from which they send invites
   //
@@ -48,6 +49,15 @@ contract DelegatedSending is ReadsAzimuth
   //    a pool of 0 means the planet has its own invite pool.
   //
   mapping(uint32 => uint32) public fromPool;
+
+  //  poolStars: per pool, the stars from which it has received invites
+  //
+  mapping(uint32 => uint16[]) public poolStars;
+
+  //  poolStarsRegistered: per pool, per star, whether or not it is in
+  //                       the :poolStars array
+  //
+  mapping(uint32 => mapping(uint16 => bool)) public poolStarsRegistered;
 
   //  inviters: points with their own pools, invite tree roots
   //
@@ -75,20 +85,26 @@ contract DelegatedSending is ReadsAzimuth
   }
 
   //  setPoolSize(): give _for their own pool if they don't have one already,
-  //                 and allow them to send _size more points
+  //                 and allow them to send _size points from _as
   //
-  function setPoolSize(uint32 _for, uint16 _size)
+  function setPoolSize(uint16 _as, uint32 _for, uint16 _size)
     external
-    activePointOwner(azimuth.getPrefix(_for))
+    activePointOwner(_as)
   {
     fromPool[_for] = 0;
-    pools[_for] = _size;
+    pools[_for][_as] = _size;
+
+    //  register star as having given invites to pool,
+    //  if that hasn't happened yet
+    //
+    if (false == poolStarsRegistered[_for][_as]) {
+      poolStars[_for].push(_as);
+      poolStarsRegistered[_for][_as] = true;
+    }
 
     //  add _for as an invite tree root
     //
-    //NOTE  maybe want to do this in sendPoint instead?
-    //      but more elaborate check there...
-    if (!isInviter[_for])
+    if (false == isInviter[_for])
     {
       isInviter[_for] = true;
       inviters.push(_for);
@@ -121,7 +137,8 @@ contract DelegatedSending is ReadsAzimuth
     //  remove an invite from _as' current pool
     //
     uint32 pool = getPool(_as);
-    pools[pool]--;
+    uint16 prefix = azimuth.getPrefix(_point);
+    pools[pool][prefix]--;
 
     //  associate the _point with this pool
     //
@@ -136,7 +153,7 @@ contract DelegatedSending is ReadsAzimuth
     //
     Ecliptic(azimuth.owner()).spawn(_point, _to);
 
-    emit Sent(azimuth.getPrefix(_point), pool, _as, _point, _to);
+    emit Sent(prefix, pool, _as, _point, _to);
   }
 
   //  canSend(): check whether current conditions allow _as to send _point
@@ -146,15 +163,11 @@ contract DelegatedSending is ReadsAzimuth
     view
     returns (bool result)
   {
-    uint16 prefix = azimuth.getPrefix(_as);
+    uint16 prefix = azimuth.getPrefix(_point);
     uint32 pool = getPool(_as);
-    return ( //  can only send points with the same prefix
+    return ( //  _as' pool for this prefix must not have been exhausted yet
              //
-             (prefix == azimuth.getPrefix(_point)) &&
-             //
-             //  _as' pool must not have been exhausted yet
-             //
-             (0 < pools[pool]) &&
+             (0 < pools[pool][prefix]) &&
              //
              //  _point needs to not be (in the process of being) spawned
              //
@@ -210,6 +223,16 @@ contract DelegatedSending is ReadsAzimuth
   {
     return ( 0 == azimuth.getOwnedPointCount(_recipient) &&
              0 == azimuth.getTransferringForCount(_recipient) );
+  }
+
+  //  getPoolStars(): returns a list of stars _who has pools for
+  //
+  function getPoolStars(uint32 _who)
+    external
+    view
+    returns (uint16[] stars)
+  {
+    return poolStars[_who];
   }
 
   //  getInviters(): returns a list of all points with their own pools
