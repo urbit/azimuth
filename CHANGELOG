@@ -1,4 +1,7 @@
 # Changelog
 
+- 1.2.0 (2019-05-30)
+    * Adds support for delegated sending from arbitrary stars. (#17)
+
 - 1.1.0 (2019-04-18)
     * Adds contract support for Delegated Sending.

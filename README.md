@@ -68,4 +68,3 @@ npx ganache-cli --gasLimit 6000000
 
 and then test via `npx truffle test`.
 
-(The Planet Sale's test relating to withdrawing ETH from the contract are known to be finicky during tests, and may not always complete successfully.)
