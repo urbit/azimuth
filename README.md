@@ -1,5 +1,8 @@
 # Azimuth
 
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/urbit/azimuth/blob/master/LICENSE)
+[![npm](https://img.shields.io/npm/v/azimuth-solidity.svg)](https://www.npmjs.com/package/azimuth-solidity)
+
 A general-purpose PKI, live on the Ethereum blockchain.
 
 ## Overview
