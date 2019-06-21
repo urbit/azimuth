@@ -1376,7 +1376,7 @@ contract Azimuth is Ownable
       emit ChangedVotingProxy(_point, _proxy);
     }
 
-    //  setManagementProxy(): makes _proxy _point's transfer proxy
+    //  setTransferProxy(): makes _proxy _point's transfer proxy
     //
     function setTransferProxy(uint32 _point, address _proxy)
       onlyOwner
