@@ -110,7 +110,7 @@ contract DelegatedSending is ReadsAzimuth
       inviters.push(_for);
     }
 
-    emit Pool(azimuth.getPrefix(_for), _for, _size);
+    emit Pool(_as, _for, _size);
   }
 
   //  sendPoint(): as the point _as, spawn the point _point to _to.
