@@ -8,11 +8,11 @@ import './Ecliptic.sol';
 //  DelegatedSending: invite-like point sending
 //
 //    This contract allows planet owners to gift planets to their friends,
-//    if their prefix has allowed it.
+//    if a star has allowed it.
 //
-//    Star owners can give a number of "invites" to their child planets. An
-//    "invite" in the context of this contract means a planet from the same
-//    parent star.
+//    Star owners can grant a number of "invites" to planets. An "invite" in
+//    the context of this contract means a planet from the same parent star,
+//    that can be sent to an Ethereum address that owns no points.
 //    Planets that were sent as invites are also allowed to send invites, but
 //    instead of adhering to a star-set limit, they will use up invites from
 //    the same "pool" as their inviter.
