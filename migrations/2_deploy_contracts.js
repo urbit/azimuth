@@ -5,6 +5,7 @@ var Censures = artifacts.require("./Censures.sol");
 var Ecliptic = artifacts.require("./Ecliptic.sol");
 var DelegatedSending = artifacts.require("./DelegatedSending.sol");
 
+
 module.exports = async function(deployer) {
   // deployer.deploy([Azimuth, Polls]);
   // let azimuth = await Azimuth.deployed();
@@ -17,7 +18,7 @@ module.exports = async function(deployer) {
   // polls.transferOwnership(ecliptic.address);
 
   //TODO the above is more consise and should be the same, but... doesn't work?
-  var azimuth, polls, claims, censures, ecliptic;
+  var azimuth, polls, claims, censures, ecliptic, sending, own;
   deployer.then(function() {
   }).then(function() {
     return deployer.deploy(Azimuth);
@@ -54,20 +55,29 @@ module.exports = async function(deployer) {
     await azimuth.transferOwnership(ecliptic.address);
     await polls.transferOwnership(ecliptic.address);
     //
-    var own = await ecliptic.owner();
+    own = await ecliptic.owner();
     console.log('remember owner ' + own);
     console.log('of ecliptic ' + ecliptic.address);
   }).then(function() {
     return deployer.deploy(DelegatedSending, azimuth.address);
   }).then(function() {
-    // await ecliptic.createGalaxy(0, own);
-    // await ecliptic.configureKeys(0, 123, 456, 1, false);
-    // await ecliptic.spawn(256, own);
-    // await ecliptic.configureKeys(256, 456, 789, 1, false);
-    // await ecliptic.spawn(65792, own);
-    // await ecliptic.spawn(131328, own);
-    // await ecliptic.spawn(512, own);
-    // await ecliptic.createGalaxy(1, own);
+    return DelegatedSending.deployed();
+  }).then(async function(instance) {
+    sending = instance;
+    await ecliptic.createGalaxy(0, own);
+    console.log(own + ' owns ~zod');
+    await ecliptic.configureKeys(0, 123, 456, 1, false);
+    console.log('~zod has keys');
+    await ecliptic.spawn(256, own);
+    await ecliptic.configureKeys(256, 456, 789, 1, false);
+    // set transfer proxy to delegated sending, very brittle
+    await ecliptic.setSpawnProxy(256, sending.address);
+    console.log('~marzod transfer proxy set to' + sending.address);
+    await ecliptic.spawn(65792, own);
+    await ecliptic.spawn(131328, own);
+    await ecliptic.spawn(512, own);
+    await sending.setPoolSize(256, 65792, 1000);
+    await ecliptic.createGalaxy(1, own);
     //
   });
 };
