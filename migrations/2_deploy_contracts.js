@@ -5,6 +5,7 @@ var Censures = artifacts.require("./Censures.sol");
 var Ecliptic = artifacts.require("./Ecliptic.sol");
 var DelegatedSending = artifacts.require("./DelegatedSending.sol");
 
+const WITH_TEST_STATE = (process.argv[3] === 'with-state');
 
 module.exports = async function(deployer) {
   // deployer.deploy([Azimuth, Polls]);
@@ -64,6 +65,7 @@ module.exports = async function(deployer) {
   }).then(function() {
     return DelegatedSending.deployed();
   }).then(async function(instance) {
+    if (!WITH_TEST_STATE) return;
     sending = instance;
     await ecliptic.createGalaxy(0, own);
     console.log(own + ' owns ~zod');
