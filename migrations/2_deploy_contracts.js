@@ -45,8 +45,9 @@ module.exports = async function(deployer) {
     censures = instance;
     //NOTE  for real deployment, we'll want to use a real ENS registry
     //      and node names
-    return deployer.deploy(Ecliptic, 0, azimuth.address, polls.address,
-                                         claims.address);
+    return deployer.deploy(Ecliptic,
+                           '0x0000000000000000000000000000000000000000',
+                           azimuth.address, polls.address, claims.address);
   }).then(function() {
     return Ecliptic.deployed();
   }).then(async function(instance) {
@@ -66,10 +67,10 @@ module.exports = async function(deployer) {
     sending = instance;
     await ecliptic.createGalaxy(0, own);
     console.log(own + ' owns ~zod');
-    await ecliptic.configureKeys(0, 123, 456, 1, false);
+    await ecliptic.configureKeys(0, '0x123', '0x456', 1, false);
     console.log('~zod has keys');
     await ecliptic.spawn(256, own);
-    await ecliptic.configureKeys(256, 456, 789, 1, false);
+    await ecliptic.configureKeys(256, '0x456', '0x789', 1, false);
     // set transfer proxy to delegated sending, very brittle
     await ecliptic.setSpawnProxy(256, sending.address);
     console.log('~marzod transfer proxy set to' + sending.address);
