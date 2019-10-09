@@ -5,69 +5,43 @@ var Censures = artifacts.require("./Censures.sol");
 var Ecliptic = artifacts.require("./Ecliptic.sol");
 var DelegatedSending = artifacts.require("./DelegatedSending.sol");
 
-module.exports = async function(deployer) {
-  // deployer.deploy([Azimuth, Polls]);
-  // let azimuth = await Azimuth.deployed();
-  // let polls = await Polls.deployed();
-  // deployer.deploy(Ecliptic, azimuth.address, polls.address);
-  // let ecliptic = await Ecliptic.deployed();
-  // console.log("Ecliptic: -- ")
-  // console.log(ecliptic.address)
-  // azimuth.transferOwnership(ecliptic.address);
-  // polls.transferOwnership(ecliptic.address);
+const WITH_TEST_STATE = (process.argv[3] === 'with-state');
 
-  //TODO the above is more consise and should be the same, but... doesn't work?
-  var azimuth, polls, claims, censures, ecliptic;
-  deployer.then(function() {
-  }).then(function() {
-    return deployer.deploy(Azimuth);
-  }).then(function() {
-    return Azimuth.deployed();
-  }).then(function(instance) {
-    azimuth = instance;
-    //TODO test data, maybe in separate migration.
-    //
-    return deployer.deploy(Polls, 1209600, 604800);
-  }).then(function() {
-    return Polls.deployed();
-  }).then(function(instance) {
-    polls = instance;
-    return deployer.deploy(Claims, azimuth.address);
-  }).then(function() {
-    return Claims.deployed();
-  }).then(function(instance) {
-    claims = instance;
-    return deployer.deploy(Censures, azimuth.address);
-  }).then(function() {
-    return Censures.deployed();
-  }).then(function(instance) {
-    censures = instance;
-    //NOTE  for real deployment, we'll want to use a real ENS registry
-    //      and node names
-    return deployer.deploy(Ecliptic, 0, azimuth.address, polls.address,
-                                         claims.address);
-  }).then(function() {
-    return Ecliptic.deployed();
-  }).then(async function(instance) {
-    ecliptic = instance;
-    console.log('gonna transfer to ecliptic now');
-    await azimuth.transferOwnership(ecliptic.address);
-    await polls.transferOwnership(ecliptic.address);
-    //
-    var own = await ecliptic.owner();
-    console.log('remember owner ' + own);
-    console.log('of ecliptic ' + ecliptic.address);
-  }).then(function() {
-    return deployer.deploy(DelegatedSending, azimuth.address);
-  }).then(function() {
-    // await ecliptic.createGalaxy(0, own);
-    // await ecliptic.configureKeys(0, 123, 456, 1, false);
-    // await ecliptic.spawn(256, own);
-    // await ecliptic.configureKeys(256, 456, 789, 1, false);
-    // await ecliptic.spawn(65792, own);
-    // await ecliptic.spawn(131328, own);
-    // await ecliptic.spawn(512, own);
-    // await ecliptic.createGalaxy(1, own);
-    //
-  });
+module.exports = async function(deployer) {
+  await deployer;
+
+  // setup contracts
+  const azimuth = await deployer.deploy(Azimuth);
+  const polls = await deployer.deploy(Polls, 1209600, 604800);
+  const claims = await deployer.deploy(Claims, azimuth.address);
+  const censures = await deployer.deploy(Censures, azimuth.address);
+  //NOTE  for real deployment, use a real ENS registry
+  const ecliptic = await deployer.deploy(
+    Ecliptic,
+    '0x0000000000000000000000000000000000000000',
+    azimuth.address, polls.address, claims.address
+  );
+
+  // configure contract ownership
+  await azimuth.transferOwnership(ecliptic.address);
+  await polls.transferOwnership(ecliptic.address);
+
+  // deploy secondary contracts
+  const sending = await deployer.deploy(DelegatedSending, azimuth.address);
+
+  // beyond this point: "default" state for qa & testing purposes
+  if (!WITH_TEST_STATE) return;
+
+  const own = await ecliptic.owner();
+  await ecliptic.createGalaxy(0, own);
+  await ecliptic.configureKeys(0, '0x123', '0x456', 1, false);
+  await ecliptic.spawn(256, own);
+  await ecliptic.configureKeys(256, '0x456', '0x789', 1, false);
+  // set transfer proxy to delegated sending, very brittle
+  await ecliptic.setSpawnProxy(256, sending.address);
+  await ecliptic.spawn(65792, own);
+  await ecliptic.spawn(131328, own);
+  await ecliptic.spawn(512, own);
+  await sending.setPoolSize(256, 65792, 1000);
+  await ecliptic.createGalaxy(1, own);
 };
