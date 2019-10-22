@@ -1,5 +1,10 @@
 # Changelog
 
+- 1.2.1 (2019-10-22)
+    * Makes a minor patch to an event parameter in the DelegatedSending
+      contract.
+    * Misc improvements to the deployment migration script.
+
 - 1.2.0 (2019-05-30)
     * Adds support for delegated sending from arbitrary stars. (#17)
 
