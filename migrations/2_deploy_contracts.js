@@ -97,7 +97,7 @@ module.exports = async function(deployer, network, accounts) {
 
   await ecliptic.setSpawnProxy(2, conditionalSR.address);
 
-  await conditionalSR.register(releaseUser, [4, 1], 1, rateUnit);
+  await conditionalSR.register(releaseUser, [4, 4], 1, rateUnit);
 
   for (let i = 1; i < 9; i++) {
     const offset = 256 * i;
