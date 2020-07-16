@@ -4,7 +4,7 @@ pragma solidity 0.4.24;
 
 import './Ecliptic.sol';
 
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 
 //  PlanetSale: a practically stateless point sale contract
 //

@@ -7,7 +7,7 @@ import './Ecliptic.sol';
 import './TakesPoints.sol';
 
 import './SafeMath16.sol';
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 
 //  ConditionalStarRelease: star transfer over time, based on conditions
 //

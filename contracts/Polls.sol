@@ -6,7 +6,7 @@ pragma solidity 0.4.24;
 import './SafeMath8.sol';
 import './SafeMath16.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'openzeppelin-solidity/contracts/access/Ownable.sol';
 
 //  Polls: proposals & votes data contract
 //
