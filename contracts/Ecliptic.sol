@@ -49,7 +49,7 @@ import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 //    allowing points to be managed using generic clients that support the
 //    standard. It also implements ERC165 to allow this to be discovered.
 //
-contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
+contract Ecliptic is EclipticBase, ERC165, ERC721Metadata
 {
   using SafeMath for uint256;
   using AddressUtils for address;
