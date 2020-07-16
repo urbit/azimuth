@@ -8,7 +8,7 @@ import './Claims.sol';
 
 import 'openzeppelin-solidity/contracts/introspection/ERC165.sol';
 import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
-import 'openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
+import 'openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol';
 import 'openzeppelin-solidity/contracts/AddressUtils.sol';
 import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 
