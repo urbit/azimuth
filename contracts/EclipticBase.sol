@@ -1,7 +1,7 @@
 //  base contract for the azimuth logic contract
 //  encapsulates dependencies all ecliptics need.
 
-pragma solidity 0.4.24;
+pragma solidity 0.6.11;
 
 import './ReadsAzimuth.sol';
 import './Polls.sol';

@@ -1,6 +1,6 @@
 //  contract that uses the Azimuth data contract
 
-pragma solidity 0.4.24;
+pragma solidity 0.6.11;
 
 import './Azimuth.sol';
 

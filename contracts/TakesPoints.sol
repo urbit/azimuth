@@ -1,6 +1,6 @@
 //  contract that takes and gives Azimuth points
 
-pragma solidity 0.4.24;
+pragma solidity 0.6.11;
 
 import './Ecliptic.sol';
 import './ReadsAzimuth.sol';

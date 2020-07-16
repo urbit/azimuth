@@ -1,7 +1,7 @@
 //  the azimuth polls data store
 //  https://azimuth.network
 
-pragma solidity 0.4.24;
+pragma solidity 0.6.11;
 
 import './SafeMath8.sol';
 import './SafeMath16.sol';

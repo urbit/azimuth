@@ -1,6 +1,6 @@
 // https://github.com/ethereum/ens/blob/master/contracts/ENS.sol
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.6.11;
 
 interface ENS {
 

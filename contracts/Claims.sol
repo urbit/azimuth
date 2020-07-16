@@ -1,7 +1,7 @@
 //  simple claims store
 //  https://azimuth.network
 
-pragma solidity 0.4.24;
+pragma solidity 0.6.11;
 
 import './ReadsAzimuth.sol';
 

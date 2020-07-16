@@ -1,6 +1,6 @@
 //  ENS resolver for the Ecliptic contract
 
-pragma solidity 0.4.24;
+pragma solidity 0.6.11;
 
 import './interfaces/ResolverInterface.sol';
 import './Azimuth.sol';

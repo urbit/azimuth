@@ -1,6 +1,6 @@
 // https://github.com/ethereum/ens
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.6.11;
 
 contract ResolverInterface {
     function addr(bytes32 node) public view returns (address);

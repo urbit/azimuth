@@ -1,7 +1,7 @@
 //  the azimuth logic contract
 //  https://azimuth.network
 
-pragma solidity 0.4.24;
+pragma solidity 0.6.11;
 
 import './EclipticBase.sol';
 import './Claims.sol';
