@@ -52,7 +52,7 @@ import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
 contract Ecliptic is EclipticBase, ERC165, ERC721
 {
   using SafeMath for uint256;
-  using AddressUtils for address;
+  using Address for address;
 
   //  Transfer: This emits when ownership of any NFT changes by any mechanism.
   //            This event emits when NFTs are created (`from` == 0) and
