@@ -175,7 +175,7 @@ contract Ecliptic is EclipticBase, ERC165, ERC721
       //
       if (_to.isContract())
       {
-        bytes4 retval = ERC721Receiver(_to)
+        bytes4 retval = IERC721Receiver(_to)
                         .onERC721Received(msg.sender, _from, _tokenId, _data);
         //
         //  standard return idiom to confirm contract semantics
