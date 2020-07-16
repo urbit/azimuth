@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  simple reputations store
 //  https://azimuth.network
 

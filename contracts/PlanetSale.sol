@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  bare-bones sample planet sale contract
 
 pragma solidity 0.6.11;

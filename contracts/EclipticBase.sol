@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  base contract for the azimuth logic contract
 //  encapsulates dependencies all ecliptics need.
 

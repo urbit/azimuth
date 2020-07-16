@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 // https://github.com/ethereum/ens
 
 pragma solidity ^0.6.11;

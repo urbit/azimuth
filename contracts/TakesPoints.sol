@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  contract that takes and gives Azimuth points
 
 pragma solidity 0.6.11;

@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  simple claims store
 //  https://azimuth.network
 

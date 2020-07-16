@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  contract that uses the Azimuth data contract
 
 pragma solidity 0.6.11;

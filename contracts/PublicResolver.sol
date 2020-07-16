@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 // https://github.com/ethereum/ens/blob/master/contracts/PublicResolver.sol
 
 pragma solidity ^0.6.11;

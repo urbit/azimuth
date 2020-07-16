@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  linear star release
 //  https://azimuth.network
 

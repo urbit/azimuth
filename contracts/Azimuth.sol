@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  the azimuth data store
 //  https://azimuth.network
 

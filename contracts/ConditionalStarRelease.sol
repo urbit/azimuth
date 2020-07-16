@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  conditional star release
 //  https://azimuth.network
 

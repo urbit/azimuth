@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  the azimuth polls data store
 //  https://azimuth.network
 

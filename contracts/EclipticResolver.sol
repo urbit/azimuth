@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  ENS resolver for the Ecliptic contract
 
 pragma solidity 0.6.11;

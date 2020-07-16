@@ -1,3 +1,4 @@
+//  SPDX-License-Identifier: MIT
 //  simple planet invitation management contract
 //  https://azimuth.network
 
