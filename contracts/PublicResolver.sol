@@ -56,7 +56,7 @@ contract PublicResolver {
      * Constructor.
      * @param ensAddr The ENS registrar contract.
      */
-    function PublicResolver(ENS ensAddr) public {
+    constructor(ENS ensAddr) public {
         ens = ensAddr;
     }
 
