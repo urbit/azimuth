@@ -352,7 +352,7 @@ contract LinearStarRelease is Ownable, TakesPoints
     function getRemainingStars(address _participant)
       external
       view
-      returns (uint16[] stars)
+      returns (uint16[] memory stars)
     {
       return batches[_participant].stars;
     }

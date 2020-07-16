@@ -164,7 +164,7 @@ contract Ecliptic is EclipticBase, ERC165, ERC721
     //                      and call recipient if it's a contract
     //
     function safeTransferFrom(address _from, address _to, uint256 _tokenId,
-                              bytes _data)
+                              bytes memory _data)
       public
     {
       //  perform raw transfer
@@ -257,7 +257,7 @@ contract Ecliptic is EclipticBase, ERC165, ERC721
     function name()
       external
       view
-      returns (string)
+      returns (string memory)
     {
       return "Azimuth Points";
     }
@@ -267,7 +267,7 @@ contract Ecliptic is EclipticBase, ERC165, ERC721
     function symbol()
       external
       view
-      returns (string)
+      returns (string memory)
     {
       return "AZP";
     }
@@ -278,7 +278,7 @@ contract Ecliptic is EclipticBase, ERC165, ERC721
       public
       view
       validPointId(_tokenId)
-      returns (string _tokenURI)
+      returns (string memory _tokenURI)
     {
       _tokenURI = "https://azimuth.network/erc721/0000000000.json";
       bytes memory _tokenURIBytes = bytes(_tokenURI);
@@ -901,7 +901,11 @@ contract Ecliptic is EclipticBase, ERC165, ERC721
       }
     }
 
-    function setDnsDomains(string _primary, string _secondary, string _tertiary)
+    function setDnsDomains(
+      string memory _primary,
+      string memory _secondary,
+      string memory _tertiary
+    )
       external
       onlyOwner
     {

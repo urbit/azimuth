@@ -309,7 +309,11 @@ contract Azimuth is Ownable
   //    work with two-dimensional arrays yet, we pass in the three
   //    domains as individual strings.
   //
-  function setDnsDomains(string _primary, string _secondary, string _tertiary)
+  function setDnsDomains(
+    string memory _primary,
+    string memory _secondary,
+    string memory _tertiary
+  )
     onlyOwner
     public
   {
@@ -412,7 +416,7 @@ contract Azimuth is Ownable
     function getSpawned(uint32 _point)
       view
       external
-      returns (uint32[] spawned)
+      returns (uint32[] memory spawned)
     {
       return points[_point].spawned;
     }
@@ -470,7 +474,7 @@ contract Azimuth is Ownable
     function getSponsoring(uint32 _sponsor)
       view
       external
-      returns (uint32[] sponsees)
+      returns (uint32[] memory sponsees)
     {
       return sponsoring[_sponsor];
     }
@@ -532,7 +536,7 @@ contract Azimuth is Ownable
     function getEscapeRequests(uint32 _sponsor)
       view
       external
-      returns (uint32[] requests)
+      returns (uint32[] memory requests)
     {
       return escapeRequests[_sponsor];
     }
@@ -877,7 +881,7 @@ contract Azimuth is Ownable
     function getOwnedPoints(address _whose)
       view
       external
-      returns (uint32[] ownedPoints)
+      returns (uint32[] memory ownedPoints)
     {
       return pointsOwnedBy[_whose];
     }
@@ -948,7 +952,7 @@ contract Azimuth is Ownable
     function getManagerFor(address _proxy)
       view
       external
-      returns (uint32[] mfor)
+      returns (uint32[] memory mfor)
     {
       return managerFor[_proxy];
     }
@@ -1007,7 +1011,7 @@ contract Azimuth is Ownable
     function getSpawningFor(address _proxy)
       view
       external
-      returns (uint32[] sfor)
+      returns (uint32[] memory sfor)
     {
       return spawningFor[_proxy];
     }
@@ -1066,7 +1070,7 @@ contract Azimuth is Ownable
     function getVotingFor(address _proxy)
       view
       external
-      returns (uint32[] vfor)
+      returns (uint32[] memory vfor)
     {
       return votingFor[_proxy];
     }
@@ -1127,7 +1131,7 @@ contract Azimuth is Ownable
     function getTransferringFor(address _proxy)
       view
       external
-      returns (uint32[] tfor)
+      returns (uint32[] memory tfor)
     {
       return transferringFor[_proxy];
     }

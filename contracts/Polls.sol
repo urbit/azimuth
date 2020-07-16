@@ -185,7 +185,7 @@ contract Polls is Ownable
   function getUpgradeProposals()
     external
     view
-    returns (address[] proposals)
+    returns (address[] memory proposals)
   {
     return upgradeProposals;
   }
@@ -208,7 +208,7 @@ contract Polls is Ownable
   function getDocumentProposals()
     external
     view
-    returns (bytes32[] proposals)
+    returns (bytes32[] memory proposals)
   {
     return documentProposals;
   }
@@ -231,7 +231,7 @@ contract Polls is Ownable
   function getDocumentMajorities()
     external
     view
-    returns (bytes32[] majorities)
+    returns (bytes32[] memory majorities)
   {
     return documentMajorities;
   }
@@ -447,7 +447,7 @@ contract Polls is Ownable
   //  checkPollMajority(): returns true if the majority is in favor of
   //                       the subject of the poll
   //
-  function checkPollMajority(Poll _poll)
+  function checkPollMajority(Poll memory _poll)
     internal
     view
     returns (bool majority)

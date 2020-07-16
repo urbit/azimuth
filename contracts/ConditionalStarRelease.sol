@@ -158,9 +158,9 @@ contract ConditionalStarRelease is Ownable, TakesPoints
   //  constructor(): configure conditions and deadlines
   //
   constructor( Azimuth _azimuth,
-               bytes32[] _conditions,
-               uint256[] _livelines,
-               uint256[] _deadlines,
+               bytes32[] memory _conditions,
+               uint256[] memory _livelines,
+               uint256[] memory _deadlines,
                uint256 _escapeHatchDate )
     TakesPoints(_azimuth)
     public
@@ -200,7 +200,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
                        //             _rate stars to unlock
                        //
                        address _participant,
-                       uint16[] _batches,
+                       uint16[] memory _batches,
                        uint16 _rate,
                        uint256 _rateUnit )
       external
@@ -592,7 +592,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     //    only supports sums that fit into a uint16, which is all
     //    this contract needs
     //
-    function arraySum(uint16[] _array)
+    function arraySum(uint16[] memory _array)
       internal
       pure
       returns (uint16 total)
@@ -632,7 +632,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     function getBatches(address _participant)
       external
       view
-      returns (uint16[] batches)
+      returns (uint16[] memory batches)
     {
       return commitments[_participant].batches;
     }
@@ -653,7 +653,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     function getWithdrawn(address _participant)
       external
       view
-      returns (uint16[] withdrawn)
+      returns (uint16[] memory withdrawn)
     {
       return commitments[_participant].withdrawn;
     }
@@ -674,7 +674,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     function getForfeited(address _participant)
       external
       view
-      returns (bool[] forfeited)
+      returns (bool[] memory forfeited)
     {
       return commitments[_participant].forfeited;
     }
@@ -697,7 +697,7 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     function getRemainingStars(address _participant)
       external
       view
-      returns (uint16[] stars)
+      returns (uint16[] memory stars)
     {
       return commitments[_participant].stars;
     }
@@ -710,10 +710,10 @@ contract ConditionalStarRelease is Ownable, TakesPoints
     function getConditionsState()
       external
       view
-      returns (bytes32[] conds,
-               uint256[] lives,
-               uint256[] deads,
-               uint256[] times)
+      returns (bytes32[] memory conds,
+               uint256[] memory lives,
+               uint256[] memory deads,
+               uint256[] memory times)
     {
       return (conditions, livelines, deadlines, timestamps);
     }

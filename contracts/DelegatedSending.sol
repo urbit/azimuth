@@ -231,7 +231,7 @@ contract DelegatedSending is ReadsAzimuth
   function getPoolStars(uint32 _who)
     external
     view
-    returns (uint16[] stars)
+    returns (uint16[] memory stars)
   {
     return poolStars[_who];
   }
@@ -241,7 +241,7 @@ contract DelegatedSending is ReadsAzimuth
   function getInviters()
     external
     view
-    returns (uint32[] invs)
+    returns (uint32[] memory invs)
   {
     return inviters;
   }
@@ -251,7 +251,7 @@ contract DelegatedSending is ReadsAzimuth
   function getInvited(uint32 _who)
     external
     view
-    returns (uint32[] invd)
+    returns (uint32[] memory invd)
   {
     return invited[_who];
   }

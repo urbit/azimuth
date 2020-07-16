@@ -71,9 +71,9 @@ contract Claims is ReadsAzimuth
   //  addClaim(): register a claim as _point
   //
   function addClaim(uint32 _point,
-                    string _protocol,
-                    string _claim,
-                    bytes _dossier)
+                    string memory _protocol,
+                    string memory _claim,
+                    bytes memory _dossier)
     external
     activePointManager(_point)
   {
@@ -102,7 +102,11 @@ contract Claims is ReadsAzimuth
 
   //  removeClaim(): unregister a claim as _point
   //
-  function removeClaim(uint32 _point, string _protocol, string _claim)
+  function removeClaim(
+    uint32 _point,
+    string memory _protocol,
+    string memory _claim
+  )
     external
     activePointManager(_point)
   {
@@ -154,7 +158,11 @@ contract Claims is ReadsAzimuth
   //
   //    returns 0 if not found, index + 1 otherwise
   //
-  function findClaim(uint32 _whose, string _protocol, string _claim)
+  function findClaim(
+    uint32 _whose,
+    string memory _protocol,
+    string memory _claim
+  )
     public
     view
     returns (uint8 index)

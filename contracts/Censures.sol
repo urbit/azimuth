@@ -75,7 +75,7 @@ contract Censures is ReadsAzimuth
   function getCensuring(uint16 _whose)
     view
     public
-    returns (uint32[] cens)
+    returns (uint32[] memory cens)
   {
     return censuring[_whose];
   }
@@ -98,7 +98,7 @@ contract Censures is ReadsAzimuth
   function getCensuredBy(uint16 _who)
     view
     public
-    returns (uint16[] cens)
+    returns (uint16[] memory cens)
   {
     return censuredBy[_who];
   }
