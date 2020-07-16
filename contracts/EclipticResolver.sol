@@ -17,7 +17,7 @@ contract EclipticResolver is ResolverInterface
   }
 
   function addr(bytes32 node)
-    constant
+    pure
     public
     returns (address)
   {
@@ -35,8 +35,8 @@ contract EclipticResolver is ResolverInterface
   }
 
   //  ERC-137 resolvers MUST specify a fallback function that throws
-  function()
-    public
+  fallback()
+    external
   {
     revert();
   }
