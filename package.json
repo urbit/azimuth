@@ -10,7 +10,7 @@
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "openzeppelin-solidity": "1.12.0",
-    "truffle": "4.1.11"
+    "truffle": "^5.1.34"
   },
   "devDependencies": {
     "ganache-cli": "^6.9.1",

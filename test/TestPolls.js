@@ -7,8 +7,8 @@ const web3 = Polls.web3;
 
 contract('Polls', function([owner, user]) {
   let polls, duration, cooldown;
-  const concrProp = '0x11ce09f4ebe9d12f6e3864d21a1e7dde126f34eb';
-  const concrProp2 = '0x22ce09f4ebe9d12f6e3864d21a1e7dde126f34eb';
+  const concrProp = '0x11cE09F4EbE9d12f6e3864D21A1E7Dde126F34eb';
+  const concrProp2 = '0x22ce09f4EbE9d12F6e3864d21a1e7dDE126F34eb';
   const abstrProp =
     '0xabcde00000000000000000000000000000000000000000000000000000000000';
   const abstrProp2 =

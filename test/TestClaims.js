@@ -33,7 +33,7 @@ contract('Claims', function([owner, user]) {
     let clam4 = await claims.claims(0, 4);
     assert.equal(clam4[0], "");
     assert.equal(clam4[1], "");
-    assert.equal(clam4[2], "0x");
+    assert.equal(clam4[2], null);
   });
 
   it('removing claim', async function() {
@@ -45,7 +45,7 @@ contract('Claims', function([owner, user]) {
     let clam1 = await claims.claims(0, 1);
     assert.equal(clam1[0], "");
     assert.equal(clam1[1], "");
-    assert.equal(clam1[2], "0x");
+    assert.equal(clam1[2], null);
     await claims.addClaim(0, "prot2", "claim2", "0x22");
     clam1 = await claims.claims(0, 1);
     assert.equal(clam1[0], "prot2");
@@ -63,7 +63,7 @@ contract('Claims', function([owner, user]) {
     let clam16 = await claims.claims(0, 15);
     assert.equal(clam16[0], "some protocol");
     assert.equal(clam16[1], "some claim "+(15-4));
-    assert.equal(clam16[2], "0x");
+    assert.equal(clam16[2], "0x00");
     // only point owner (and ecliptic) can clear
     await assertRevert(claims.clearClaims(0, {from:user}));
     await claims.clearClaims(0);
@@ -71,7 +71,7 @@ contract('Claims', function([owner, user]) {
       let clam = await claims.claims(0, i);
       assert.equal(clam[0], "");
       assert.equal(clam[1], "");
-      assert.equal(clam[2], "0x");
+      assert.equal(clam[2], null);
     }
     // make sure things still work as expected.
     await claims.addClaim(0, "prot1", "claim", "0x01");
