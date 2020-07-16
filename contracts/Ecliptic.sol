@@ -6,7 +6,7 @@ pragma solidity 0.4.24;
 import './EclipticBase.sol';
 import './Claims.sol';
 
-import 'openzeppelin-solidity/contracts/introspection/SupportsInterfaceWithLookup.sol';
+import 'openzeppelin-solidity/contracts/introspection/ERC165.sol';
 import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
 import 'openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol';
 import 'openzeppelin-solidity/contracts/AddressUtils.sol';
