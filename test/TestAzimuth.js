@@ -182,30 +182,47 @@ contract('Azimuth', function([owner, user, user2, user3]) {
   });
 
   it('setting keys', async function() {
-    let [crypt, auth, suite, rev] = await azimuth.getKeys(0);
+    let { crypt, auth, suite, revision } = await azimuth.getKeys(0);
     assert.equal(crypt,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(auth,
       '0x0000000000000000000000000000000000000000000000000000000000000000');
     assert.equal(suite, 0);
-    assert.equal(rev, 0);
+    assert.equal(revision, 0);
     assert.equal(await azimuth.getKeyRevisionNumber(0), 0);
     assert.isFalse(await azimuth.isLive(0));
     // only owner can do this.
-    await assertRevert(azimuth.setKeys(0, 10, 11, 2, {from:user}));
-    await seeEvents(azimuth.setKeys(0, 10, 11, 2), ['ChangedKeys']);
-    await seeEvents(azimuth.setKeys(0, 10, 11, 2), []);
-    [crypt, auth, suite, rev] = await azimuth.getKeys(0);
+    await assertRevert(azimuth.setKeys(web3.utils.toHex(0),
+                                       web3.utils.toHex(10),
+                                       web3.utils.toHex(11),
+                                       web3.utils.toHex(2),
+                                       {from:user}));
+    await seeEvents(azimuth.setKeys(web3.utils.toHex(0),
+                                    web3.utils.toHex(10),
+                                    web3.utils.toHex(11),
+                                    web3.utils.toHex(2)), ['ChangedKeys']);
+    await seeEvents(azimuth.setKeys(web3.utils.toHex(0),
+                                    web3.utils.toHex(10),
+                                    web3.utils.toHex(11),
+                                    web3.utils.toHex(2)), []);
+    let ks = await azimuth.getKeys(web3.utils.toHex(0));
+    crypt = ks.crypt;
+    auth = ks.auth;
+    suite = ks.suite;
+    revision = ks.revision;
     assert.equal(crypt,
-      '0xa000000000000000000000000000000000000000000000000000000000000000');
+      '0x0a00000000000000000000000000000000000000000000000000000000000000');
     assert.equal(auth,
-      '0xb000000000000000000000000000000000000000000000000000000000000000');
+      '0x0b00000000000000000000000000000000000000000000000000000000000000');
     assert.equal(suite, 2);
-    assert.equal(rev, 1);
+    assert.equal(revision, 1);
     assert.equal(await azimuth.getKeyRevisionNumber(0), 1);
     assert.equal(await azimuth.getContinuityNumber(0), 0);
     assert.isTrue(await azimuth.isLive(0));
-    await azimuth.setKeys(0, 1, 0, 1);
+    await azimuth.setKeys(web3.utils.toHex(0),
+                          web3.utils.toHex(1),
+                          web3.utils.toHex(0),
+                          web3.utils.toHex(1));
     assert.isFalse(await azimuth.isLive(0));
     // only owner can do this
     await assertRevert(azimuth.incrementContinuityNumber(0, {from:user}));
@@ -231,7 +248,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 0);
     assert.equal(stt[1], 1);
     assert.equal(stt[2], 2);
-    await azimuth.setManagementProxy(0, 0);
+    await azimuth.setManagementProxy(0, '0x0000000000000000000000000000000000000000');
     assert.isFalse(await azimuth.isManagementProxy(0, owner));
     assert.equal(await azimuth.getManagerForCount(owner), 2);
     assert.equal(await azimuth.managerForIndexes(owner, 0), 0);
@@ -239,7 +256,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 2);
     assert.equal(stt[1], 1);
     // can still interact with points that got shuffled around in array
-    await azimuth.setManagementProxy(2, 0);
+    await azimuth.setManagementProxy(2, '0x0000000000000000000000000000000000000000');
   });
 
   it('setting voting proxy', async function() {
@@ -260,7 +277,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 0);
     assert.equal(stt[1], 1);
     assert.equal(stt[2], 2);
-    await azimuth.setVotingProxy(0, 0);
+    await azimuth.setVotingProxy(0, '0x0000000000000000000000000000000000000000');
     assert.isFalse(await azimuth.isVotingProxy(0, owner));
     assert.equal(await azimuth.getVotingForCount(owner), 2);
     assert.equal(await azimuth.votingForIndexes(owner, 0), 0);
@@ -268,7 +285,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 2);
     assert.equal(stt[1], 1);
     // can still interact with points that got shuffled around in array
-    await azimuth.setVotingProxy(2, 0);
+    await azimuth.setVotingProxy(2, '0x0000000000000000000000000000000000000000');
   });
 
   it('setting spawn proxy', async function() {
@@ -289,7 +306,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 0);
     assert.equal(stt[1], 1);
     assert.equal(stt[2], 2);
-    await azimuth.setSpawnProxy(0, 0);
+    await azimuth.setSpawnProxy(0, '0x0000000000000000000000000000000000000000');
     assert.isFalse(await azimuth.isSpawnProxy(0, owner));
     assert.equal(await azimuth.getSpawningForCount(owner), 2);
     assert.equal(await azimuth.spawningForIndexes(owner, 0), 0);
@@ -297,7 +314,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 2);
     assert.equal(stt[1], 1);
     // can still interact with points that got shuffled around in array
-    await azimuth.setSpawnProxy(2, 0);
+    await azimuth.setSpawnProxy(2, '0x0000000000000000000000000000000000000000');
   });
 
   it('setting transfer proxy', async function() {
@@ -318,7 +335,7 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 0);
     assert.equal(stt[1], 1);
     assert.equal(stt[2], 2);
-    await azimuth.setTransferProxy(0, 0);
+    await azimuth.setTransferProxy(0, '0x0000000000000000000000000000000000000000');
     assert.isFalse(await azimuth.isTransferProxy(0, owner));
     assert.equal(await azimuth.getTransferringForCount(owner), 2);
     assert.equal(await azimuth.transferringForIndexes(owner, 0), 0);
@@ -326,6 +343,6 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(stt[0], 2);
     assert.equal(stt[1], 1);
     // can still interact with points that got shuffled around in array
-    await azimuth.setTransferProxy(2, 0);
+    await azimuth.setTransferProxy(2, '0x0000000000000000000000000000000000000000');
   });
 });

@@ -8,8 +8,9 @@ const assertRevert = require('./helpers/assertRevert');
 const seeEvents = require('./helpers/seeEvents');
 
 contract('Delegated Sending', function([owner, user1, user2, user3, user4, user5]) {
-  let azimuth, eclipt, dese;
-  let p1, p2, p3, p4, p5;
+  let azimuth, eclipt, dese,
+      p1, p2, p3, p4, p5, p6,
+      s1, s2;
 
   before('setting up for tests', async function() {
     s1 = 256;
@@ -24,19 +25,33 @@ contract('Delegated Sending', function([owner, user1, user2, user3, user4, user5
     azimuth = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(azimuth.address);
-    eclipt = await Ecliptic.new(0, azimuth.address, polls.address,
-                                     claims.address);
+    eclipt = await Ecliptic.new('0x0000000000000000000000000000000000000000',
+                                azimuth.address,
+                                polls.address,
+                                claims.address);
     await azimuth.transferOwnership(eclipt.address);
     await polls.transferOwnership(eclipt.address);
     dese = await DelegatedSending.new(azimuth.address);
     //
     await eclipt.createGalaxy(0, owner);
-    await eclipt.configureKeys(0, 1, 1, 1, false);
+    await eclipt.configureKeys(web3.utils.toHex(0),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(1),
+                               false);
     await eclipt.spawn(s1, owner);
-    await eclipt.configureKeys(s1, 1, 1, 1, false);
+    await eclipt.configureKeys(s1,
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(1),
+                               false);
     await eclipt.setSpawnProxy(s1, dese.address);
     await eclipt.spawn(s2, owner);
-    await eclipt.configureKeys(s2, 1, 1, 1, false);
+    await eclipt.configureKeys(s2,
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(1),
+                               false);
     await eclipt.setSpawnProxy(s2, dese.address);
     await eclipt.spawn(p1, owner);
     await eclipt.transferPoint(p1, owner, false);

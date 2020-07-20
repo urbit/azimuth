@@ -8,8 +8,8 @@ const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
 
 contract('Conditional Star Release', function([owner, user1, user2, user3]) {
-  let azimuth, azimuth2, polls, eclipt, eclipt2, csr, csr2,
-      deadline1, deadline2, deadline3, condit2, rateUnit,
+  let azimuth, azimuth2, polls, claims, eclipt, eclipt2, csr, csr2,
+      deadline1, deadline2, deadline3, deadline4, condit2, rateUnit,
       deadlineStep, escapeHatchTime, escapeHatchDate;
 
   function assertInvalid(error) {
@@ -18,7 +18,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   function getChainTime() {
     return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync({
+      web3.currentProvider.send({
         jsonrpc: '2.0',
         method: 'eth_getBlockByNumber',
         params: ['latest', false],
@@ -32,35 +32,53 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   before('setting up for tests', async function() {
     deadlineStep = 100;
-    condit2 = 123456789;
+    condit2 = web3.utils.toHex(123456789);
     rateUnit = deadlineStep * 10;
     azimuth = await Azimuth.new();
     azimuth2 = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(azimuth.address);
-    eclipt = await Ecliptic.new(0x1, azimuth.address, polls.address,
-                                     claims.address);
-    eclipt2 = await Ecliptic.new(0x0, azimuth2.address,
-                                      polls.address, claims.address)
+    eclipt = await Ecliptic.new('0x0000000000000000000000000000000000000001',
+                                azimuth.address,
+                                polls.address,
+                                claims.address);
+    eclipt2 = await Ecliptic.new('0x0000000000000000000000000000000000000000',
+                                 azimuth2.address,
+                                 polls.address,
+                                 claims.address)
     await azimuth.transferOwnership(eclipt.address);
     await azimuth2.transferOwnership(eclipt2.address);
     await polls.transferOwnership(eclipt.address);
     await eclipt.createGalaxy(0, owner);
-    await eclipt.configureKeys(0, 1, 2, 1, false);
+    await eclipt.configureKeys(web3.utils.toHex(0),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(2),
+                               web3.utils.toHex(1),
+                               false);
     await eclipt.spawn(256, owner);
     await eclipt.spawn(2560, owner);
-    await eclipt.configureKeys(2560, 1, 2, 1, false);
-    deadline1 = web3.toDecimal(await getChainTime()) + 10;
+    await eclipt.configureKeys(web3.utils.toHex(2560),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(2),
+                               web3.utils.toHex(1),
+                               false);
+    deadline1 = web3.utils.toDecimal(await getChainTime()) + 10;
     deadline2 = deadline1 + deadlineStep;
     deadline3 = deadline2 + deadlineStep;
     deadline4 = deadline3 + deadlineStep;
     escapeHatchTime = deadlineStep * 100;
-    escapeHatchDate = web3.toDecimal(await getChainTime()) + escapeHatchTime;
-    csr = await CSR.new( azimuth.address, [0, condit2, "miss me", "too"],
+    escapeHatchDate = web3.utils.toDecimal(await getChainTime()) + escapeHatchTime;
+    csr = await CSR.new( azimuth.address, [web3.utils.toHex(0),
+                                           condit2,
+                                           web3.utils.toHex("miss me"),
+                                           web3.utils.toHex("too")],
                          [0, 0, 0, 0],
                          [deadline1, deadline2, deadline3, deadline4],
                          escapeHatchDate );
-    csr2 = await CSR.new( azimuth2.address, [0, condit2, "miss me", "too"],
+    csr2 = await CSR.new( azimuth2.address, [web3.utils.toHex(0),
+                                             condit2,
+                                             web3.utils.toHex("miss me"),
+                                             web3.utils.toHex("too")],
                           [0, 0, 0, 0],
                           [deadline1, deadline2, deadline3, deadline4],
                           escapeHatchDate );
@@ -70,14 +88,14 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
 
   it('creation sanity check', async function() {
     // need as many deadlines as conditions
-    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0, 0], [0], 1));
-    await assertRevert(CSR.new(azimuth.address, [0, condit2], [0], [0, 0], 1));
+    await assertRevert(CSR.new(azimuth.address, [web3.utils.toHex(0), condit2], [0, 0], [0], 1));
+    await assertRevert(CSR.new(azimuth.address, [web3.utils.toHex(0), condit2], [0], [0, 0], 1));
     // can't have too many conditions
     let many = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertRevert(CSR.new(azimuth.address, many, many, many, 1));
+    await assertRevert(CSR.new(azimuth.address, many.map(n => web3.utils.toHex(n)), many, many, 1));
     // can't have unfair escape hatch
     let few = [2, 2, 2];
-    await assertRevert(CSR.new(azimuth.address, few, few, few, 1));
+    await assertRevert(CSR.new(azimuth.address, few.map(n => web3.utils.toHex(n)), few, few, 1));
   });
 
   it('analyzing conditions', async function() {
@@ -101,7 +119,7 @@ contract('Conditional Star Release', function([owner, user1, user2, user3]) {
     await csr.analyzeCondition(2);
     assert.equal(await csr.timestamps(2), deadline3);
     // verify contract state getters work
-    let [conds, lives, deads, times] = await csr.getConditionsState();
+    let { conds, lives, deads, times } = await csr.getConditionsState();
     assert.equal(conds[3],
       // "too"
       "0x746f6f0000000000000000000000000000000000000000000000000000000000");

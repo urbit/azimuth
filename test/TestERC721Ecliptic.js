@@ -53,7 +53,10 @@ contract('NFTokenMock', (accounts) => {
     azimuth = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(azimuth.address);
-    nftoken = await Ecliptic.new(0, azimuth.address, polls.address, claims.address);
+    nftoken = await Ecliptic.new('0x0000000000000000000000000000000000000000',
+                                 azimuth.address,
+                                 polls.address,
+                                 claims.address);
     azimuth.transferOwnership(nftoken.address);
     polls.transferOwnership(nftoken.address);
   });
@@ -84,7 +87,7 @@ contract('NFTokenMock', (accounts) => {
   });
 
   it('throws when trying to mint NFT to 0x0 address ', async () => {
-    await assertRevert(nftoken.createGalaxy(id3, '0'));
+    await assertRevert(nftoken.createGalaxy(id3, '0x0000000000000000000000000000000000000000'));
   });
 
   it('finds the correct amount of NFTs owned by account', async () => {
@@ -97,7 +100,7 @@ contract('NFTokenMock', (accounts) => {
   });
 
   it('throws when trying to get count of NFTs owned by 0x0 address', async () => {
-    await assertRevert(nftoken.balanceOf('0'));
+    await assertRevert(nftoken.balanceOf('0x0000000000000000000000000000000000000000'));
   });
 
   it('finds the correct owner of NFToken id', async () => {
@@ -121,7 +124,8 @@ contract('NFTokenMock', (accounts) => {
   it('correctly cancels approval of account[1]', async () => {
     await nftoken.createGalaxy(id2, accounts[0]);
     await nftoken.approve(accounts[1], id2);
-    await nftoken.approve(0, id2);
+    await nftoken.approve('0x0000000000000000000000000000000000000000',
+                          id2);
     const address = await nftoken.getApproved(id2);
     assert.equal(address, 0);
   });
@@ -165,7 +169,8 @@ contract('NFTokenMock', (accounts) => {
   });
 
   it('throws when trying to set a zero address as operator', async () => {
-    await assertRevert(nftoken.setApprovalForAll(0, true));
+    await assertRevert(nftoken.setApprovalForAll('0x0000000000000000000000000000000000000000',
+                                                 true));
   });
 
   it('correctly transfers NFT from owner', async () => {
@@ -241,7 +246,10 @@ contract('NFTokenMock', (accounts) => {
 
     await nftoken.createGalaxy(id2, owner);
     await nftoken.transferPoint(id2, owner, false, {from:owner});
-    await assertRevert(nftoken.transferFrom(owner, 0, id2, {from: owner}));
+    await assertRevert(nftoken.transferFrom(owner,
+                                            '0x0000000000000000000000000000000000000000',
+                                            id2,
+                                            {from: owner}));
   });
 
   it('throws when trying to transfer a invalid NFT', async () => {

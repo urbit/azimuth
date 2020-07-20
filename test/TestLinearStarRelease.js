@@ -8,7 +8,7 @@ const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
 
 contract('Linear Star Release', function([owner, user1, user2, user3]) {
-  let azimuth, polls, eclipt, lsr, windup, rateUnit;
+  let azimuth, polls, claims, eclipt, lsr, windup, rateUnit;
 
   before('setting up for tests', async function() {
     windup = 20;
@@ -16,15 +16,25 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
     azimuth = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(azimuth.address);
-    eclipt = await Ecliptic.new(0, azimuth.address, polls.address,
-                                     claims.address);
+    eclipt = await Ecliptic.new('0x0000000000000000000000000000000000000000',
+                                azimuth.address,
+                                polls.address,
+                                claims.address);
     await azimuth.transferOwnership(eclipt.address);
     await polls.transferOwnership(eclipt.address);
     await eclipt.createGalaxy(0, owner);
-    await eclipt.configureKeys(0, 1, 2, 1, false);
+    await eclipt.configureKeys(web3.utils.toHex(0),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(2),
+                               web3.utils.toHex(1),
+                               false);
     await eclipt.spawn(256, owner);
     await eclipt.spawn(2560, owner);
-    await eclipt.configureKeys(2560, 1, 2, 1, false);
+    await eclipt.configureKeys(web3.utils.toHex(2560),
+                               web3.utils.toHex(1),
+                               web3.utils.toHex(2),
+                               web3.utils.toHex(1),
+                               false);
     lsr = await LSR.new(azimuth.address);
     lsr.startReleasing();
     await eclipt.setSpawnProxy(0, lsr.address);

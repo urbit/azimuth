@@ -19,7 +19,10 @@ contract('NFTokenMetadataMock', (accounts) => {
     azimuth = await Azimuth.new();
     polls = await Polls.new(432000, 432000);
     claims = await Claims.new(azimuth.address);
-    nftoken = await Ecliptic.new(0, azimuth.address, polls.address, claims.address);
+    nftoken = await Ecliptic.new('0x0000000000000000000000000000000000000000',
+                                 azimuth.address,
+                                 polls.address,
+                                 claims.address);
     azimuth.transferOwnership(nftoken.address);
     polls.transferOwnership(nftoken.address);
   });
