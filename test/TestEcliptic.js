@@ -1,9 +1,9 @@
-const Azimuth = artifacts.require('../contracts/Azimuth.sol');
-const Polls = artifacts.require('../contracts/Polls.sol');
-const Claims = artifacts.require('../contracts/Claims.sol');
-const Ecliptic = artifacts.require('../contracts/Ecliptic.sol');
-const ENSRegistry = artifacts.require('../contracts/ENSRegistry.sol');
-const PublicResolver = artifacts.require('../contracts/PublicResolver.sol');
+const Azimuth = artifacts.require('Azimuth');
+const Polls = artifacts.require('Polls');
+const Claims = artifacts.require('Claims');
+const Ecliptic = artifacts.require('Ecliptic');
+const ENSRegistry = artifacts.require('ENSRegistry');
+const PublicResolver = artifacts.require('PublicResolver');
 
 const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');

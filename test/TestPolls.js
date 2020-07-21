@@ -1,4 +1,4 @@
-const Polls = artifacts.require('../contracts/Polls.sol');
+const Polls = artifacts.require('Polls');
 
 const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
