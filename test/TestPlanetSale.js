@@ -1,8 +1,8 @@
-const Azimuth = artifacts.require('../contracts/Azimuth.sol');
-const Polls = artifacts.require('../contracts/Polls.sol');
-const Claims = artifacts.require('../contracts/Claims.sol');
-const Ecliptic = artifacts.require('../contracts/Ecliptic.sol');
-const PlanetSale = artifacts.require('../contracts/PlanetSale.sol');
+const Azimuth = artifacts.require('Azimuth');
+const Polls = artifacts.require('Polls');
+const Claims = artifacts.require('Claims');
+const Ecliptic = artifacts.require('Ecliptic');
+const PlanetSale = artifacts.require('PlanetSale');
 
 const assertRevert = require('./helpers/assertRevert');
 

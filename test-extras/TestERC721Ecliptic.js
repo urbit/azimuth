@@ -1,9 +1,9 @@
 // adapted from:
 // https://github.com/0xcert/ethereum-erc721/blob/master/test/tokens/NFToken.test.js
 
-const Azimuth = artifacts.require('../contracts/Azimuth.sol');
-const Polls = artifacts.require('../contracts/Polls.sol');
-const Claims = artifacts.require('../contracts/Claims.sol');
+const Azimuth = artifacts.require('Azimuth');
+const Polls = artifacts.require('Polls');
+const Claims = artifacts.require('Claims');
 const Ecliptic = artifacts.require('Ecliptic');
 const TokenReceiverMock = artifacts.require('NFTokenReceiverTestMock');
 
@@ -39,8 +39,8 @@ const overloadedSafeTransferFrom = {
   "type": "function"
 };
 
-const assertRevert = require('./helpers/assertRevert');
-const seeEvents = require('./helpers/seeEvents');
+const assertRevert = require('../test/helpers/assertRevert');
+const seeEvents = require('../test/helpers/seeEvents');
 
 contract('NFTokenMock', (accounts) => {
   let azimuth, polls, claims, nftoken;

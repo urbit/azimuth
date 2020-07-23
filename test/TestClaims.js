@@ -1,5 +1,5 @@
-const Azimuth = artifacts.require('../contracts/Azimuth.sol');
-const Claims = artifacts.require('../contracts/Claims.sol');
+const Azimuth = artifacts.require('Azimuth');
+const Claims = artifacts.require('Claims');
 
 const assertRevert = require('./helpers/assertRevert');
 

@@ -1,5 +1,6 @@
 # Azimuth
 
+[![Build Status](https://secure.travis-ci.org/urbit/azimuth.png)](http://travis-ci.org/urbit/azimuth)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/urbit/azimuth/blob/master/LICENSE)
 [![npm](https://img.shields.io/npm/v/azimuth-solidity.svg)](https://www.npmjs.com/package/azimuth-solidity)
 
@@ -70,4 +71,12 @@ npx ganache-cli --gasLimit 6000000
 ```
 
 and then test via `npx truffle test`.
+
+There are also tests located in `test-extras` that are not meant to be run via
+a basic `npx truffle test` as they can fail nondeterministically.  You can run
+these via:
+
+```
+npm run test-extras
+```
 

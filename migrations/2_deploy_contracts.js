@@ -1,11 +1,11 @@
-var Azimuth = artifacts.require("./Azimuth.sol");
-var Polls = artifacts.require("./Polls.sol");
-var Claims = artifacts.require("./Claims.sol");
-var Censures = artifacts.require("./Censures.sol");
-var Ecliptic = artifacts.require("./Ecliptic.sol");
-var DelegatedSending = artifacts.require("./DelegatedSending.sol");
-var LinearStarRelease = artifacts.require("./LinearStarRelease.sol");
-var ConditionalStarRelease = artifacts.require("./ConditionalStarRelease.sol");
+var Azimuth = artifacts.require("Azimuth");
+var Polls = artifacts.require("Polls");
+var Claims = artifacts.require("Claims");
+var Censures = artifacts.require("Censures");
+var Ecliptic = artifacts.require("Ecliptic");
+var DelegatedSending = artifacts.require("DelegatedSending");
+var LinearStarRelease = artifacts.require("LinearStarRelease");
+var ConditionalStarRelease = artifacts.require("ConditionalStarRelease");
 
 const WITH_TEST_STATE = process.argv[3] === "with-state";
 
