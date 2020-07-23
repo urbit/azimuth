@@ -1,5 +1,9 @@
 # Changelog
 
+- 1.2.2 (2020-07-23)
+    * Updates Truffle to a recent version and makes miscellaneous minor fixes
+      to testing and deployment scripts.
+
 - 1.2.1 (2019-10-22)
     * Makes a minor patch to an event parameter in the DelegatedSending
       contract.
