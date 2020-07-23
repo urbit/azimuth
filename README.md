@@ -1,6 +1,6 @@
 # Azimuth
 
-[![Build Status](https://secure.travis-ci.org/urbit/azimuth.png)](http://travis-ci.org/urbit/azimuth)
+[![Build Status](https://secure.travis-ci.org/urbit/azimuth.png?branch=master)](http://travis-ci.org/urbit/azimuth)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/urbit/azimuth/blob/master/LICENSE)
 [![npm](https://img.shields.io/npm/v/azimuth-solidity.svg)](https://www.npmjs.com/package/azimuth-solidity)
 
