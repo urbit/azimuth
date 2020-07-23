@@ -6,7 +6,7 @@ const Polls = artifacts.require('Polls');
 const Claims = artifacts.require('Claims');
 const Ecliptic = artifacts.require('Ecliptic');
 
-const assertRevert = require('./helpers/assertRevert');
+const assertRevert = require('../test/helpers/assertRevert');
 
 contract('NFTokenMetadataMock', (accounts) => {
   let azimuth, polls, claims, nftoken;

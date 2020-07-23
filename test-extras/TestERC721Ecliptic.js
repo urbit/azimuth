@@ -39,8 +39,8 @@ const overloadedSafeTransferFrom = {
   "type": "function"
 };
 
-const assertRevert = require('./helpers/assertRevert');
-const seeEvents = require('./helpers/seeEvents');
+const assertRevert = require('../test/helpers/assertRevert');
+const seeEvents = require('../test/helpers/seeEvents');
 
 contract('NFTokenMock', (accounts) => {
   let azimuth, polls, claims, nftoken;
