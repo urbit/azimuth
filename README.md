@@ -71,3 +71,11 @@ npx ganache-cli --gasLimit 6000000
 
 and then test via `npx truffle test`.
 
+There are also tests located in `test-extras` that are not meant to be run via
+a basic `npx truffle test` as they can fail nondeterministically.  You can run
+these via:
+
+```
+npm run test-extras
+```
+

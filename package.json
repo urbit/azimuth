@@ -26,8 +26,11 @@
     "test:ganache": "ganache-cli --gasLimit 6000000 > /dev/null &",
     "test:setup": "npm run build && npm run test:ganache",
     "test:truffle": "truffle test",
+    "test:extras:ecliptic": "truffle test ./test-extras/TestERC721Ecliptic.js",
+    "test:extras:extensions": "truffle test ./test-extras/TestERC721Extensions.js",
     "test:cleanup": "pkill -f ganache-cli",
     "test": "npm-run-all test:setup test:truffle test:cleanup --continue-on-error",
+    "test-extras": "npm-run-all test:setup test:extras:ecliptic test:extras:extensions test:cleanup --continue-on-error",
     "install": "npm run build"
   },
   "repository": {
