@@ -1,0 +1,1 @@
+(i) Tlon has designated the Urbit Network as having reached "continuity" ("continuity" means that there is a reasonable expectation that the Urbit Network can continue indefinitely without hard forks); and (ii) The Urbit Network has been confirmed to be secure by an independent third-party security audit.
