@@ -43,4 +43,24 @@ contract ReadsAzimuth
              azimuth.isActive(_point) );
     _;
   }
+
+  //  activePointSpawner(): require that :msg.sender can spawn as _point,
+  //                        and that _point is active
+  //
+  modifier activePointSpawner(uint32 _point)
+  {
+    require( azimuth.canSpawnAs(_point, msg.sender) &&
+             azimuth.isActive(_point) );
+    _;
+  }
+
+  //  activePointVoter(): require that :msg.sender can vote as _point,
+  //                        and that _point is active
+  //
+  modifier activePointVoter(uint32 _point)
+  {
+    require( azimuth.canVoteAs(_point, msg.sender) &&
+             azimuth.isActive(_point) );
+    _;
+  }
 }
