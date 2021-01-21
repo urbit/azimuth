@@ -103,7 +103,9 @@ contract('Ecliptic', function([owner, user1, user2]) {
     // can't do if not owner.
     await assertRevert(eclipt.setSpawnProxy(0, user2, {from:user2}));
     // set up for working spawn.
-    await eclipt.setSpawnProxy(0, user2, {from:user1});
+    await eclipt.setSpawnProxy(0, owner, {from:user1});
+    // can do as proxy itself
+    await eclipt.setSpawnProxy(0, user2, {from:owner})
     assert.isTrue(await azimuth.isSpawnProxy(0, user2));
     // spawn as launcher, then test revoking of rights.
     await eclipt.spawn(768, user1, {from:user2});
@@ -210,7 +212,9 @@ contract('Ecliptic', function([owner, user1, user2]) {
 
   it('setting management proxy', async function() {
     assert.equal(await azimuth.getManagementProxy(0), 0);
-    await eclipt.setManagementProxy(0, owner, {from:user1});
+    await assertRevert(eclipt.setManagementProxy(0, owner, {from:user2}));
+    await eclipt.setManagementProxy(0, user2, {from:user1});
+    await eclipt.setManagementProxy(0, owner, {from:user2});
     assert.equal(await azimuth.getManagementProxy(0), owner);
     // manager can do things like configure keys
     await eclipt.configureKeys(web3.utils.toHex(0),
@@ -296,7 +300,9 @@ contract('Ecliptic', function([owner, user1, user2]) {
 
   it('setting voting proxy', async function() {
     assert.equal(await azimuth.getVotingProxy(0), 0);
-    await eclipt.setVotingProxy(0, owner, {from:user1});
+    await assertRevert(eclipt.setVotingProxy(0, owner, {from:user2}));
+    await eclipt.setVotingProxy(0, user2, {from:user1});
+    await eclipt.setVotingProxy(0, owner, {from:user2});
     assert.equal(await azimuth.getVotingProxy(0), owner);
   });
 
