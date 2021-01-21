@@ -6,15 +6,6 @@ module.exports = async (promise, events) => {
   }
   else
   {
-    for (var i = 0; i < events.length; i++)
-    {
-      assert.isTrue(undefined !== logs.find(e => e.event === events[i]),
-                    "expected to see " + events[i]);
-    }
-    for (var i = 0; i < logs.length; i++)
-    {
-      assert.isTrue(undefined !== events.find(e => e === logs[i].event),
-                    "didn't expect to see " + logs[i].event);
-    }
+    assert.deepEqual(logs.map(l => l.event), events);
   }
 };

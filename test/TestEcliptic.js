@@ -348,8 +348,11 @@ contract('Ecliptic', function([owner, user1, user2]) {
     await seeEvents(eclipt2.updateUpgradePoll(eclipt3.address), []);
     assert.equal(await azimuth.owner(), eclipt2.address);
     await increaseTime(pollTime + 5);
-    await seeEvents(eclipt2.updateUpgradePoll(eclipt3.address),
-                    ['Upgraded', 'OwnershipTransferred']);
+    await seeEvents(eclipt2.updateUpgradePoll(eclipt3.address), [
+      'OwnershipTransferred',
+      'OwnershipTransferred',
+      'Upgraded'
+    ]);
     assert.equal(await azimuth.owner(), eclipt3.address);
     assert.equal(await polls.owner(), eclipt3.address);
   });
