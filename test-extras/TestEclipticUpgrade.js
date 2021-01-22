@@ -1,6 +1,11 @@
+//  tests upgrade to either the ecliptic included in the repo,
+//  or a specified target already on-chain
 
-//NOTE  set to a
 let nuEclipticAddr = undefined;
+const cooked = JSON.parse(process.env.npm_config_argv).cooked;
+if (cooked[1] === '--target') {
+  nuEclipticAddr = cooked[2];
+}
 
 const Azimuth = artifacts.require('Azimuth');
 const Ecliptic = artifacts.require('Ecliptic');
@@ -13,14 +18,14 @@ const web3 = Azimuth.web3;
 const azimuthAddr = '0x223c067F8CF28ae173EE5CafEa60cA44C335fecB';
 
 contract('Ecliptic', function ([owner, user1, user2]) {
-  let azimuth, nuEcliptic, pollsAddr, senators;
+  let azimuth, ecliptic, nuEcliptic, pollsAddr, senators;
 
   before('setting up for tests', async function () {
     //  get existing contracts
     //
     azimuth = await Azimuth.at(azimuthAddr);
     const eclipticAddr = await azimuth.owner();
-    const ecliptic = await Ecliptic.at(eclipticAddr);
+    ecliptic = await Ecliptic.at(eclipticAddr);
     pollsAddr = await ecliptic.polls();
 
     console.log('upgrading from', eclipticAddr);
@@ -34,7 +39,6 @@ contract('Ecliptic', function ([owner, user1, user2]) {
     }
     senators = await Promise.all(senators);
 
-
     //  deploy new contracts
     //
     if (nuEclipticAddr) {
@@ -46,7 +50,9 @@ contract('Ecliptic', function ([owner, user1, user2]) {
       nuEclipticAddr = nuEcliptic.address;
     }
     console.log('new ecliptic at', nuEclipticAddr);
+  });
 
+  it('can be upgraded to', async function() {
     //  start poll, cast majority vote
     //
     console.log('casting votes...');
@@ -60,9 +66,6 @@ contract('Ecliptic', function ([owner, user1, user2]) {
         gasPrice: 0
       });
     }
-  });
-
-  it('upgraded', async function() {
     assert.equal(await azimuth.owner(), nuEcliptic.address);
   });
 

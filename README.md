@@ -78,13 +78,15 @@ For testing Ecliptic upgrades against whatever version of the contract is on mai
 npm run fork-mainnet
 ```
 
-This will set up a local fork of mainnet, with the ownership addresses of the first 128 galaxies unlocked. Once that's ready, you can run the following in a seperate terminal:
+This will start a local fork of mainnet, with the ownership addresses of the first 128 galaxies unlocked. Once that's ready, you can run the following in a seperate terminal:
 
 ```
 npm run test-upgrade
+//  or, to upgrade to a pre-existing contract, specify its address:
+npm run test-upgrade -- --target='0xabcd...'
 ```
 
-This will deploy the Ecliptic contract currently in the repository to the local fork, and test if it can be upgraded to cleanly. Because this involves many transactions (for voting), this may take a couple minutes.
+This will deploy the Ecliptic contract currently in the repository to the local fork (or refer to the specified upgrade target), and test if it can be upgraded to cleanly. Because this involves many transactions (for voting), this may take a couple minutes.
 
 There are also tests located in `test-extras` that are not meant to be run via
 a basic `npx truffle test` as they can fail nondeterministically.  You can run
