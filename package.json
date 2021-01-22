@@ -10,7 +10,8 @@
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "openzeppelin-solidity": "1.12.0",
-    "truffle": "^5.1.34"
+    "truffle": "^5.1.34",
+    "web3": "^1.3.1"
   },
   "devDependencies": {
     "ganache-cli": "^6.9.1",
@@ -31,6 +32,8 @@
     "test:cleanup": "pkill -f ganache-cli",
     "test": "npm-run-all test:setup test:truffle test:cleanup --continue-on-error",
     "test-extras": "npm-run-all test:setup test:extras:ecliptic test:extras:extensions test:cleanup --continue-on-error",
+    "fork-mainnet": "node ./test-extras/SetupMainnetFork.js",
+    "test-upgrade": "npm-run-all test:extras:upgrade test:cleanup --continue-on-error",
     "install": "npm run build"
   },
   "repository": {
