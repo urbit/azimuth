@@ -12,15 +12,12 @@ const Ecliptic = artifacts.require('Ecliptic');
 const Polls = artifacts.require('Polls');
 const Claims = artifacts.require('Claims');
 
-const web3abi = require('web3-eth-abi');
-const web3 = Azimuth.web3;
-
 const azimuthAddr = '0x223c067F8CF28ae173EE5CafEa60cA44C335fecB';
 
-contract('Ecliptic', function ([owner, user1, user2]) {
+contract('Ecliptic', function() {
   let azimuth, ecliptic, nuEcliptic, pollsAddr, senators;
 
-  before('setting up for tests', async function () {
+  before('setting up for tests', async function() {
     //  get existing contracts
     //
     azimuth = await Azimuth.at(azimuthAddr);
