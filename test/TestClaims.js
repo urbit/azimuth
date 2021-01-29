@@ -67,7 +67,10 @@ contract('Claims', function([owner, user]) {
     assert.equal(clam16[2], "0x00");
     // only point owner (and ecliptic) can clear
     await assertRevert(claims.clearClaims(0, {from:user}));
-    await seeEvents(claims.clearClaims(0), Array(16).fill('ClaimRemoved'));
+    // removing one ahead of clearClaims so we can make sure it emits only as
+    // many events as claims that were actually removed
+    await claims.removeClaim(0, "some protocol", "some claim 0");
+    await seeEvents(claims.clearClaims(0), Array(15).fill('ClaimRemoved'));
     for (var i = 0; i < 16; i++) {
       let clam = await claims.claims(0, i);
       assert.equal(clam[0], "");

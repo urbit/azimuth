@@ -145,7 +145,13 @@ contract Claims is ReadsAzimuth
     //
     for (uint8 i = 0; i < maxClaims; i++)
     {
-      emit ClaimRemoved(_point, currClaims[i].protocol, currClaims[i].claim);
+      //  only emit the removed event if there was a claim here
+      //
+      if ( ( 0 < bytes(currClaims[i].protocol).length ) ||
+           ( 0 < bytes(currClaims[i].claim).length ) )
+      {
+        emit ClaimRemoved(_point, currClaims[i].protocol, currClaims[i].claim);
+      }
 
       delete currClaims[i];
     }
