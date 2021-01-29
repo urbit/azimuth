@@ -17,6 +17,9 @@ contract('Claims', function([owner, user]) {
   it('claiming', async function() {
     // only point owner can do this.
     await assertRevert(claims.addClaim(0, "prot1", "claim", "0x0", {from:user}));
+    // cannot set empty claim/protocol
+    await assertRevert(claims.addClaim(0, "prot1", "", "0x0"));
+    await assertRevert(claims.addClaim(0, "", "claim", "0x0"));
     await seeEvents(claims.addClaim(0, "prot1", "claim", "0x0"), ['ClaimAdded']);
     // can update the proof.
     await claims.addClaim(0, "prot1", "claim", "0x01");

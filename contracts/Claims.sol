@@ -76,6 +76,11 @@ contract Claims is ReadsAzimuth
     external
     activePointManager(_point)
   {
+    //  require non-empty protocol and claim fields
+    //
+    require( ( 0 < bytes(_protocol).length ) &&
+             ( 0 < bytes(_claim).length ) );
+
     //  cur: index + 1 of the claim if it already exists, 0 otherwise
     //
     uint8 cur = findClaim(_point, _protocol, _claim);
@@ -147,8 +152,7 @@ contract Claims is ReadsAzimuth
     {
       //  only emit the removed event if there was a claim here
       //
-      if ( ( 0 < bytes(currClaims[i].protocol).length ) ||
-           ( 0 < bytes(currClaims[i].claim).length ) )
+      if ( 0 < bytes(currClaims[i].claim).length )
       {
         emit ClaimRemoved(_point, currClaims[i].protocol, currClaims[i].claim);
       }
@@ -197,8 +201,7 @@ contract Claims is ReadsAzimuth
     for (uint8 i = 0; i < maxClaims; i++)
     {
       Claim storage thisClaim = theirClaims[i];
-      if ( (0 == bytes(thisClaim.protocol).length) &&
-           (0 == bytes(thisClaim.claim).length) )
+      if ( (0 == bytes(thisClaim.claim).length) )
       {
         return i;
       }
