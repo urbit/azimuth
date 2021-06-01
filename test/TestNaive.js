@@ -13,7 +13,12 @@ contract('Naive', function([owner, user]) {
 
   it('accepts batch', async function() {
     console.log('doing');
-    await seeEvents(naive.batch('0x1234'), ['Batch'])
+    const tx = await web3.eth.sendTransaction({
+      from: owner,
+      to: naive.address,
+      data: '0x1234',
+    });
+    assert.isTrue(tx.status);
     console.log('done');
   });
 });
