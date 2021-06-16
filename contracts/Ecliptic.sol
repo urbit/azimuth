@@ -81,6 +81,12 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
   //        ERC721Receiver(0).onERC721Received.selector`
   bytes4 constant erc721Received = 0x150b7a02;
 
+  // depositAddress: Special address respresenting L2.  Ships sent to
+  //                 this address are controlled on L2 instead of here.
+  //
+  address constant public depositAddress =
+    0x1111111111111111111111111111111111111111;
+
   //  claims: contract reference, for clearing claims on-transfer
   //
   Claims public claims;
@@ -345,6 +351,10 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //
       uint16 prefix = azimuth.getPrefix(_point);
 
+      //  can't spawn if we deposited spawn rights to L2
+      //
+      require( depositAddress != azimuth.getSpawnProxy(prefix) );
+
       //  only allow spawning of points of the size directly below the prefix
       //
       //    this is possible because of how the address space works,
@@ -456,6 +466,12 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //
       require(azimuth.canTransfer(_point, msg.sender));
 
+      //  can't deposit galaxy to L2
+      //
+      require( depositAddress != _target ||
+               ( azimuth.getPointSize(_point) != Azimuth.Size.Galaxy &&
+                 !azimuth.getOwner(_point).isContract() ) );
+
       //  if the point wasn't active yet, that means transferring it
       //  is part of the "spawn" flow, so we need to activate it
       //
@@ -485,10 +501,22 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
         emit Transfer(old, _target, uint256(_point));
       }
 
+      //  if we're depositing, clear L1 data so that no proxies can be used
+      //
+      if ( depositAddress == _target )
+      {
+        azimuth.setKeys(_point, 0, 0, 0);
+        azimuth.setManagementProxy(_point, 0);
+        azimuth.setVotingProxy(_point, 0);
+        azimuth.setTransferProxy(_point, 0);
+        azimuth.setSpawnProxy(_point, 0);
+        claims.clearClaims(_point);
+        azimuth.cancelEscape(_point);
+      }
       //  reset sensitive data
       //  used when transferring the point to a new owner
       //
-      if ( _reset )
+      else if ( _reset )
       {
         //  clear the network public keys and break continuity,
         //  but only if the point has already been linked
@@ -518,7 +546,12 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
 
         //  clear spawning proxy
         //
-        azimuth.setSpawnProxy(_point, 0);
+        //    don't clear if the spawn rights have been deposited to L2,
+        //
+        if ( depositAddress != azimuth.getSpawnProxy(_point) )
+        {
+          azimuth.setSpawnProxy(_point, 0);
+        }
 
         //  clear claims
         //
@@ -539,6 +572,10 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       external
       activePointManager(_point)
     {
+      //  if they're on L2, need to use L2
+      //
+      require( depositAddress != azimuth.getOwner(_sponsor) );
+
       require(canEscapeTo(_point, _sponsor));
       azimuth.setEscapeRequest(_point, _sponsor);
     }
@@ -557,6 +594,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    Requirements:
     //    - :msg.sender must be the owner or management proxy
     //      of _point's requested sponsor
+    //
+    //    Note that _point must be on L1 because if they were
+    //    transferred to L2, their escape would have been cancelled.
     //
     function adopt(uint32 _point)
       external
@@ -595,6 +635,12 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    - :msg.sender must be the owner or management proxy
     //      of _point's current sponsor
     //
+    //    We allow detachment even of points that are on L2.   This is
+    //    so that a star controlled by a contract can detach from a
+    //    planet which was on L1 originally but now is on L2.  L2 will
+    //    ignore this if this is not the actual sponsor anymore (i.e. if
+    //    they later changed their sponsor on L2). 
+
     function detach(uint32 _point)
       external
     {
@@ -716,10 +762,16 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //  setSpawnProxy(): give _spawnProxy the right to spawn points
     //                   with the prefix _prefix
     //
+    //    takes a uint16 so that we can't set spawn proxy for a planet
+    //
+    //    fails if spawn rights have been deposited to L2
+    //
     function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
       activePointSpawner(_prefix)
     {
+      require( depositAddress != azimuth.getSpawnProxy(_prefix) );
+
       azimuth.setSpawnProxy(_prefix, _spawnProxy);
     }
 
