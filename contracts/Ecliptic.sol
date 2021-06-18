@@ -467,6 +467,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       require(azimuth.canTransfer(_point, msg.sender));
 
       //  can't deposit galaxy to L2
+      //  can't deposit contract-owned point to L2
       //
       require( depositAddress != _target ||
                ( azimuth.getPointSize(_point) != Azimuth.Size.Galaxy &&
@@ -501,7 +502,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
         emit Transfer(old, _target, uint256(_point));
       }
 
-      //  if we're depositing, clear L1 data so that no proxies can be used
+      //  if we're depositing to L2, clear L1 data so that no proxies
+      //  can be used
       //
       if ( depositAddress == _target )
       {
@@ -572,7 +574,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       external
       activePointManager(_point)
     {
-      //  if they're on L2, need to use L2
+      //  if the sponsor is on L2, we need to escape using L2
       //
       require( depositAddress != azimuth.getOwner(_sponsor) );
 
@@ -595,8 +597,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    - :msg.sender must be the owner or management proxy
     //      of _point's requested sponsor
     //
-    //    Note that _point must be on L1 because if they were
-    //    transferred to L2, their escape would have been cancelled.
+    //    Note that _point is guaranteed to be on L1 because if they
+    //    were transferred to L2, their escape would have been
+    //    cancelled.
     //
     function adopt(uint32 _point)
       external
@@ -640,7 +643,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    planet which was on L1 originally but now is on L2.  L2 will
     //    ignore this if this is not the actual sponsor anymore (i.e. if
     //    they later changed their sponsor on L2). 
-
+    //
     function detach(uint32 _point)
       external
     {
