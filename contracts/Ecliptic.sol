@@ -58,7 +58,8 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
   //            destroyed (`to` == 0). At the time of any transfer, the
   //            approved address for that NFT (if any) is reset to none.
   //
-  event Transfer(address indexed _from, address indexed _to, uint256 _tokenId);
+  event Transfer(address indexed _from, address indexed _to,
+                 uint256 indexed _tokenId);
 
   //  Approval: This emits when the approved address for an NFT is changed or
   //            reaffirmed. The zero address indicates there is no approved
@@ -66,7 +67,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
   //            the approved address for that NFT (if any) is reset to none.
   //
   event Approval(address indexed _owner, address indexed _approved,
-                 uint256 _tokenId);
+                 uint256 indexed _tokenId);
 
   //  ApprovalForAll: This emits when an operator is enabled or disabled for an
   //                  owner. The operator can manage all NFTs of the owner.
@@ -707,7 +708,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //
     function setManagementProxy(uint32 _point, address _manager)
       external
-      activePointOwner(_point)
+      activePointManager(_point)
     {
       azimuth.setManagementProxy(_point, _manager);
     }
@@ -717,7 +718,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //
     function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
-      activePointOwner(_prefix)
+      activePointSpawner(_prefix)
     {
       azimuth.setSpawnProxy(_prefix, _spawnProxy);
     }
@@ -729,7 +730,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //
     function setVotingProxy(uint8 _galaxy, address _voter)
       external
-      activePointOwner(_galaxy)
+      activePointVoter(_galaxy)
     {
       azimuth.setVotingProxy(_galaxy, _voter);
     }
@@ -916,16 +917,6 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     modifier validPointId(uint256 _id)
     {
       require(_id < 0x100000000);
-      _;
-    }
-
-    //  activePointVoter(): require that :msg.sender can vote as _point,
-    //                      and that _point is active
-    //
-    modifier activePointVoter(uint32 _point)
-    {
-      require( azimuth.canVoteAs(_point, msg.sender) &&
-               azimuth.isActive(_point) );
       _;
     }
 }

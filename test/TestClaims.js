@@ -2,6 +2,7 @@ const Azimuth = artifacts.require('Azimuth');
 const Claims = artifacts.require('Claims');
 
 const assertRevert = require('./helpers/assertRevert');
+const seeEvents = require('./helpers/seeEvents');
 
 contract('Claims', function([owner, user]) {
   let azimuth, claims;
@@ -16,7 +17,10 @@ contract('Claims', function([owner, user]) {
   it('claiming', async function() {
     // only point owner can do this.
     await assertRevert(claims.addClaim(0, "prot1", "claim", "0x0", {from:user}));
-    await claims.addClaim(0, "prot1", "claim", "0x0");
+    // cannot set empty claim/protocol
+    await assertRevert(claims.addClaim(0, "prot1", "", "0x0"));
+    await assertRevert(claims.addClaim(0, "", "claim", "0x0"));
+    await seeEvents(claims.addClaim(0, "prot1", "claim", "0x0"), ['ClaimAdded']);
     // can update the proof.
     await claims.addClaim(0, "prot1", "claim", "0x01");
     await claims.addClaim(0, "prot2", "claim", "0x02");
@@ -41,7 +45,7 @@ contract('Claims', function([owner, user]) {
     await assertRevert(claims.removeClaim(0, "prot2", "claim", {from:user}));
     // can't remove non-existent claim
     await assertRevert(claims.removeClaim(0, "prot2", "!!!"));
-    await claims.removeClaim(0, "prot2", "claim");
+    await seeEvents(claims.removeClaim(0, "prot2", "claim"), ['ClaimRemoved']);
     let clam1 = await claims.claims(0, 1);
     assert.equal(clam1[0], "");
     assert.equal(clam1[1], "");
@@ -66,7 +70,10 @@ contract('Claims', function([owner, user]) {
     assert.equal(clam16[2], "0x00");
     // only point owner (and ecliptic) can clear
     await assertRevert(claims.clearClaims(0, {from:user}));
-    await claims.clearClaims(0);
+    // removing one ahead of clearClaims so we can make sure it emits only as
+    // many events as claims that were actually removed
+    await claims.removeClaim(0, "some protocol", "some claim 0");
+    await seeEvents(claims.clearClaims(0), Array(15).fill('ClaimRemoved'));
     for (var i = 0; i < 16; i++) {
       let clam = await claims.claims(0, i);
       assert.equal(clam[0], "");
