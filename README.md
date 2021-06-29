@@ -25,7 +25,7 @@ This is just a quick summary of the different contracts and their purposes. For 
 The core Azimuth contracts can be found on the Ethereum blockchain.
 
 * **Azimuth**: [azimuth.eth / `0x223c067f8cf28ae173ee5cafea60ca44c335fecb`](https://etherscan.io/address/azimuth.eth)
-* **Ecliptic**: [ecliptic.eth / `0x6ac07b7c4601b5ce11de8dfe6335b871c7c4dd4d`](https://etherscan.io/address/ecliptic.eth)
+* **Ecliptic**: [ecliptic.eth / `0x9ef27de616154FF8B38893C59522b69c7Ba8A81c`](https://etherscan.io/address/ecliptic.eth)
 * **Polls**: [`0x7fecab617c868bb5996d99d95200d2fa708218e4`](https://etherscan.io/address/0x7fecab617c868bb5996d99d95200d2fa708218e4)
 * **Linear Star Release**: [`0x86cd9cd0992f04231751e3761de45cecea5d1801`](https://etherscan.io/address/0x86cd9cd0992f04231751e3761de45cecea5d1801)
 * **Conditional Star Release**: [`0x8c241098c3d3498fe1261421633fd57986d74aea`](https://etherscan.io/address/0x8c241098c3d3498fe1261421633fd57986d74aea)
