@@ -1,3 +1,6 @@
+// NOTE: correctly allows revert to continue test, but does not fail if
+// tx does not revert
+//
 module.exports = async (promise) => {
   try {
     await promise;

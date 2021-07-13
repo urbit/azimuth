@@ -452,6 +452,10 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    Note: the _reset flag is useful when transferring the point to
     //    a recipient who doesn't trust the previous owner.
     //
+    //    We know _point is not on L2, since otherwise its owner would be
+    //    depositAddress (which has no operator) and its transfer proxy
+    //    would be zero.
+    //
     //    Requirements:
     //    - :msg.sender must be either _point's current owner, authorized
     //      to transfer _point, or authorized to transfer the current
