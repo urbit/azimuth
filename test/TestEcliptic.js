@@ -355,6 +355,9 @@ contract('Ecliptic', function([owner, user1, user2]) {
     assert.isTrue(await azimuth.isTransferProxy(512, zero));
 
     // with reset
+    await eclipt.transferPoint(0x10200, user1, false, {from: user1});
+    await eclipt.setManagementProxy(0x10200, user2, {from:user1});
+    assert.isTrue(await azimuth.isManagementProxy(0x10200, user2));
     await eclipt.transferPoint(0x10200, deposit, true, {from: user1});
     assert.equal(await azimuth.getOwner(0x10200), deposit)
     let res = await azimuth.getKeys(0x10200);
