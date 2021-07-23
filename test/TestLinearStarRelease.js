@@ -7,6 +7,8 @@ const LSR = artifacts.require('LinearStarRelease');
 const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
 
+const deposit = '0x1111111111111111111111111111111111111111';
+
 contract('Linear Star Release', function([owner, user1, user2, user3]) {
   let azimuth, polls, claims, eclipt, lsr, windup, rateUnit;
 
@@ -138,8 +140,15 @@ contract('Linear Star Release', function([owner, user1, user2, user3]) {
   });
 
   it('escape hatch', async function() {
+    // doesn't work too early
     await assertRevert(lsr.withdrawOverdue(user2, owner));
     await increaseTime(10*365*24*60*60);
+
+    // test that we can't withdraw to the deposit address.  This is a
+    // convenient way to verify the isContract check works correct.
+    await assertRevert(lsr.withdrawOverdue(user2, deposit));
+
+    // works afterward
     await lsr.withdrawOverdue(user2, owner);
     assert.isTrue(await azimuth.isOwner(1024, owner));
   });
