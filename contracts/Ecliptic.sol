@@ -316,6 +316,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
                            bool _discontinuous)
       external
       activePointManager(_point)
+      onL1(_point)
     {
       if (_discontinuous)
       {
@@ -351,8 +352,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //
       uint16 prefix = azimuth.getPrefix(_point);
 
-      //  can't spawn if we deposited spawn rights to L2
+      //  can't spawn if we deposited ownership or spawn rights to L2
       //
+      require( depositAddress != azimuth.getOwner(prefix) );
       require( depositAddress != azimuth.getSpawnProxy(prefix) );
 
       //  only allow spawning of points of the size directly below the prefix
@@ -501,6 +503,9 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
         //  according to ERC721, the approved address (here, transfer proxy)
         //  gets cleared during every Transfer event
         //
+        //  we also rely on this so that transfer-related functions don't need
+        //  to verify the point is on L1
+        //
         azimuth.setTransferProxy(_point, 0);
 
         emit Transfer(old, _target, uint256(_point));
@@ -577,6 +582,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     function escape(uint32 _point, uint32 _sponsor)
       external
       activePointManager(_point)
+      onL1(_point)
     {
       //  if the sponsor is on L2, we need to escape using L2
       //
@@ -601,16 +607,14 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    - :msg.sender must be the owner or management proxy
     //      of _point's requested sponsor
     //
-    //    Note that _point is guaranteed to be on L1 because if they
-    //    were transferred to L2, their escape would have been
-    //    cancelled.
-    //
     function adopt(uint32 _point)
       external
+      onL1(_point)
     {
+      uint32 request = azimuth.getEscapeRequest(_point);
       require( azimuth.isEscaping(_point) &&
-               azimuth.canManage( azimuth.getEscapeRequest(_point),
-                                  msg.sender ) );
+               azimuth.canManage( request, msg.sender ) );
+      require( depositAddress != azimuth.getOwner(request) );
 
       //  _sponsor becomes _point's sponsor
       //  its escape request is reset to "not escaping"
@@ -627,9 +631,10 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     function reject(uint32 _point)
       external
     {
+      uint32 request = azimuth.getEscapeRequest(_point);
       require( azimuth.isEscaping(_point) &&
-               azimuth.canManage( azimuth.getEscapeRequest(_point),
-                                  msg.sender ) );
+               azimuth.canManage( request, msg.sender ) );
+      require( depositAddress != azimuth.getOwner(request) );
 
       //  reset the _point's escape request to "not escaping"
       //
@@ -646,13 +651,15 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //    so that a star controlled by a contract can detach from a
     //    planet which was on L1 originally but now is on L2.  L2 will
     //    ignore this if this is not the actual sponsor anymore (i.e. if
-    //    they later changed their sponsor on L2). 
+    //    they later changed their sponsor on L2).
     //
     function detach(uint32 _point)
       external
     {
+      uint32 sponsor = azimuth.getSponsor(_point);
       require( azimuth.hasSponsor(_point) &&
-               azimuth.canManage(azimuth.getSponsor(_point), msg.sender) );
+               azimuth.canManage(sponsor, msg.sender) );
+      require( depositAddress != azimuth.getOwner(sponsor) );
 
       //  signal that its sponsor no longer supports _point
       //
@@ -762,6 +769,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     function setManagementProxy(uint32 _point, address _manager)
       external
       activePointManager(_point)
+      onL1(_point)
     {
       azimuth.setManagementProxy(_point, _manager);
     }
@@ -776,6 +784,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     function setSpawnProxy(uint16 _prefix, address _spawnProxy)
       external
       activePointSpawner(_prefix)
+      onL1(_prefix)
     {
       require( depositAddress != azimuth.getSpawnProxy(_prefix) );
 
@@ -802,6 +811,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     //
     function setTransferProxy(uint32 _point, address _transferProxy)
       public
+      onL1(_point)
     {
       //  owner: owner of _point
       //
@@ -976,6 +986,13 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
     modifier validPointId(uint256 _id)
     {
       require(_id < 0x100000000);
+      _;
+    }
+
+    // onL1(): require that ship is not deposited
+    modifier onL1(uint32 _point)
+    {
+      require( depositAddress != azimuth.getOwner(_point) );
       _;
     }
 }
