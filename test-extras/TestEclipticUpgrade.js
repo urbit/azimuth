@@ -15,7 +15,7 @@ const Claims = artifacts.require('Claims');
 const azimuthAddr = '0x223c067F8CF28ae173EE5CafEa60cA44C335fecB';
 
 contract('Ecliptic', function() {
-  let azimuth, ecliptic, nuEcliptic, pollsAddr, senators;
+  let azimuth, ecliptic, polls, nuEcliptic, pollsAddr, senators;
 
   before('setting up for tests', async function() {
     //  get existing contracts
@@ -24,6 +24,8 @@ contract('Ecliptic', function() {
     const eclipticAddr = await azimuth.owner();
     ecliptic = await Ecliptic.at(eclipticAddr);
     pollsAddr = await ecliptic.polls();
+    polls = await Polls.at(pollsAddr);
+    claimsAddr = await ecliptic.claims();
 
     console.log('upgrading from', eclipticAddr);
 
@@ -41,9 +43,7 @@ contract('Ecliptic', function() {
     if (nuEclipticAddr) {
       nuEcliptic = await Ecliptic.at(nuEclipticAddr);
     } else {
-      const nuClaims = await Claims.new(azimuthAddr);
-      console.log('new claims at', nuClaims.address);
-      nuEcliptic = await Ecliptic.new(eclipticAddr, azimuthAddr, pollsAddr, nuClaims.address);
+      nuEcliptic = await Ecliptic.new(eclipticAddr, azimuthAddr, pollsAddr, claimsAddr);
       nuEclipticAddr = nuEcliptic.address;
     }
     console.log('new ecliptic at', nuEclipticAddr);
@@ -53,17 +53,23 @@ contract('Ecliptic', function() {
     //  start poll, cast majority vote
     //
     console.log('casting votes...');
-    await ecliptic.startUpgradePoll(0, nuEcliptic.address, {
-      from: senators[0],
-      gasPrice: 0
-    });
+    const poll = await polls.upgradePolls(nuEclipticAddr);
+    const start = poll.start.toNumber();
+    const duration = poll.duration.toNumber();
+    const cooldown = poll.cooldown.toNumber();
+    if (start === 0 || (start + duration + cooldown) < (Date.now() / 1000)) {
+      await ecliptic.startUpgradePoll(0, nuEclipticAddr, {
+        from: senators[0],
+        gasPrice: 0
+      });
+    }
     for (let i = 0; i < 129; i++) {
-      await ecliptic.castUpgradeVote(i, nuEcliptic.address, true, {
+      await ecliptic.castUpgradeVote(i, nuEclipticAddr, true, {
         from: senators[i],
         gasPrice: 0
       });
     }
-    assert.equal(await azimuth.owner(), nuEcliptic.address);
+    assert.equal(await azimuth.owner(), nuEclipticAddr);
   });
 
   it('can still do transfer', async function() {
@@ -77,7 +83,7 @@ contract('Ecliptic', function() {
   });
 
   it('can still upgrade', async function () {
-    const third = await Ecliptic.new(nuEcliptic.address, azimuthAddr, pollsAddr, await nuEcliptic.claims());
+    const third = await Ecliptic.new(nuEclipticAddr, azimuthAddr, pollsAddr, await nuEcliptic.claims());
     await nuEcliptic.startUpgradePoll(0, third.address, {
       from: senators[0],
       gasPrice: 0

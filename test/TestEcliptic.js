@@ -9,6 +9,11 @@ const assertRevert = require('./helpers/assertRevert');
 const increaseTime = require('./helpers/increaseTime');
 const seeEvents = require('./helpers/seeEvents');
 
+const deposit = '0x1111111111111111111111111111111111111111';
+const zero = '0x0000000000000000000000000000000000000000';
+const zero64 =
+  '0x0000000000000000000000000000000000000000000000000000000000000000';
+
 contract('Ecliptic', function([owner, user1, user2]) {
   let azimuth, polls, claims, ens, resolver, eclipt, eclipt2, pollTime;
 
@@ -17,7 +22,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
     azimuth = await Azimuth.new();
     polls = await Polls.new(pollTime, pollTime);
     claims = await Claims.new(azimuth.address);
-    eclipt = await Ecliptic.new('0x0000000000000000000000000000000000000000',
+    eclipt = await Ecliptic.new(zero,
                                 azimuth.address,
                                 polls.address,
                                 claims.address);
@@ -109,9 +114,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
     assert.isTrue(await azimuth.isSpawnProxy(0, user2));
     // spawn as launcher, then test revoking of rights.
     await eclipt.spawn(768, user1, {from:user2});
-    await eclipt.setSpawnProxy(0,
-                               '0x0000000000000000000000000000000000000000',
-                               {from:user1});
+    await eclipt.setSpawnProxy(0, zero, {from:user1});
     assert.isFalse(await azimuth.isSpawnProxy(0, user2));
   });
 
@@ -130,16 +133,14 @@ contract('Ecliptic', function([owner, user1, user2]) {
                     ['Transfer']);
     assert.isTrue(await azimuth.isOwner(0, user2));
     let { crypt, auth } = await azimuth.getKeys(0);
-    assert.equal(crypt,
-      '0x0000000000000000000000000000000000000000000000000000000000000000');
-    assert.equal(auth,
-      '0x0000000000000000000000000000000000000000000000000000000000000000');
+    assert.equal(crypt, zero64);
+    assert.equal(auth, zero64);
     assert.equal(await azimuth.getKeyRevisionNumber(0), 2);
     assert.equal(await azimuth.getContinuityNumber(0), 1);
-    assert.isTrue(await azimuth.isManagementProxy(0, '0x0000000000000000000000000000000000000000'));
-    assert.isTrue(await azimuth.isVotingProxy(0, '0x0000000000000000000000000000000000000000'));
-    assert.isTrue(await azimuth.isSpawnProxy(0, '0x0000000000000000000000000000000000000000'));
-    assert.isTrue(await azimuth.isTransferProxy(0, '0x0000000000000000000000000000000000000000'));
+    assert.isTrue(await azimuth.isManagementProxy(0, zero));
+    assert.isTrue(await azimuth.isVotingProxy(0, zero));
+    assert.isTrue(await azimuth.isSpawnProxy(0, zero));
+    assert.isTrue(await azimuth.isTransferProxy(0, zero));
     let claim = await claims.claims(0, 0);
     assert.equal(claim[0], "");
     // for unlinked points, keys/continuity aren't incremented
@@ -153,7 +154,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
     // this shouldn't have emitted a transfer event
     await seeEvents(eclipt.transferPoint(768, user1, true, {from:user1}), []);
     // but still reset proxy because we asked
-    assert.isTrue(await azimuth.isTransferProxy(768, '0x0000000000000000000000000000000000000000'));
+    assert.isTrue(await azimuth.isTransferProxy(768, zero));
   });
 
   it('allowing transfer of ownership', async function() {
@@ -306,6 +307,85 @@ contract('Ecliptic', function([owner, user1, user2]) {
     assert.equal(await azimuth.getVotingProxy(0), owner);
   });
 
+  it('cannot spawn or change spawn proxy if on L2', async function() {
+    // Deposit ~binzod to L2
+    await eclipt.setSpawnProxy(512, user2, {from:user1});
+    assert.equal(await azimuth.getSpawnProxy(512), user2);
+    await eclipt.configureKeys(512, '0x1', '0x2', 3, false, {from: user1});
+    assert.equal(await azimuth.getContinuityNumber(512), 0);
+    await eclipt.spawn(0x10200, user2, {from:user1});
+    assert.equal(await azimuth.getTransferProxy(0x10200), user2);
+    await eclipt.setSpawnProxy(512, deposit, {from:user1});
+    assert.equal(await azimuth.getSpawnProxy(512), deposit);
+
+    // Can't change spawn proxy
+    await assertRevert(eclipt.setSpawnProxy(512, user2, {from:user1}));
+    assert.equal(await azimuth.getSpawnProxy(512), deposit);
+
+    // Can't spawn
+    await assertRevert(eclipt.spawn(0x20200, user2, {from:user1}));
+    assert.equal(await azimuth.getOwner(0x20200), 0);
+
+    // transferPoint with reset doesn't clear spawn rights
+    await eclipt.transferPoint(512, user2, true, {from:user1});
+    assert.equal(await azimuth.getContinuityNumber(512), 1);
+    assert.equal(await azimuth.getSpawnProxy(512), deposit);
+    await eclipt.transferPoint(512, user1, false, {from:user2});
+  });
+
+  it('cannot deposit galaxy to L2', async function() {
+    await eclipt.transferPoint(1, user2, false, {from:user1});
+    await assertRevert(eclipt.transferPoint(1, deposit, false, {from:user2}));
+    assert.equal(await azimuth.getOwner(1), user2);
+    await eclipt.transferPoint(1, user1, false, {from:user2});
+  });
+
+  it('clears correct data on deposit, regardless of reset', async function() {
+    // without reset
+    await eclipt.transferPoint(512, deposit, false, {from: user1});
+    assert.equal(await azimuth.getOwner(512), deposit)
+    let { crypt, auth } = await azimuth.getKeys(512);
+    assert.equal(crypt, zero64);
+    assert.equal(auth, zero64);
+    assert.equal(await azimuth.getKeyRevisionNumber(512), 2);
+    assert.equal(await azimuth.getContinuityNumber(512), 1);
+    assert.isTrue(await azimuth.isManagementProxy(512, zero));
+    assert.isTrue(await azimuth.isVotingProxy(512, zero));
+    assert.isTrue(await azimuth.isSpawnProxy(512, zero));
+    assert.isTrue(await azimuth.isTransferProxy(512, zero));
+
+    // with reset
+    await eclipt.transferPoint(0x10200, user1, false, {from: user1});
+    await eclipt.setManagementProxy(0x10200, user2, {from:user1});
+    assert.isTrue(await azimuth.isManagementProxy(0x10200, user2));
+    await eclipt.transferPoint(0x10200, deposit, true, {from: user1});
+    assert.equal(await azimuth.getOwner(0x10200), deposit)
+    let res = await azimuth.getKeys(0x10200);
+    assert.equal(res.crypt, zero64);
+    assert.equal(res.auth, zero64);
+    assert.equal(await azimuth.getKeyRevisionNumber(0x10200), 0);
+    assert.equal(await azimuth.getContinuityNumber(0x10200), 0);
+    assert.isTrue(await azimuth.isManagementProxy(0x10200, zero));
+    assert.isTrue(await azimuth.isVotingProxy(0x10200, zero));
+    assert.isTrue(await azimuth.isSpawnProxy(0x10200, zero));
+    assert.isTrue(await azimuth.isTransferProxy(0x10200, zero));
+  });
+
+  it('cannot escape to L2 sponsor on L1', async function() {
+    // 0x10100 == 65792
+    await eclipt.configureKeys(768, '0x1', '0x2', 3, false, {from: user1});
+    await eclipt.escape(0x10100, 768, {from:owner});
+    assert.equal(await azimuth.getEscapeRequest(0x10100), 768);
+    await assertRevert(eclipt.escape(65792, 512, {from:owner}));
+    assert.equal(await azimuth.getEscapeRequest(0x10100), 768);
+  });
+
+  it('[not implemented] cannot deposit contract-owned ship', async function() {
+    // XXX: not sure how to test this?  I guess we need to deploy a
+    // contract which can control a ship and try to deposit it from
+    // either that contract or a transfer proxy or operator
+  });
+
   it('voting on and updating document poll', async function() {
     // can't if not galaxy owner.
     await assertRevert(eclipt.startDocumentPoll(0, web3.utils.toHex(10), {from:user2}));
@@ -320,7 +400,7 @@ contract('Ecliptic', function([owner, user1, user2]) {
   });
 
   it('voting on upgrade poll', async function() {
-    let ecliptx = await Ecliptic.new('0x0000000000000000000000000000000000000000',
+    let ecliptx = await Ecliptic.new(zero,
                                      azimuth.address,
                                      polls.address,
                                      claims.address);

@@ -6,6 +6,7 @@ var Ecliptic = artifacts.require("Ecliptic");
 var DelegatedSending = artifacts.require("DelegatedSending");
 var LinearStarRelease = artifacts.require("LinearStarRelease");
 var ConditionalStarRelease = artifacts.require("ConditionalStarRelease");
+var Naive = artifacts.require("Naive");
 
 const WITH_TEST_STATE = process.argv[3] === "with-state";
 
@@ -29,6 +30,7 @@ module.exports = async function(deployer, network, accounts) {
   const polls = await deployer.deploy(Polls, 1209600, 604800);
   const claims = await deployer.deploy(Claims, azimuth.address);
   const censures = await deployer.deploy(Censures, azimuth.address);
+  const naive = await deployer.deploy(Naive);
 
 
   //NOTE  for real deployment, use a real ENS registry
