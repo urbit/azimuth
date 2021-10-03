@@ -1,5 +1,9 @@
 # Changelog
 
+- 1.2.3 (2021-05-25)
+    * Makes a minor tweak to the Truffle config script name, which should
+      better-support additional versions of Truffle.
+
 - 1.2.2 (2020-07-23)
     * Updates Truffle to a recent version and makes miscellaneous minor fixes
       to testing and deployment scripts.
