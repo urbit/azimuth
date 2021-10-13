@@ -78,7 +78,7 @@ For testing Ecliptic upgrades against whatever version of the contract is on mai
 npm run fork-mainnet
 ```
 
-This will start a local fork of mainnet, with the ownership addresses of the first 128 galaxies unlocked. Once that's ready, you can run the following in a seperate terminal:
+This will start a local fork of mainnet, with the ownership addresses of the first 128 galaxies unlocked. Once that's ready, you can run the following in a separate terminal:
 
 ```
 npm run test-upgrade
