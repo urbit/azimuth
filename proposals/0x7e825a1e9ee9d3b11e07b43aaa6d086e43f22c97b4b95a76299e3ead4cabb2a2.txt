@@ -1,0 +1,20 @@
+The state of Urbit ID shall be determined by feeding events into the nock 4K
+program whose keccak256 hash is 
+
+0xf72a.cad7.5633.afa0.c019.8b1c.e7a4.270d.122f.d73f.bab9.ae53.7049.cb33.ec8c.4f2c
+
+These events will be logs from Azimuth[0] and Ecliptic[1] plus batches from the
+Roller contract[2].
+
+This will take effect on November 9, 2021 at 9pm UTC.  It will apply
+retroactively to all events and batches corresponding to those contracts.
+
+This nock program may be upgraded in the future by a vote of the galaxies.
+
+Before November 9, 2021 at 9pm UTC, if the Tlon Corporation discovers a security
+vulnerability, it may unilaterally cancel this change by publishing a statement
+to that effect.  In that case, the galaxies may pass an amended proposal.
+
+[0] 0x223c067F8CF28ae173EE5CafEa60cA44C335fecB
+[1] The contract produced by calling owner() on Azimuth at any given time
+[2] 0xeb70029CFB3C53c778EAf68Cd28de725390A1fE9
