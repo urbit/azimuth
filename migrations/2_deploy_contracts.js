@@ -39,7 +39,8 @@ module.exports = async function(deployer, network, accounts) {
     "0x0000000000000000000000000000000000000000",
     azimuth.address,
     polls.address,
-    claims.address
+    claims.address,
+    "0x0000000000000000000000000000000000000000"
   );
 
   // configure contract ownership

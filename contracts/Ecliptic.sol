@@ -5,6 +5,7 @@ pragma solidity 0.4.24;
 
 import './EclipticBase.sol';
 import './Claims.sol';
+import './interfaces/ITreasuryProxy.sol';
 
 import 'openzeppelin-solidity/contracts/introspection/SupportsInterfaceWithLookup.sol';
 import 'openzeppelin-solidity/contracts/token/ERC721/ERC721.sol';
@@ -87,6 +88,16 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
   address constant public depositAddress =
     0x1111111111111111111111111111111111111111;
 
+  ITreasuryProxy public treasuryProxy;
+
+  // treasuryUpgradeHash
+  //   hash of the treasury implementation to upgrade to
+  //   Note: stand-in, just hash of no bytes
+  //   could be made immutable and passed in as constructor argument
+  bytes32 constant public treasuryUpgradeHash = hex"26f3eae628fa1a4d23e34b91a4d412526a47620ced37c80928906f9fa07c0774";
+
+  bool public treasuryUpgraded = false;
+
   //  claims: contract reference, for clearing claims on-transfer
   //
   Claims public claims;
@@ -99,11 +110,13 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
   constructor(address _previous,
               Azimuth _azimuth,
               Polls _polls,
-              Claims _claims)
+              Claims _claims,
+              ITreasuryProxy _treasuryProxy)
     EclipticBase(_previous, _azimuth, _polls)
     public
   {
     claims = _claims;
+    treasuryProxy = _treasuryProxy;
 
     //  register supported interfaces for ERC165
     //
@@ -930,6 +943,18 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       external
     {
       polls.updateDocumentPoll(_proposal);
+    }
+
+    //  upgradeTreasury: upgrade implementation for treasury
+    //
+    //    Note: we specify when deploying Ecliptic the keccak hash
+    //    of the implementation we're upgrading to
+    //
+    function upgradeTreasury(address _treasuryImpl) external {
+      require(!treasuryUpgraded);
+      require(keccak256(_treasuryImpl) == treasuryUpgradeHash);
+      treasuryProxy.upgradeTo(_treasuryImpl);
+      treasuryUpgraded = true;
     }
 
   //

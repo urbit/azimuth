@@ -43,7 +43,7 @@ contract('Ecliptic', function() {
     if (nuEclipticAddr) {
       nuEcliptic = await Ecliptic.at(nuEclipticAddr);
     } else {
-      nuEcliptic = await Ecliptic.new(eclipticAddr, azimuthAddr, pollsAddr, claimsAddr);
+      nuEcliptic = await Ecliptic.new(eclipticAddr, azimuthAddr, pollsAddr, claimsAddr, '0x0000000000000000000000000000000000000000');
       nuEclipticAddr = nuEcliptic.address;
     }
     console.log('new ecliptic at', nuEclipticAddr);
@@ -83,7 +83,7 @@ contract('Ecliptic', function() {
   });
 
   it('can still upgrade', async function () {
-    const third = await Ecliptic.new(nuEclipticAddr, azimuthAddr, pollsAddr, await nuEcliptic.claims());
+    const third = await Ecliptic.new(nuEclipticAddr, azimuthAddr, pollsAddr, await nuEcliptic.claims(), '0x0000000000000000000000000000000000000000');
     await nuEcliptic.startUpgradePoll(0, third.address, {
       from: senators[0],
       gasPrice: 0
