@@ -63,8 +63,6 @@ contract('Azimuth', function([owner, user, user2, user3]) {
     assert.equal(owned[1], 1);
     assert.equal(owned[2], 2);
     assert.equal(owned.length, 3);
-    assert.equal(await azimuth.getOwnedPointAtIndex(user, 2), 2);
-    await assertRevert(azimuth.getOwnedPointAtIndex(user, 3));
     await azimuth.setOwner(0, owner);
     owned = await azimuth.getOwnedPoints(user);
     assert.equal(owned[0].toNumber(), 2);

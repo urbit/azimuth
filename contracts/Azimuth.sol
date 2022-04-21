@@ -241,19 +241,6 @@ contract Azimuth is Ownable
   //
   mapping(uint32 => mapping(uint32 => uint256)) public escapeRequestsIndexes;
 
-  //  pointsOwnedBy: per address, the points they own
-  //
-  mapping(address => uint32[]) public pointsOwnedBy;
-
-  //  pointOwnerIndexes: per owner, per point, (index + 1) in
-  //                     the pointsOwnedBy array
-  //
-  //    We delete owners by moving the last entry in the array to the
-  //    newly emptied slot, which is (n - 1) where n is the value of
-  //    pointOwnerIndexes[owner][point].
-  //
-  mapping(address => mapping(uint32 => uint256)) public pointOwnerIndexes;
-
   //  managerFor: per address, the points they are the management proxy for
   //
   mapping(address => uint32[]) public managerFor;
@@ -858,14 +845,22 @@ contract Azimuth is Ownable
       return (rights[_point].owner == _address);
     }
 
-    //  getOwnedPointCount(): return length of array of points that _whose owns
+    //  getOwnedPointCount(): return number of points that _whose owns
     //
     function getOwnedPointCount(address _whose)
       view
       external
       returns (uint256 count)
     {
-      return pointsOwnedBy[_whose].length;
+      for (uint256 i = 0; i < 0x100000000; i++)
+      {
+        uint32 point = uint32(i);
+        if (isActive(point) && getOwner(point) == _whose)
+        {
+          count++;
+        }
+      }
+      return count;
     }
 
     //  getOwnedPoints(): return array of points that _whose owns
@@ -878,20 +873,15 @@ contract Azimuth is Ownable
       external
       returns (uint32[] ownedPoints)
     {
-      return pointsOwnedBy[_whose];
-    }
-
-    //  getOwnedPointAtIndex(): get point at _index from array of points that
-    //                         _whose owns
-    //
-    function getOwnedPointAtIndex(address _whose, uint256 _index)
-      view
-      external
-      returns (uint32 point)
-    {
-      uint32[] storage owned = pointsOwnedBy[_whose];
-      require(_index < owned.length);
-      return owned[_index];
+      for (uint256 i = 0; i < 0x100000000; i++)
+      {
+        uint32 point = uint32(i);
+        if (isActive(point) && getOwner(point) == _whose)
+        {
+          ownedPoints.push(point);
+        }
+      }
+      return ownedPoints;
     }
 
     //  management proxy
@@ -1171,42 +1161,9 @@ contract Azimuth is Ownable
         return;
       }
 
-      //  if the point used to have a different owner, do some gymnastics to
-      //  keep the list of owned points gapless.  delete this point from the
-      //  list, then fill that gap with the list tail.
-      //
-      if (0x0 != prev)
-      {
-        //  i: current index in previous owner's list of owned points
-        //
-        uint256 i = pointOwnerIndexes[prev][_point];
-
-        //  we store index + 1, because 0 is the solidity default value
-        //
-        assert(i > 0);
-        i--;
-
-        //  copy the last item in the list into the now-unused slot,
-        //  making sure to update its :pointOwnerIndexes reference
-        //
-        uint32[] storage owner = pointsOwnedBy[prev];
-        uint256 last = owner.length - 1;
-        uint32 moved = owner[last];
-        owner[i] = moved;
-        pointOwnerIndexes[prev][moved] = i + 1;
-
-        //  delete the last item
-        //
-        delete(owner[last]);
-        owner.length = last;
-        pointOwnerIndexes[prev][_point] = 0;
-      }
-
-      //  update the owner list and the owner's index list
+      //  update the owner list
       //
       rights[_point].owner = _owner;
-      pointsOwnedBy[_owner].push(_point);
-      pointOwnerIndexes[_owner][_point] = pointsOwnedBy[_owner].length;
       emit OwnerChanged(_point, _owner);
     }
 
