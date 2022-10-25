@@ -40,6 +40,12 @@ A suggested process for publicizing the proposals voted on by the Galactic Senat
 
 ## Running
 
+As a pre-requisite, `truffle` is required to be installed globally:
+
+```
+npm install -g truffle
+```
+
 Install dependencies. Most notable inclusion is [Zeppelin-Solidity](https://openzeppelin.org/).
 
 ```

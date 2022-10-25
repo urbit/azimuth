@@ -13,7 +13,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: "0.4.24",
+      version: "pragma",
       optimizer: {
         enabled: true,
         runs: 200
