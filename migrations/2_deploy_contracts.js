@@ -26,22 +26,15 @@ module.exports = async function(deployer, network, accounts) {
   await deployer;
 
   // setup contracts
-  const azimuth = await deployer.deploy(Azimuth);
-  const polls = await deployer.deploy(Polls, 1209600, 604800);
-  const claims = await deployer.deploy(Claims, azimuth.address);
-  const censures = await deployer.deploy(Censures, azimuth.address);
-  const naive = await deployer.deploy(Naive);
+  const azimuth = await Azimuth.at('0xbB61Fa683E4B910418E27b00a1438a936234df52');
+  const polls = await Polls.at('0xB8473DBd10c98cE9594a53295CF1e9bcA5206BAA');
+  const claims = await Claims.at('0xDf2eD5485C28eC61E0Dd4408b4ac350C48bF338d');
+  const censures = await Censures.at('0x7312c70c46f9a26609fdc4756a9f15fd4731fbcf');
+  const naive = await Naive.at('0x56e37137CdAFc026a732e8E840cD621ed50Bd210')
 
 
   //NOTE  for real deployment, use a real ENS registry
-  const ecliptic = await deployer.deploy(
-    Ecliptic,
-    "0x0000000000000000000000000000000000000000",
-    azimuth.address,
-    polls.address,
-    claims.address,
-    "0x0000000000000000000000000000000000000000"
-  );
+  const ecliptic = await Ecliptic.at('0xe1290a3290145e63e6a8ec1ef6616906856d0c8f');
 
   // configure contract ownership
   await azimuth.transferOwnership(ecliptic.address);
