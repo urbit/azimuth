@@ -216,7 +216,7 @@ contract Ecliptic is EclipticBase, SupportsInterfaceWithLookup, ERC721Metadata
       //  the ERC721 operator/approved address (if any) is
       //  accounted for in transferPoint()
       //
-      transferPoint(id, _to, true);
+      transferPoint(id, _to, false);
     }
 
     //  approve(): allow _approved to transfer ownership of point
